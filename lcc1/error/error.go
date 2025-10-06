@@ -11,6 +11,9 @@ var errors = []string {
 	"expected",
 	"redefinition of",
 	"use of undeclared identifier",
+	"incompatible type conversion",
+	"could not evaluate mathematical expression",
+	"variable has incomplete type",
 }
 
 var Warnings int = 0

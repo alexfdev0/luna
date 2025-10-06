@@ -13,6 +13,7 @@ import (
 	"luna_l2/video"
 	"luna_l2/keyboard"
 	"luna_l2/types"
+	"luna_l2/audio"
 
 	"gioui.org/app"	
 	"gioui.org/f32"
@@ -96,12 +97,26 @@ func getRegisterName[T uint32 | byte](address T) string {
 }
 
 func Mapper(address uint32) byte {
-	if address < MEMSIZE {
+	switch {
+	case address >= 0x00000000 && address <= MEMCAP:
 		return Memory[address]
-	} else {
-		return Memory[MEMCAP]
+	case address >= 0x70000000 && address <= 0x7000F9FF:
+		return video.MemoryVideo[address - MEMSIZE]
+	case address >= 0x7000FA00 && address <= 0x7001A643:
+		return audio.MemoryAudio[address - 0x7000FA00]
 	}
 	return Memory[0x00000000]
+}
+
+func MapperWrite(address uint32, content byte) {
+	switch {
+	case address >= 0x00000000 && address <= MEMCAP:
+		Memory[address] = content
+	case address >= 0x70000000 && address <= 0x7000F9FF:
+		video.MemoryVideo[address - MEMSIZE] = content
+	case address >= 0x7000FA00 && address <= 0x7001A643:
+		audio.MemoryAudio[address - 0x7000FA00] = content
+	}
 }
 
 func MapperIndex(address uint32) uint32 {
@@ -356,8 +371,8 @@ func execute() {
 			} else {
 				sp = video.Clamp(sp - 4, 0, MEMCAP)
 			}
-			Memory[MapperIndex(sp)] = byte(value & 0xFF)
-			Memory[MapperIndex(sp + 1)] = byte(value >> 8)	
+			MapperWrite(sp, byte(value & 0xFF))
+			MapperWrite(sp + 1, byte(value >> 8))
 			setRegister(0x0019, uint32(sp))	
 			stall(2)
 		case 0x0c:
@@ -504,7 +519,7 @@ func execute() {
 			// lod <addr (register)> <destination register>	
 			addr := getRegister(uint32(Memory[ProgramCounter+1]))
 			toregister := uint32(Memory[ProgramCounter+2])
-			setRegister(toregister, uint32(Memory[video.Clamp(addr, 0, MEMCAP)]))
+			setRegister(toregister, uint32(Mapper(addr)))
 			setRegister(0x001a, ProgramCounter + 3)
 			Log("lod " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(toregister))
 			stall(100)
@@ -514,13 +529,13 @@ func execute() {
 			addr := getRegister(uint32(Memory[ProgramCounter+1]))
 			value := uint32(Memory[ProgramCounter+2])
 			if types.Bits32 == false {
-				Memory[video.Clamp(addr, 0, MEMCAP)] = byte(getRegister(value) >> 8)
-				Memory[video.Clamp(addr + 1, 0, MEMCAP)] = byte(getRegister(value) & 0xFF)
+				MapperWrite(addr, byte(getRegister(value) >> 8))
+				MapperWrite(addr + 1, byte(getRegister(value) & 0xFF))
 			} else {
-				Memory[video.Clamp(addr, 0, MEMCAP)] = byte(getRegister(value) >> 24)
-				Memory[video.Clamp(addr + 1, 0, MEMCAP)] = byte(getRegister(value) >> 16)
-				Memory[video.Clamp(addr + 2, 0, MEMCAP)] = byte(getRegister(value) >> 8)
-				Memory[video.Clamp(addr + 3, 0, MEMCAP)] = byte(getRegister(value) & 0xFF)
+				MapperWrite(addr, byte(getRegister(value) >> 24))
+				MapperWrite(addr + 1, byte(getRegister(value) >> 16))
+				MapperWrite(addr + 2, byte(getRegister(value) >> 8))
+				MapperWrite(addr + 3, byte(getRegister(value) & 0xFF))
 			}	
 			setRegister(0x001a, ProgramCounter + 3)
 			Log("str " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(value))
@@ -531,12 +546,12 @@ func execute() {
 			addr := getRegister(uint32(Memory[ProgramCounter+1]))
 			toregister := uint32(Memory[ProgramCounter+2])
 			if types.Bits32 == false {
-				setRegister(toregister, uint32(uint16(Memory[video.Clamp(addr, 0, MEMCAP)]) << 8 | uint16(Memory[video.Clamp(addr + 1, 0, MEMCAP)])))
+				setRegister(toregister, uint32(uint16(Mapper(addr)) << 8 | uint16(Mapper(addr))))
 			} else {
-				setRegister(toregister, uint32(Memory[video.Clamp(addr, 0, MEMCAP)]) << 24 | uint32(Memory[video.Clamp(addr + 1, 0, MEMCAP)]) << 16 | uint32(Memory[video.Clamp(addr + 2, 0, MEMCAP)]) << 8 | uint32(Memory[video.Clamp(addr + 3, 0, MEMCAP)]) << 16)
+				setRegister(toregister, uint32(Mapper(addr)) << 24 | uint32(Mapper(addr + 1)) << 16 | uint32(Mapper(addr + 2)) << 8 | uint32(Mapper(addr + 3)))
 			}
 			setRegister(0x001a, ProgramCounter + 3)
-			Log("lodw " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(toregister))
+			Log("lodf " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(toregister))
 			stall(100)
 		case 0x1b:
 			// SET
@@ -549,7 +564,7 @@ func execute() {
 				types.Bits32 = true
 				Log("32 bit mode")
 			}
-			setRegister(0x001a, ProgramCounter + 2)
+			setRegister(0x001a, ProgramCounter + 2)	
 		default:
 			setRegister(0x0001, uint32(op))
 			Log("\033[31mIllegal instruction 0x" + fmt.Sprintf("%08x", uint32(op)) + "\033[33m")

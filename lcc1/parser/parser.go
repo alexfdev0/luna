@@ -5,6 +5,7 @@ import (
 	"lcc1/error"
 	"strings"
 	"fmt"
+	"github.com/Knetic/govaluate"
 )
 
 var level int = 0
@@ -17,6 +18,7 @@ var IDCounter = 1
 const (
 	NUMBER int = iota
 	STRING
+	NULL
 )
 type Variable_Static struct {
 	Name string
@@ -24,17 +26,9 @@ type Variable_Static struct {
 	Value any
 }
 
-type Variable_Dynamic struct {
-	Name string
-	Type int
-	Value any
-	Location uint16
-	Length uint16
-}
-
 var Location uint16 = 1000
 
-var Variables = []Variable_Dynamic {}
+var Variables = []Variable_Static {}
 
 func Write(text string, spaced bool) {
 	if spaced == false {
@@ -56,16 +50,7 @@ func CreateStatic(variable Variable_Static) {
 	WritePre(variable.Name + ":\n    .asciz \"" + variable.Value.(string) + "\"", false)	
 }
 
-func CreateDynamic(Name string, Type int, Value any, Length uint16) uint16 {
-	// Add to entry
-	// Assume memory section starts at 1000 for now.
-	Variables = append(Variables, Variable_Dynamic{Name: Name, Type: Type, Value: Value, Length: Length, Location: Location})
-	oldloc := Location
-	Location += Length
-	return oldloc
-}
-
-func LookupVariable(Name string, Enforce bool) Variable_Dynamic {
+func LookupVariable(Name string, Enforce bool) Variable_Static {
 	for _, variable := range Variables {
 		if variable.Name == Name {
 			return variable
@@ -73,9 +58,9 @@ func LookupVariable(Name string, Enforce bool) Variable_Dynamic {
 	}
 	if Enforce == true {
 		error.Error(4, "'" + Name + "'")
-		return Variable_Dynamic{Name: "__ZERO", Type: NUMBER, Value: 0, Length: 0, Location: 0}
+		return Variable_Static{Name: "__ZERO", Type: NULL, Value: 0}
 	} else {
-		return Variable_Dynamic{Name: "__ZERO", Type: NUMBER, Value: 0, Length: 0, Location: 0}
+		return Variable_Static{Name: "__ZERO", Type: NULL, Value: 0}
 	}
 }
 
@@ -102,6 +87,32 @@ func StringParse(tokens []lexer.Token, start int) (string, int) {
 	}
 	
 	return str, loc
+}
+
+func ParseExpression(tokens []lexer.Token, start int) (int, int) {
+	if tokens[start].Type == lexer.TokNumber || LookupVariable(tokens[start].Value, false).Type == NUMBER {
+		var evaltokens []string
+		var end int = 0
+		for i := start; i < len(tokens); i++ {
+			if tokens[i].Type == lexer.TokSemi {
+				end = i - 1
+				break
+			}
+			evaltokens = append(evaltokens, tokens[i].Value)
+		}
+		evalstr := strings.Join(evaltokens, " ")	
+		expression, err := govaluate.NewEvaluableExpression(evalstr)
+		if err != nil {
+			error.Error(6, "'" + evalstr + "'")
+		}
+		result, err := expression.Evaluate(nil)
+		if err != nil {
+			error.Error(6, "'" + evalstr + "'")
+		}
+
+		return int(result.(float64)), end
+	} 
+	return 0, start
 }
 
 func Parse(tokens []lexer.Token) {
@@ -136,14 +147,14 @@ func Parse(tokens []lexer.Token) {
 			var rtype int
 			if _type == "int" {
 				rtype = NUMBER
-			}
+			}	
 
 			if LookupVariable(name, false).Name != "__ZERO" {
 				// print(LookupVariable(name, false).Name)
 				error.Error(3, "'" + name + "'")
 			}
 
-			CreateDynamic(name, rtype, 0, 2)
+			Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: nil})
 
 			if peek(0).Type == lexer.TokLParen {
 				expect(lexer.TokLParen)
@@ -186,7 +197,18 @@ func Parse(tokens []lexer.Token) {
 					Parse(tokens)
 				}
 			} else if peek(0).Type == lexer.TokEqual {
-				
+				expect(lexer.TokEqual)	
+				switch _type {
+				case "void":
+					error.Error(7, "'void'")
+				case "int":
+					Write(name + ":", false)
+					value, end := ParseExpression(tokens, i)
+					Write(".word " + fmt.Sprintf("%d", int32(value)), true)
+					Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER, Value: int32(value)})
+					i = end + 1
+				}
+				expect(lexer.TokSemi)
 			} else {
 				error.Error(1, "'" + peek(0).Value + "'")
 			}
@@ -229,15 +251,66 @@ func Parse(tokens []lexer.Token) {
 					expect(lexer.TokRParen)
 					expect(lexer.TokSemi)
 					Write("call " + name, true)
-				} 
+				} else if peek(0).Type == lexer.TokEqual {
+					switch peek(1).Type {
+						case lexer.TokEqual:
+							expect(lexer.TokEqual)
+							expect(lexer.TokEqual)
+							// We'll just compare 2 variables for now...
+							LookupVariable(name, true)
+							name2 := expect(lexer.TokIdent)
+							LookupVariable(name2, true)	
+							expect(lexer.TokSemi)
+							Write("mov r1, " + name, true)
+							Write("lodf r1, r1", true)
+							Write("mov r2, " + name2, true)
+							Write("lodf r2, r2", true)
+							Write("cmp r3, r1, r2", true)
+						default:
+							expect(lexer.TokEqual)
+							variable := LookupVariable(name, true)
+							switch peek(0).Type {
+							case lexer.TokNumber:
+								if variable.Type != NUMBER {
+									error.Error(5, "'" + peek(0).Value + "'")
+								}
+								value, end := ParseExpression(tokens, i)
+								Write("mov r1, " + name, true)
+								Write("mov r2, " + fmt.Sprintf("%d", value), true)
+								Write("str r1, r2", true)
+								i = end
+							}
+							expect(lexer.TokSemi)
+					}	
+				}
 			case lexer.TokReturn:
 				expect(lexer.TokReturn)
-				name := expect(lexer.TokIdent)
-				expect(lexer.TokSemi)
-				LookupVariable(name, true)
-				Write("mov t7, " + name, true)
+				if peek(0).Type == lexer.TokIdent {
+					name := expect(lexer.TokIdent)
+					expect(lexer.TokSemi)
+					LookupVariable(name, true)
+					Write("mov t7, " + name, true)
+				} else {
+					expect(lexer.TokSemi)
+				}
+				// RET is handled for us at level 0
 			case lexer.TokSemi:
 				expect(lexer.TokSemi)
+			case lexer.TokIf:
+				expect(lexer.TokIf)
+				expect(lexer.TokLParen)
+				var exptokens = []lexer.Token {}
+				for j := i; j < len(tokens); j++ {
+					if tokens[j].Type == lexer.TokRParen {
+						i = j
+						break
+					}
+					exptokens = append(exptokens, tokens[j])
+				}
+				exptokens = append(exptokens, lexer.Token{Type: lexer.TokSemi, Value: ";"})
+				expect(lexer.TokRParen)
+				Parse(exptokens)
+				
 			default:
 				error.Error(1, "'" + tokens[i].Value + "'")
 			}	

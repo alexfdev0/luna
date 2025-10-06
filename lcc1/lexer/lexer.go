@@ -53,7 +53,7 @@ func Lex(code string) []Token {
     for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
 		content := s.TokenText()	
 
-		if content == "int" {
+		if content == "int" || content == "void" {
 			tokens = append(tokens, Token{Type: TokType, Value: content})
 		} else if content == "return" {
 			tokens = append(tokens, Token{Type: TokReturn, Value: content})

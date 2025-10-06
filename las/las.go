@@ -935,8 +935,9 @@ func main() {
 			continue
 		}
 		// Write everything
-		name, _ := splitFile(file)	
-		buffer := append([]byte{0xc2, 0x80, 0x7d}, append(DataBuffer, append([]byte{0xc2, 0x80, 0x7e}, append(TextBuffer, append([]byte{0xc2, 0x80, 0x7f}, ExtendedDataBuffer...)...)...)...)...)
+		name, _ := splitFile(file)
+		buffer := append(DataBuffer, TextBuffer...)
+		buffer = append(buffer, ExtendedDataBuffer...)
 		os.WriteFile(name + ".o", buffer, 0644)
 		object_files = append(object_files, name + ".o")
 		// Reset

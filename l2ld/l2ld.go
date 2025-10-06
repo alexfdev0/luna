@@ -3,8 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"bytes"
-	"strings"
+	"bytes"	
 )
 
 type binding struct {
@@ -12,12 +11,18 @@ type binding struct {
 	Location []byte
 }
 
-var DataBuffer []byte
-var TextBuffer []byte
-var ExtendedDataBuffer []byte
+type unresolvedBinding struct {
+	Name string
+	BufferLoc int
+	Solved bool
+}
+
+var Buffer []byte
+
 var section string = "text"
 
 var bindings = []binding {}
+var unresolvedBindings = []unresolvedBinding {}
 
 var errors = []string {
 	"no object files specified",
@@ -31,14 +36,7 @@ func error(errno int, args string) {
 }
 
 func write(content byte) {
-	switch section {
-	case "data":
-		DataBuffer = append(DataBuffer, content)
-	case "text":
-		TextBuffer = append(TextBuffer, content)
-	case "edata":
-		ExtendedDataBuffer = append(ExtendedDataBuffer, content)
-	}	
+	Buffer = append(Buffer, content)	
 }
 
 func checkBinding(name string) ([]byte, bool) {
@@ -50,90 +48,51 @@ func checkBinding(name string) ([]byte, bool) {
 	return nil, false
 }
 
-func separate(data []byte) {	
+func Filter(data []byte) {	
 	for i := 0; i < len(data); i++ {
-		if i + 2 < len(data) {
-			bytes := uint32(data[i]) << 16 | uint32(data[i + 1]) << 8 | uint32(data[i + 2])
-			switch bytes {
-			case 0xC2807D:
-				section = "data"
-				i += 2
-			case 0xC2807E:
-				section = "text"
-				i += 2
-			case 0xC2807F:
-				section = "edata"
-				i += 2	
-			default:
-				write(data[i])
+		if bytes.HasPrefix(data[i:], []byte("LD16_")) || bytes.HasPrefix(data[i:], []byte("LD32_")) {
+			// Add 32 bit defs later
+			j := i + 5
+			for j < len(data) && data[j] != 0x00 {
+				j++
 			}
+			name := string(data[i + 5:j])
+			j++
+			
+			H := byte((2 + len(Buffer)) >> 8)
+			L := byte((2 + len(Buffer)) & 0xFF)
+			bindings = append(bindings, binding{Name: name, Location: []byte{H, L}})
+
+			for i, ub := range unresolvedBindings {
+				if ub.Name == name {
+					unresolvedBindings[i].Solved = true
+					Buffer[ub.BufferLoc] = H
+					Buffer[ub.BufferLoc + 1] = L
+				}
+			}
+			i = j - 1
+		} else if bytes.HasPrefix(data[i:], []byte("LR_")) {
+			j := i + 3
+			for j < len(data) && data[j] != 0x00 {
+				j++
+			}
+			name := string(data[i + 3:j])
+			j++
+			location, found := checkBinding(name)
+			if found == true {
+				for _, b := range location {
+					write(b)
+				}
+			} else {
+				unresolvedBindings = append(unresolvedBindings, unresolvedBinding{Name: name, BufferLoc: len(Buffer), Solved: false})
+				write(0x00)
+				write(0x00)
+			}
+			i = j - 1
 		} else {
 			write(data[i])
 		}
 	}	
-}
-
-func link() {	
-	collect := func(buffer *[]byte, offset int) {	
-		data := *buffer
-		for i := 0; i < len(data); i++ {
-			if bytes.HasPrefix(data[i:], []byte("LD16_")) || bytes.HasPrefix(data[i:], []byte("LD32_")) {
-				var Bits32 bool = false
-				if bytes.HasPrefix(data[i:], []byte("LD32_")) {
-					Bits32 = true
-				}
-
-				j := i + 5
-				for j < len(data) && data[j] != 0x00 {
-					j++
-				}
-				name := string(data[i + 5:j])
-
-				old := len(data)
-				data = append(data[:i], data[j + 1:]...)
-				RSF := old - len(data)
-
-				location := (i + offset)
-
-				_, ok := checkBinding(name)
-				if ok != false {
-					error(2, "`" + name + "'")
-				}
-
-				if Bits32 == false {
-					H := byte(location >> 8)	
-					L := byte(location & 0xFF)
-					AH := byte((location - (j - i + 5) - RSF) >> 8)
-					AL := byte((location - (j - i + 5) - RSF) & 0xFF)
-					bindings = append(bindings, binding{Name: name, Location: []byte{H, L}})
-					data = append(bytes.ReplaceAll(data[:i], append([]byte("LR_" + name), 0x00), []byte{AH, AL}), data[i:]...)
-				} else {
-					HH := byte(location >> 24)
-					HL := byte(location >> 16)
-					LH := byte(location >> 8)
-					LL := byte(location & 0xFF)
-
-					AHH := byte((location - (j - i + 5) - RSF) >> 24)
-					AHL := byte((location - (j - i + 5) - RSF) >> 16)
-					ALH := byte((location - (j - i + 5) - RSF) >> 8)
-					ALL := byte((location - (j - i + 5) - RSF) & 0xFF)
-					bindings = append(bindings, binding{Name: name, Location: []byte{HH, HL, LH, LL}})
-					data = append(bytes.ReplaceAll(data[:i], append([]byte("LR_" + name), 0x00), []byte{AHH, AHL, ALH, ALL}), data[i:]...)
-				}
-			} 
-		}
-		*buffer = data
-	}
-	collect(&DataBuffer, 2)
-	collect(&TextBuffer, 2 + len(DataBuffer))
-	collect(&ExtendedDataBuffer, 2 + len(DataBuffer) + len(TextBuffer))
-
-	for _, b := range bindings {
-		ref := append([]byte("LR_" + b.Name), 0x00)
-		DataBuffer = bytes.ReplaceAll(DataBuffer, ref, b.Location)
-		TextBuffer = bytes.ReplaceAll(TextBuffer, ref, b.Location)
-		ExtendedDataBuffer = bytes.ReplaceAll(ExtendedDataBuffer, ref, b.Location)
-	}
 }
 
 func main() {
@@ -149,8 +108,8 @@ func main() {
 
 		switch arg {
 		case "-v":
-			fmt.Println("@(#)PROGRAM:l2ld PROJECT:l2ld-1.0")
-			fmt.Println("BUILD 10:29:40 Sep 18 2025")
+			fmt.Println("@(#)PROGRAM:l2ld PROJECT:l2ld-2.0")
+			fmt.Println("BUILD 16:02 Oct 6 2025")
 			fmt.Println("configured to support archs: luna-l2")	
 			os.Exit(0)
 		case "-o":
@@ -173,32 +132,20 @@ func main() {
 		if err != nil {
 			error(1, "path=" + file)
 		}
-		separate(data)		
+		Filter(data)		
 	}
-
-	link()
 	startloc, found := checkBinding("_start")
 	if found == false {
 		error(3, "\n  \"_start\", referenced from\n    <initial-undefines>")	
 	}
 	
 	buffer := append([]byte{}, startloc...) 
-	buffer = append(buffer, DataBuffer...)
-	buffer = append(buffer, TextBuffer...)
-	buffer = append(buffer, ExtendedDataBuffer...)
+	buffer = append(buffer, Buffer...)	
 
-	location := bytes.Index(buffer, []byte("LR_"))
-	if location != -1 {
-		name := ""
-		for i := location; i < len(buffer); i++ {
-			if buffer[i] != 0x00 {
-				name = name + string(buffer[i])
-			} else {
-				break
-			}
+	for _, ub := range unresolvedBindings {
+		if ub.Solved == false {
+			error(3, "\n  \"" + ub.Name + "\", referenced from\n    <initial-undefines>")
 		}
-		name = strings.TrimPrefix(name, "LR_")
-		error(3, "\n  \"" + name + "\", referenced from\n    <initial-undefines>")
-	}
+	}	
 	os.WriteFile(output_filename, []byte(buffer), 0644)
 }
