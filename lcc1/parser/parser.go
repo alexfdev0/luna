@@ -254,48 +254,56 @@ func Parse(tokens []lexer.Token) {
 			var type_ lexer.TokenType = peek(0).Type
 			switch type_ {
 			case lexer.TokIdent:
-				name := expect(lexer.TokIdent)
+				name := expect(lexer.TokIdent)	
 				if peek(0).Type == lexer.TokLParen {
 					expect(lexer.TokLParen)
-					var expComma bool = false
-					for j := i; j < len(tokens); j++ {
-						if tokens[j].Type == lexer.TokRParen {
-							i = j
-							break
-						} else {
-							if expComma == true {
-								if tokens[j].Type != lexer.TokComma {
-									error.Error(2, "','")
+					switch name {
+						case "asm":
+							str, end := StringParse(tokens, i)
+							i = end + 1
+							Write(str, true)
+							expect(lexer.TokRParen)
+							expect(lexer.TokSemi)
+						default:
+							var expComma bool = false
+							for j := i; j < len(tokens); j++ {
+								if tokens[j].Type == lexer.TokRParen {
+									i = j
+									break
 								} else {
-									expComma = false
-									continue
+									if expComma == true {
+										if tokens[j].Type != lexer.TokComma {
+											error.Error(2, "','")
+										} else {
+											expComma = false
+											continue
+										}
+									}
+									if strings.HasPrefix(tokens[j].Value, "\"") {
+										str, end := StringParse(tokens, j)
+										j = end
+										CreateStatic(Variable_Static{Name: "var_" + fmt.Sprintf("%d", IDCounter), Type: STRING, Value: str})
+										Write("push var_" + fmt.Sprintf("%d", IDCounter), true)
+										IDCounter++
+										expComma = true
+									} else if CheckNum(tokens[j]) == true {
+										Write("push " + tokens[j].Value, true)
+										expComma = true
+									} else {
+										variable := LookupVariable(tokens[j].Value, true)	
+										if variable.Pointer == false {
+											Write("push " + fmt.Sprintf("%v", variable.Value), true)
+										} else {
+											Write("push " + variable.Name, true)
+										}
+										expComma = true
+									}
 								}
 							}
-							if strings.HasPrefix(tokens[j].Value, "\"") {
-								str, end := StringParse(tokens, j)
-								j = end
-								CreateStatic(Variable_Static{Name: "var_" + fmt.Sprintf("%d", IDCounter), Type: STRING, Value: str})
-								Write("push var_" + fmt.Sprintf("%d", IDCounter), true)
-								IDCounter++
-								expComma = true
-							} else if CheckNum(tokens[j]) == true {
-								Write("push " + tokens[j].Value, true)
-								expComma = true
-							} else {
-								variable := LookupVariable(tokens[j].Value, true)	
-								if variable.Pointer == false {
-									Write("push " + fmt.Sprintf("%v", variable.Value), true)
-								} else {
-									Write("push " + variable.Name, true)
-								}
-								expComma = true
-							}
-						}
+							expect(lexer.TokRParen)
+							expect(lexer.TokSemi)
+							Write("call " + name, true)
 					}
-
-					expect(lexer.TokRParen)
-					expect(lexer.TokSemi)
-					Write("call " + name, true)
 				} else if peek(0).Type == lexer.TokEqual {
 					switch peek(1).Type {
 						case lexer.TokEqual:
