@@ -15,6 +15,7 @@ type unresolvedBinding struct {
 	Name string
 	BufferLoc int
 	Solved bool
+	File string
 }
 
 var Buffer []byte
@@ -24,11 +25,16 @@ var section string = "text"
 var bindings = []binding {}
 var unresolvedBindings = []unresolvedBinding {}
 
+var FillSize int = 0
+var Org int = 0
+var Entry bool = true
+
 var errors = []string {
 	"no object files specified",
 	"file cannot be open()ed, errno=2",
 	"multiple definitions of",
-	"Undefined symbol for architecture luna-l2:",	
+	"Undefined symbol for architecture luna-l2:",
+	"File size exceeds padding directive:",
 }
 func error(errno int, args string) {
 	fmt.Fprintln(os.Stderr, "l2ld: " + errors[errno] + " " + args)
@@ -48,7 +54,7 @@ func checkBinding(name string) ([]byte, bool) {
 	return nil, false
 }
 
-func Filter(data []byte) {	
+func Filter(data []byte, filename string) {	
 	for i := 0; i < len(data); i++ {
 		if bytes.HasPrefix(data[i:], []byte("LD16_")) || bytes.HasPrefix(data[i:], []byte("LD32_")) {
 			// Add 32 bit defs later
@@ -59,8 +65,12 @@ func Filter(data []byte) {
 			name := string(data[i + 5:j])
 			j++
 			
-			H := byte((2 + len(Buffer)) >> 8)
-			L := byte((2 + len(Buffer)) & 0xFF)
+			org := 2
+			if Org != 0 {
+				org = Org
+			}
+			H := byte((org + len(Buffer)) >> 8)
+			L := byte((org + len(Buffer)) & 0xFF)
 			bindings = append(bindings, binding{Name: name, Location: []byte{H, L}})
 
 			for i, ub := range unresolvedBindings {
@@ -84,11 +94,26 @@ func Filter(data []byte) {
 					write(b)
 				}
 			} else {
-				unresolvedBindings = append(unresolvedBindings, unresolvedBinding{Name: name, BufferLoc: len(Buffer), Solved: false})
+				unresolvedBindings = append(unresolvedBindings, unresolvedBinding{Name: name, BufferLoc: len(Buffer), Solved: false, File: filename})
 				write(0x00)
 				write(0x00)
 			}
 			i = j - 1
+		} else if bytes.HasPrefix(data[i:], []byte("LP_")) {
+			i += 3
+			H := data[i]
+			L := data[i + 1]	
+			FillSize = int(H) << 8 | int(L) 	
+			i++
+		} else if bytes.HasPrefix(data[i:], []byte("LO_")) {
+			i += 3
+			H := data[i]
+			L := data[i + 1]	
+			Org = int(H) << 8 | int(L) 	
+			i++
+		} else if bytes.HasPrefix(data[i:], []byte("L_NOENTRY")) {
+			i += 8
+			Entry = false	
 		} else {
 			write(data[i])
 		}
@@ -132,20 +157,32 @@ func main() {
 		if err != nil {
 			error(1, "path=" + file)
 		}
-		Filter(data)		
+		Filter(data, file)		
 	}
-	startloc, found := checkBinding("_start")
-	if found == false {
-		error(3, "\n  \"_start\", referenced from\n    <initial-undefines>")	
+
+	var buffer = []byte{}	
+	if Entry == true {
+		startloc, found := checkBinding("_start")
+		if found == false {
+			error(3, "\n  \"_start\", referenced from\n    <initial-undefines>")	
+		}	
+		buffer = append(buffer, startloc...)
 	}
-	
-	buffer := append([]byte{}, startloc...) 
 	buffer = append(buffer, Buffer...)	
 
 	for _, ub := range unresolvedBindings {
 		if ub.Solved == false {
-			error(3, "\n  \"" + ub.Name + "\", referenced from\n    <initial-undefines>")
+			error(3, "\n  \"" + ub.Name + "\", referenced from\n    " + ub.File)
 		}
-	}	
+	}
+	if FillSize > 0 {	
+		if len(buffer) > FillSize {
+			error(4, "\n  directive: " + fmt.Sprintf("%d", FillSize) + ", actual: " + fmt.Sprintf("%d", len(buffer)))
+		} else if len(buffer) < FillSize {
+			for len(buffer) < FillSize {
+				buffer = append(buffer, 0x00)
+			}	
+		}
+	}
 	os.WriteFile(output_filename, []byte(buffer), 0644)
 }

@@ -30,8 +30,7 @@ bin/lcc1: $(SRC)/lcc1/*
 bin/lcc: $(SRC)/lcc/*
 	cd lcc && go build -o ../bin/lcc ./lcc.go
 
-bin/l2ld: $(SRC)/l2ld/*
-	mkdir -p /usr/local/lib/lcc
+bin/l2ld: $(SRC)/l2ld/*	
 	cd l2ld && go build -o ../bin/l2ld ./l2ld.go
 
 install:

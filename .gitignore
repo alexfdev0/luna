@@ -6,3 +6,4 @@ bin
 *.s
 *.o
 *.out
+lcc1/test

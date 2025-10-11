@@ -685,7 +685,7 @@ func assemble(text string) {
 			write([]byte{check})
 			write([]byte{one})
 			i = i + 2
-		case "str":
+		case "strf":
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
@@ -721,6 +721,19 @@ func assemble(text string) {
 				write([]byte{0x1b, 0x01})
 			}
 			i++
+		case "str":
+			check := isRegister(words[i+1])
+			one := isRegister(words[i+2])
+			if check == 0xff {
+				error(2, "'"+words[i+1]+"'")
+			}
+			if one == 0xff {
+				error(2, "'"+words[i+2]+"'")
+			}
+			write([]byte{0x1c})
+			write([]byte{check})
+			write([]byte{one})
+			i = i + 2
 		case "call":
 			label := words[i + 1]
 			if Bits32 == false {
@@ -809,7 +822,7 @@ func assemble(text string) {
 			value = value + string("\000")
 			write([]byte(value))
 			i = ending
-		case "bits":
+		case ".bits":
 			switch words[i + 1] {
 			case "16":
 				Bits32 = false	
@@ -828,6 +841,38 @@ func assemble(text string) {
 			}
 			write(data)
 			i++
+		case ".word":
+			word := words[i + 1]
+			num, err := strconv.ParseInt(word, 0, 64)
+			if err != nil {
+				error(11, ", got '" + word + "'")
+			}
+			H := byte(num >> 8)
+			L := byte(num & 0xFF)
+			write([]byte{H, L})
+			i++
+		case ".fill":
+			word := words[i + 1]
+			num, err := strconv.ParseInt(word, 0, 64)
+			if err != nil {
+				error(11, ", got '" + word + "'")
+			}
+			H := byte(num >> 8)
+			L := byte(num & 0xFF)
+			write(append([]byte("LP_"), []byte{H, L}...))
+			i++
+		case ".org":
+			word := words[i + 1]
+			num, err := strconv.ParseInt(word, 0, 64)
+			if err != nil {
+				error(11, ", got '" + word + "'")
+			}
+			H := byte(num >> 8)
+			L := byte(num & 0xFF)
+			write(append([]byte("LO_"), []byte{H, L}...))
+			i++
+		case ".noentry":
+			write([]byte("L_NOENTRY"))
 		default:
 			error(4, "'"+words[i]+"'")
 		}

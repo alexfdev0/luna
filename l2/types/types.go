@@ -7,3 +7,4 @@ type Register struct {
 }
 
 var Bits32 bool = false
+var Filename string

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"fmt"
 	"github.com/Knetic/govaluate"
+	"strconv"
 )
 
 var level int = 0
@@ -18,15 +19,15 @@ var IDCounter = 1
 const (
 	NUMBER int = iota
 	STRING
+	POINT
 	NULL
 )
 type Variable_Static struct {
 	Name string
 	Type int
 	Value any
+	Pointer bool
 }
-
-var Location uint16 = 1000
 
 var Variables = []Variable_Static {}
 
@@ -43,6 +44,14 @@ func WritePre(text string, spaced bool) {
 		Code1 = Code1 + text + "\n"
 	} else {
 		Code1 = Code1 + "    " + text + "\n"
+	}
+}
+
+func CheckNum(token lexer.Token) bool {
+	if _, err := strconv.ParseInt(token.Value, 0, 64); err == nil {
+		return true
+	} else {
+		return false
 	}
 }
 
@@ -68,6 +77,9 @@ func StringParse(tokens []lexer.Token, start int) (string, int) {
 	// Start would be the first token
 	var str string = ""
 	var loc int = 0
+	if strings.HasPrefix(tokens[start].Value, "\"") == false {
+		error.Error(2, "\"")		
+	}
 	if strings.HasSuffix(tokens[start].Value, "\"") {
 		tokens[start].Value = strings.Trim(tokens[start].Value, "\"")
 		str = tokens[start].Value
@@ -131,8 +143,11 @@ func Parse(tokens []lexer.Token) {
 		}
 		return value
 	}
-	peek := func(lookahead int) lexer.Token {	
-		return tokens[i + lookahead]
+	peek := func(lookahead int) lexer.Token {
+		if i + lookahead < len(tokens) {
+			return tokens[i + lookahead]
+		}
+		return lexer.Token{Type: lexer.TokEOF, Value: ""}
 	}
 	
 	for {
@@ -141,22 +156,30 @@ func Parse(tokens []lexer.Token) {
 		}
 		switch level {
 		case 0:
+			var ptr bool = false
 			_type := expect(lexer.TokType)
+			if peek(0).Type == lexer.TokStar {
+				ptr = true
+				i++
+			}
+
 			name := expect(lexer.TokIdent)
 			
-			var rtype int
-			if _type == "int" {
+			var rtype int	
+			switch _type {
+			case "int":
 				rtype = NUMBER
+			case "char":
+				rtype = STRING
 			}	
 
 			if LookupVariable(name, false).Name != "__ZERO" {
 				// print(LookupVariable(name, false).Name)
 				error.Error(3, "'" + name + "'")
-			}
-
-			Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: nil})
+			}	
 
 			if peek(0).Type == lexer.TokLParen {
+				Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: nil})
 				expect(lexer.TokLParen)
 				expect(lexer.TokRParen)
 				expect(lexer.TokLCurly)
@@ -182,15 +205,12 @@ func Parse(tokens []lexer.Token) {
 				if name == "main" {
 					name = "_start"
 				}
-				Write(name + ":", false)
+				Write(name + ":", false)	
 				if len(Children) > 0 {
 					level = 1
 					Parse(Children)
 					level = 0
-				}
-				if name != "_start" {
-					Write("ret", true)
-				}
+				}	
 				i++
 				if i < len(tokens) {
 					print(tokens[i].Value)
@@ -201,11 +221,28 @@ func Parse(tokens []lexer.Token) {
 				switch _type {
 				case "void":
 					error.Error(7, "'void'")
-				case "int":
-					Write(name + ":", false)
-					value, end := ParseExpression(tokens, i)
-					Write(".word " + fmt.Sprintf("%d", int32(value)), true)
-					Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER, Value: int32(value)})
+				case "int":	
+					value, end := ParseExpression(tokens, i)		
+					if ptr == true {
+						Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER, Value: int32(value), Pointer: true})
+						Write(name + ":", false)
+						Write(".word " + fmt.Sprintf("%d", int32(value)), true)
+					} else {
+						Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER, Value: int32(value), Pointer: false})
+					}
+					i = end + 1
+				case "char":
+					str, end := StringParse(tokens, i)	
+					if ptr == true {
+						Variables = append(Variables, Variable_Static{Name: name, Type: STRING, Value: str, Pointer: true})
+						Write(name + ":", false)
+						Write(".asciz \"" + str + "\"", true)
+					} else {
+						if len(str) > 1 {
+							error.Error(5, "'char' with an expression of type 'char*'")
+						}
+						Variables = append(Variables, Variable_Static{Name: name, Type: STRING, Value: str, Pointer: false})
+					}
 					i = end + 1
 				}
 				expect(lexer.TokSemi)
@@ -218,7 +255,7 @@ func Parse(tokens []lexer.Token) {
 			switch type_ {
 			case lexer.TokIdent:
 				name := expect(lexer.TokIdent)
-				if peek(0).Type == lexer.TokLParen {	
+				if peek(0).Type == lexer.TokLParen {
 					expect(lexer.TokLParen)
 					var expComma bool = false
 					for j := i; j < len(tokens); j++ {
@@ -241,8 +278,16 @@ func Parse(tokens []lexer.Token) {
 								Write("push var_" + fmt.Sprintf("%d", IDCounter), true)
 								IDCounter++
 								expComma = true
-							} else {
+							} else if CheckNum(tokens[j]) == true {
 								Write("push " + tokens[j].Value, true)
+								expComma = true
+							} else {
+								variable := LookupVariable(tokens[j].Value, true)	
+								if variable.Pointer == false {
+									Write("push " + fmt.Sprintf("%v", variable.Value), true)
+								} else {
+									Write("push " + variable.Name, true)
+								}
 								expComma = true
 							}
 						}
@@ -282,6 +327,12 @@ func Parse(tokens []lexer.Token) {
 							}
 							expect(lexer.TokSemi)
 					}	
+				} else if peek(0).Type == lexer.TokColon {
+					expect(lexer.TokColon)
+					Write(name + ":", false)
+					Variables = append(Variables, Variable_Static{Name: name, Type: POINT, Value: NULL})
+				} else {
+					expect(lexer.TokSemi)
 				}
 			case lexer.TokReturn:
 				expect(lexer.TokReturn)
@@ -293,7 +344,7 @@ func Parse(tokens []lexer.Token) {
 				} else {
 					expect(lexer.TokSemi)
 				}
-				// RET is handled for us at level 0
+				Write("ret", true)	
 			case lexer.TokSemi:
 				expect(lexer.TokSemi)
 			case lexer.TokIf:
@@ -310,7 +361,12 @@ func Parse(tokens []lexer.Token) {
 				exptokens = append(exptokens, lexer.Token{Type: lexer.TokSemi, Value: ";"})
 				expect(lexer.TokRParen)
 				Parse(exptokens)
-				
+			case lexer.TokGoto:
+				expect(lexer.TokGoto)
+				name := expect(lexer.TokIdent)	
+				expect(lexer.TokSemi)
+				LookupVariable(name, true)
+				Write("jmp " + name, true)
 			default:
 				error.Error(1, "'" + tokens[i].Value + "'")
 			}	

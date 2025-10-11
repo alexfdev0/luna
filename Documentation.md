@@ -19,7 +19,7 @@ PC: program counter/instruction pointer<br>
 RE1-RE3: reserved registers (you may use RE3 for storing PC when using loops)<br><br>
 
 ## Instructions
-The Luna L2 has 26 unique instructions that allow the CPU to interact with registers, memory, and the BIOS<br><br>
+The Luna L2 has 27 unique instructions that allow the CPU to interact with registers, memory, and the BIOS<br><br>
 
 1. MOV: moves a value from the source to the destination; source can be register or immediate.<br>
 2. HLT: stops the CPU from executing instructions.<br>
@@ -46,8 +46,9 @@ The Luna L2 has 26 unique instructions that allow the CPU to interact with regis
 23. XOR: performs bitwise XOR on two registers and puts the result to a register.<br>
 24. LOD: loads a byte from memory to a register.<br>
 25. STR: stores a value to a memory address from a register. (bytewise)<br>
-(bytewise: scheme where storing a register value to memory stores the low byte in `address` and the high byte in `address + 1`)<br>
-26. LODW: loads a word from memory to a register. (bytewise)<br><br>
+26. LODF: loads 2 bytes (16-bit mode) or 4 bytes (32-bit mode) from memory to a register.<br>
+27. SET: if the operand is 00, it sets the CPU to 16 bit mode. If the operand is 01, it sets the CPU to 32 bit mode.<br>
+(bytewise: scheme where storing a register value to memory stores the low byte in `address` and the high byte in `address + 1`; in 32 bit mode, it's from `address` to `address + 3`)<br><br>
 
 ## Interrupts
 Because the Luna L2 is a primitive CPU, it does not support directly interacting with things like VRAM or input devices from raw instructions. Instead, you must use an interrupt and allow the BIOS to carry out the tasks. (Note: these are for the integrated BIOS, other BIOSes may have different interrupts.)<br><br>
@@ -57,7 +58,8 @@ Because the Luna L2 is a primitive CPU, it does not support directly interacting
 3. Write to VRAM (bytewise) (address in r1, value in r2)<br>
 4. Toggle keyboard echo (mode in r1, 1 for echo char back, 0 for no echo)<br>
 5. Reserved; do not use<br>
-6. Wait for key via interrupt 5 (blocking) (return in r1)<br><br>
+6. Wait for key via interrupt 5 (blocking) (return in r1)<br>
+(Note: in 32-bit mode, memory mapping is enabled, so interrupt 3 is irrelevant. Interrupts can be used in both modes.)<br><br>
 
 ## Assembly
 The L2 architecture has a custom assembler (`las`) to convert programs from assembly language (.asm, .s, .S) to machine code (.o) that can then be linked and then run on L2.<br>
@@ -71,6 +73,7 @@ There are some directives in LAS that do not correspond to any instruction on L2
 `ret`: jumps to the value in register `re1`<br>
 `.ascii`: defines a sequence of ASCII bytes, wrapped in quotation marks<br>
 `.asciz`: defines a sequence of ASCII bytes, wrapped in quotation marks (null terminated)<br>
+`.word`: defines a 2-byte constant<br>
 # Examples
 `mov r1, 5` (destination: r1, source: 5)<br>
 `pop r1` (destination: r1)<br>
@@ -102,10 +105,11 @@ To compile a program, use the following: `lcc <flags> <input file(s)> -o <output
 The flags are as follows:<br>
 `-c`: do not invoke linker (`l2ld`) after assembly is complete.<br>
 `-v`: shows the version of LCC and exits.<br>
-`-s`: do not invoke assembler (`las`) after compilation is complete.<br>
+`-S`: do not invoke assembler (`las`) after compilation is complete.<br>
 Supported file types: (subject to change)<br>
 `.s`: assembly<br>
 `.S`: assembly<br>
 `.asm`: assembly<br>
 `.o`: object file<br>
-`.c`: C (upcoming)
+`.c`: C
+`.h`: C

@@ -132,32 +132,9 @@ func MapperIndex(address uint32) uint32 {
 var LogOn bool = false
 var Debug bool = false
 var ClockSpeed int64 = 1158000
-var Filename string = ""
 func Log(text string) {
 	if LogOn == true {
 		fmt.Println("\033[33m" + fmt.Sprintf("0x%08x: ", getRegister(0x001a)) + text + "\033[0m")
-	}
-}
-func LoadSector(sector int, enforce bool) {
-	data, err := os.ReadFile(Filename)
-	if err != nil {
-		if enforce == false {
-			fmt.Println("luna-l2: could not reload block device")
-			return
-		} else {
-			fmt.Println("luna-l2: could not open '" + Filename + "'")
-			os.Exit(1)
-		}
-	}
-	start := sector * 512
-	if start > len(data) {
-		Log("read at address " + fmt.Sprintf("0x%08x", start) + " out of bounds")	
-		return
-	}
-	if start + 512 > len(data) {
-		copy(Memory[start:start + 512], data[start:])
-	} else {
-		copy(Memory[start:start + 512], data[start:start + 512])
 	}
 }
 
@@ -180,6 +157,7 @@ func execute() {
 
 		switch op {
 		case 0x00:
+			Log("null")
 			return
 		case 0x01:
 			// MOV
@@ -524,8 +502,8 @@ func execute() {
 			Log("lod " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(toregister))
 			stall(100)
 		case 0x19:
-			// STR
-			// str <addr (register)> <value (register)>	
+			// STRF
+			// strf <addr (register)> <value (register)>	
 			addr := getRegister(uint32(Memory[ProgramCounter+1]))
 			value := uint32(Memory[ProgramCounter+2])
 			if types.Bits32 == false {
@@ -546,7 +524,7 @@ func execute() {
 			addr := getRegister(uint32(Memory[ProgramCounter+1]))
 			toregister := uint32(Memory[ProgramCounter+2])
 			if types.Bits32 == false {
-				setRegister(toregister, uint32(uint16(Mapper(addr)) << 8 | uint16(Mapper(addr))))
+				setRegister(toregister, uint32(uint16(Mapper(addr)) << 8 | uint16(Mapper(addr + 1))))
 			} else {
 				setRegister(toregister, uint32(Mapper(addr)) << 24 | uint32(Mapper(addr + 1)) << 16 | uint32(Mapper(addr + 2)) << 8 | uint32(Mapper(addr + 3)))
 			}
@@ -564,7 +542,12 @@ func execute() {
 				types.Bits32 = true
 				Log("32 bit mode")
 			}
-			setRegister(0x001a, ProgramCounter + 2)	
+			setRegister(0x001a, ProgramCounter + 2)
+		case 0x1c:
+			addr := getRegister(uint32(Memory[ProgramCounter+1]))
+			value := uint32(Memory[ProgramCounter+2])
+			MapperWrite(addr, byte(getRegister(value)))
+			setRegister(0x001a, ProgramCounter + 3)
 		default:
 			setRegister(0x0001, uint32(op))
 			Log("\033[31mIllegal instruction 0x" + fmt.Sprintf("%08x", uint32(op)) + "\033[33m")
@@ -734,16 +717,16 @@ func main() {
 				Debug = true
 				LogOn = true
 			default:
-				Filename = arg
+				types.Filename = arg
 			}
 		}
 
-		if Filename == "" {
+		if types.Filename == "" {
 			bios.WriteLine("No bootable device", 255, 0)
 			return
 		}	
 
-		LoadSector(0, true)	
+		bios.LoadSector(0, true)	
 		execute()
 	}()	
 	InitializeWindow()

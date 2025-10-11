@@ -55,6 +55,8 @@ func PrintChar(ch rune, fg byte, bg byte) {
 	} else if ch == 0x0d {
 		CursorX = 0
 		return
+	} else if ch == 0x00 {
+		return
 	}	
 
 	x := CursorX * 8

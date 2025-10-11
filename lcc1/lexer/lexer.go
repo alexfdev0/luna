@@ -28,6 +28,10 @@ const (
 	TokSlash
 	TokEqual
 	TokComma
+	TokEOF
+	TokColon
+	TokGoto
+	TokUnderscore
 )
 
 type Token struct {
@@ -53,7 +57,7 @@ func Lex(code string) []Token {
     for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
 		content := s.TokenText()	
 
-		if content == "int" || content == "void" {
+		if content == "int" || content == "void" || content == "char" {
 			tokens = append(tokens, Token{Type: TokType, Value: content})
 		} else if content == "return" {
 			tokens = append(tokens, Token{Type: TokReturn, Value: content})
@@ -85,6 +89,12 @@ func Lex(code string) []Token {
 			tokens = append(tokens, Token{Type: TokEqual, Value: content})
 		} else if content == "," {
 			tokens = append(tokens, Token{Type: TokComma, Value: content})
+		} else if content == ":" {
+			tokens = append(tokens, Token{Type: TokColon, Value: content})
+		} else if content == "goto" {
+			tokens = append(tokens, Token{Type: TokGoto, Value: content})
+		} else if content == "_" {
+			tokens = append(tokens, Token{Type: TokUnderscore, Value: content}) 
 		} else {
 			tokens = append(tokens, Token{Type: TokIdent, Value: content})
 		} 

@@ -63,7 +63,6 @@ func main() {
 		os.Exit(1)
 	}
 
-
 	var nolink bool = false
 	var noassemble bool = false
 	var input_files = []string {}
@@ -115,18 +114,15 @@ func main() {
 		name, _ := splitFile(file)
 
 		switch ext {
-		case ".c":
+		case ".c", ".h":
 			success := execute("lcc1 " + file + " -o " + name + ".s", false)
 			if success != true {
 				continue
 			}
 			assembly_files = append(assembly_files, name + ".s")
-		case ".s":
+			cleanup = append(cleanup, name + ".s")
+		case ".asm", ".s", ".S":
 			assembly_files = append(assembly_files, file)	
-		case ".asm":
-			assembly_files = append(assembly_files, file)
-		case ".S":
-			assembly_files = append(assembly_files, file)
 		case ".o":
 			object_files = append(object_files, file)
 		default:

@@ -53,6 +53,29 @@ func getRegister(address uint32) uint32 {
 	return 0x0000
 }
 
+func LoadSector(sector int, enforce bool) {
+	data, err := os.ReadFile(types.Filename)
+	if err != nil {
+		if enforce == false {
+			fmt.Println("luna-l2: could not reload block device")
+			return
+		} else {
+			fmt.Println("luna-l2: could not open '" + types.Filename + "'")
+			os.Exit(1)
+		}
+	}
+	start := sector * 512
+	if start > len(data) {
+		fmt.Println("read at address " + fmt.Sprintf("0x%08x", start) + " out of bounds")	
+		return
+	}
+	if start + 512 > len(data) {
+		copy((*Memory)[start:start + 512], data[start:])
+	} else {
+		copy((*Memory)[start:start + 512], data[start:start + 512])
+	}
+}
+
 func IntHandler(code uint32) {
 	if code == 0x01 {
 		// BIOS print to screen
@@ -135,6 +158,12 @@ func IntHandler(code uint32) {
 		} else {
 			setRegister(0x0001, MEMSIZE)
 		}
+	} else if code == 0xb {
+		sector := getRegister(0x0001)
+		LoadSector(int(sector), false)
+	} else if code == 0xc {
+		video.CursorX = int(getRegister(0x0001))
+		video.CursorY = int(getRegister(0x0002))
 	}
 }
 
