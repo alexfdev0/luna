@@ -81,7 +81,7 @@ func main() {
 			output_file = os.Args[i + 1]
 			i++
 		case "-v":
-			fmt.Println("Luna Compiler Collection version 2.0")
+			fmt.Println("Luna Compiler Collection version 3.0")
 			fmt.Println("Target: luna-l2")
 			os.Exit(0)
 		case "-S":
@@ -115,7 +115,7 @@ func main() {
 
 		switch ext {
 		case ".c", ".h":
-			success := execute("lcc1 " + file + " -o " + name + ".s", false)
+			success := execute("lcc1 -S " + file + " -o " + name + ".s", false)
 			if success != true {
 				continue
 			}

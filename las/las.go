@@ -156,7 +156,7 @@ func warning(errno int, args string) {
 		label = "lcc"
 	}
 
-	fmt.Println("\033[1;39m" + label + ": \033[1;33mwarning: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
+	fmt.Println("\033[1;39m" + label + ": \033[1;33mwarning: \033[1;35m" + errors[errno] + " " + args + "\033[0m")
 	Warnings++
 }
 
@@ -851,6 +851,18 @@ func assemble(text string) {
 			L := byte(num & 0xFF)
 			write([]byte{H, L})
 			i++
+		case ".double":
+			word := words[i + 1]
+			num, err := strconv.ParseInt(word, 0, 64)
+			if err != nil {
+				error(11, ", got '" + word + "'")
+			}
+			HH := byte(num >> 24)
+			HL := byte(num >> 16)
+			LH := byte(num >> 8)
+			LL := byte(num & 0xFF)
+			write([]byte{HH, HL, LH, LL})
+			i++
 		case ".fill":
 			word := words[i + 1]
 			num, err := strconv.ParseInt(word, 0, 64)
@@ -915,7 +927,7 @@ func main() {
 
 		switch arg {
 		case "-v":
-			fmt.Println("Luna Compiler Collection version 2.0")
+			fmt.Println("Luna Compiler Collection version 3.0")
 			fmt.Println("Target: luna-l2")
 			os.Exit(0)
 		case "-o":

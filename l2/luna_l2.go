@@ -544,6 +544,8 @@ func execute() {
 			}
 			setRegister(0x001a, ProgramCounter + 2)
 		case 0x1c:
+			// STR
+			// str <addr> <register>
 			addr := getRegister(uint32(Memory[ProgramCounter+1]))
 			value := uint32(Memory[ProgramCounter+2])
 			MapperWrite(addr, byte(getRegister(value)))
