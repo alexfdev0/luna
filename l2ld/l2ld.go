@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"bytes"	
+	"bytes"
+	"runtime"
+	"strings"
 )
 
 type binding struct {
@@ -54,10 +56,15 @@ func checkBinding(name string) ([]byte, bool) {
 	return nil, false
 }
 
+var GBits32 bool = false
 func Filter(data []byte, filename string) {	
 	for i := 0; i < len(data); i++ {
 		if bytes.HasPrefix(data[i:], []byte("LD16_")) || bytes.HasPrefix(data[i:], []byte("LD32_")) {
-			// Add 32 bit defs later
+			var Bits32 bool = false
+			if bytes.HasPrefix(data[i:], []byte("LD32_")) {
+				Bits32 = true
+			}
+
 			j := i + 5
 			for j < len(data) && data[j] != 0x00 {
 				j++
@@ -69,15 +76,34 @@ func Filter(data []byte, filename string) {
 			if Org != 0 {
 				org = Org
 			}
-			H := byte((org + len(Buffer)) >> 8)
-			L := byte((org + len(Buffer)) & 0xFF)
-			bindings = append(bindings, binding{Name: name, Location: []byte{H, L}})
 
-			for i, ub := range unresolvedBindings {
-				if ub.Name == name {
-					unresolvedBindings[i].Solved = true
-					Buffer[ub.BufferLoc] = H
-					Buffer[ub.BufferLoc + 1] = L
+			if Bits32 == false {
+				H := byte((org + len(Buffer)) >> 8)
+				L := byte((org + len(Buffer)) & 0xFF)
+				bindings = append(bindings, binding{Name: name, Location: []byte{H, L}})
+
+				for i, ub := range unresolvedBindings {
+					if ub.Name == name {
+						unresolvedBindings[i].Solved = true
+						Buffer[ub.BufferLoc] = H
+						Buffer[ub.BufferLoc + 1] = L
+					}
+				}
+			} else {
+				HH := byte((org + len(Buffer)) >> 24)
+				HL := byte((org + len(Buffer)) >> 16)
+				LH := byte((org + len(Buffer)) >> 8)
+				LL := byte((org + len(Buffer)) & 0xFF)
+				bindings = append(bindings, binding{Name: name, Location: []byte{HH, HL, LH, LL}})
+
+				for i, ub := range unresolvedBindings {
+					if ub.Name == name {
+						unresolvedBindings[i].Solved = true
+						Buffer[ub.BufferLoc] = HH
+						Buffer[ub.BufferLoc + 1] = HL
+						Buffer[ub.BufferLoc + 2] = LH
+						Buffer[ub.BufferLoc + 3] = LL
+					}
 				}
 			}
 			i = j - 1
@@ -95,8 +121,15 @@ func Filter(data []byte, filename string) {
 				}
 			} else {
 				unresolvedBindings = append(unresolvedBindings, unresolvedBinding{Name: name, BufferLoc: len(Buffer), Solved: false, File: filename})
-				write(0x00)
-				write(0x00)
+				if GBits32 == false {
+					write(0x00)
+					write(0x00)
+				} else {
+					write(0x00)
+					write(0x00)
+					write(0x00)
+					write(0x00)
+				}	
 			}
 			i = j - 1
 		} else if bytes.HasPrefix(data[i:], []byte("LP_")) {
@@ -114,10 +147,44 @@ func Filter(data []byte, filename string) {
 		} else if bytes.HasPrefix(data[i:], []byte("L_NOENTRY")) {
 			i += 8
 			Entry = false	
+		} else if bytes.HasPrefix(data[i:], []byte("L_16BIT")) || bytes.HasPrefix(data[i:], []byte("L_32BIT")) {	
+			if bytes.HasPrefix(data[i:], []byte("L_32BIT")) {
+				GBits32 = true
+			} else {
+				GBits32 = false
+			}
+			i += 6
 		} else {
 			write(data[i])
 		}
 	}	
+}
+
+var libs = make(map[string]string)
+func ParseLibs() {
+	file := ""
+	if runtime.GOOS == "windows" {
+		file = "C:\\luna\\l2ld\\libs.conf"
+	} else {
+		file = "/usr/local/lib/l2ld/libs.conf"
+	}
+	data, err := os.ReadFile(file)
+	if err != nil {
+		fmt.Println("l2ld: could not read libs.conf file")
+	}
+	data_string := string(data)
+	data_words := strings.Fields(data_string)
+
+	for i := 0; i < len(data_words); i++ {
+		word := data_words[i]
+		if i + 1 >= len(data_words) {
+			fmt.Println("l2ld: error in libs.conf near '" + word + "'")
+			break
+		}
+		nextword := data_words[i + 1]
+		libs[word] = nextword
+		i++
+	}
 }
 
 func main() {
@@ -127,19 +194,22 @@ func main() {
 
 	var input_files []string
 	var output_filename string = ""
+	var noauto bool = false
 
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
 
 		switch arg {
 		case "-v":
-			fmt.Println("@(#)PROGRAM:l2ld PROJECT:l2ld-2.0")
-			fmt.Println("BUILD 16:02 Oct 6 2025")
+			fmt.Println("@(#)PROGRAM:l2ld PROJECT:l2ld-2.1")
+			fmt.Println("BUILD 11:17 Oct 20 2025")
 			fmt.Println("configured to support archs: luna-l2")	
 			os.Exit(0)
 		case "-o":
 			output_filename = os.Args[i + 1]
 			i++
+		case "-n":
+			noauto = true
 		default:
 			input_files = append(input_files, arg)
 		}
@@ -152,6 +222,7 @@ func main() {
 		output_filename = "a.bin"
 	}
 
+	ParseLibs()
 	for _, file := range input_files {
 		data, err := os.ReadFile(file)
 		if err != nil {
@@ -159,6 +230,8 @@ func main() {
 		}
 		Filter(data, file)		
 	}
+
+	done:
 
 	var buffer = []byte{}	
 	if Entry == true {
@@ -172,6 +245,15 @@ func main() {
 
 	for _, ub := range unresolvedBindings {
 		if ub.Solved == false {
+			if libs[ub.Name] != "" && noauto == false {
+				file := libs[ub.Name]
+				data, err := os.ReadFile(file)
+				if err != nil {
+					error(1, "path=" + file + " (in libs.conf)")
+				}
+				Filter(data, file)
+				goto done
+			}
 			error(3, "\n  \"" + ub.Name + "\", referenced from\n    " + ub.File)
 		}
 	}

@@ -28,12 +28,14 @@ var errors = []string {
 	"unknown pragma directive",
 	"expected ';' after expression",
 	"call to undeclared function",
+	"too few arguments to function call,",
+	"too many arguments to function call,",
+	"",
 }
 
 var Warnings int = 0
 var Errors int = 0
-var Filename string
-
+var Upgrade bool
 
 func Clamp(num int, mini int, maxi int) int {
 	if num < mini {
@@ -72,7 +74,9 @@ func Stargaze(Tokens *[]lexer.Token, where int) {
 	text = strings.ReplaceAll(text, " )", ")")
 	text = strings.ReplaceAll(text, " ;", ";")
 	text = strings.ReplaceAll(text, " ,", ",")
-	text = strings.ReplaceAll(text, "# ", "#")	
+	text = strings.ReplaceAll(text, "# ", "#")
+	text = strings.ReplaceAll(text, "\033[34mchar\033[0m *", "\033[34mchar\033[0m*")
+	text = strings.ReplaceAll(text, "\033[34mint\033[0m *", "\033[34mint\033[0m*")
 
 	fmt.Printf("    %d | %s\n", line, text)
 }
@@ -89,7 +93,7 @@ func find(token lexer.Token, tokens *[]lexer.Token) int {
 func Error(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
 	label := "lcc:"
 	if token.Line != 0 {
-		label = Filename + ":" + fmt.Sprintf("%d", token.Line) + ":"
+		label = token.File + ":" + fmt.Sprintf("%d", token.Line) + ":"
 	}
 	fmt.Fprintln(os.Stderr, "\033[1;39m" + label + " \033[1;31merror: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
 	Stargaze(tokens, find(token, tokens))
@@ -100,7 +104,7 @@ func Error(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
 func ErrorNoGaze(errno int, args string, token lexer.Token) {
 	label := "lcc:"
 	if token.Line != 0 {
-		label = Filename + ":" + fmt.Sprintf("%d", token.Line) + ":"
+		label = token.File + ":" + fmt.Sprintf("%d", token.Line) + ":"
 	}
 	fmt.Fprintln(os.Stderr, "\033[1;39m" + label + " \033[1;31merror: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
 	Errors = Errors + 1
@@ -108,18 +112,22 @@ func ErrorNoGaze(errno int, args string, token lexer.Token) {
 }
 
 func Warning(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
+	if Upgrade == true {
+		Error(errno, args, token, tokens)
+		return
+	}
 	label := "lcc:"
 	if token.Line != 0 {
-		label = Filename + ":" + fmt.Sprintf("%d", token.Line) + ":"
+		label = token.File + ":" + fmt.Sprintf("%d", token.Line) + ":"
 	}
 	fmt.Println("\033[1;39m" + label + " \033[1;35mwarning: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
 	Stargaze(tokens, find(token, tokens))
 	Warnings = Warnings + 1
 }
-func Note(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
+func Note(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {	
 	label := "lcc:"
 	if token.Line != 0 {
-		label = Filename + ":" + fmt.Sprintf("%d", token.Line) + ":"
+		label = token.File + ":" + fmt.Sprintf("%d", token.Line) + ":"
 	}
 	fmt.Println("\033[1;39m" + label + " \033[1;36mnote: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
 	Stargaze(tokens, find(token, tokens))

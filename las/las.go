@@ -77,40 +77,36 @@ func isRegister(word string) byte {
 		return 0x0b
 	case "r12":
 		return 0x0c
-	case "t1":
+	case "e0":
 		return 0x0d
-	case "t2":
+	case "e1":
 		return 0x0e
-	case "t3":
+	case "e2":
 		return 0x0f
-	case "t4":
+	case "e3":
 		return 0x10
-	case "t5":
+	case "e4":
 		return 0x11
-	case "t6":
+	case "e5":
 		return 0x12
-	case "t7":
+	case "e6":
 		return 0x13
-	case "t8":
+	case "e7":
 		return 0x14
-	case "t9":
+	case "e8":
 		return 0x15
-	case "t10":
+	case "e9":
 		return 0x16
-	case "t11":
+	case "e10":
 		return 0x17
-	case "t12":
+	case "e11":
 		return 0x18
 	case "sp":
 		return 0x19
 	case "pc":
 		return 0x1a
-	case "re1":
-		return 0x1b
-	case "re2":
-		return 0x1c
-	case "re3":
-		return 0x1d
+	case "e12":
+		return 0x1b	
 	default:
 		return 0xff
 	}
@@ -717,8 +713,10 @@ func assemble(text string) {
 			switch mode {
 			case "16":
 				write([]byte{0x1b, 0x00})
+				write([]byte("L_16BIT"))
 			case "32":
 				write([]byte{0x1b, 0x01})
+				write([]byte("L_32BIT"))
 			}
 			i++
 		case "str":
@@ -738,22 +736,22 @@ func assemble(text string) {
 			label := words[i + 1]
 			if Bits32 == false {
 				assemble(`
-				mov re1, pc
+				mov e11, pc
 				mov r0, 20
-				add re1, re1, r0
-				push re1
+				add e11, e11, r0
+				push e11
 				jmp	` + label)
 			} else {
 				assemble(`
-				mov re1, pc
+				mov e11, pc
 				mov r0, 24
-				add re1, re1, r0
-				push re1
+				add e11, e11, r0
+				push e11
 				jmp	` + label)
 			}
 			i = i + 1
 		case "ret":
-			assemble(`jmp re1`)
+			assemble(`jmp e11`)
 		case ".ascii":	
 			var value string	
 			var tokens = []string {}

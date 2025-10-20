@@ -64,6 +64,8 @@ func main() {
 			noassemble = true
 		case "-c":
 			nolink = true
+		case "-Werror":
+			error.Upgrade = true
 		default:
 			input_files = append(input_files, arg)
 		}
@@ -83,13 +85,16 @@ func main() {
 		if err != nil {
 			os.Exit(1)
 		}
-		error.Filename = file
-		tokens := lexer.Lex(string(data))
+		tokens := lexer.Lex(string(data), file)
 		parser.Parse(tokens, 1)
 		name, _ := splitFile(file)
 		assembly_files = append(assembly_files, name + ".s")
 		os.WriteFile(name + ".s", []byte(".text\n" + parser.Code1 + "\n" + parser.Code2), 0644)
 	}	
+
+	if error.Errors > 0 {
+		os.Exit(1)
+	}
 
 	if noassemble == true {
 		os.Exit(0)

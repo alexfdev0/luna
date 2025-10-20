@@ -35,6 +35,9 @@ bin/l2ld: $(SRC)/l2ld/*
 
 install:
 	cp bin/* /usr/local/bin/
+	mkdir -p /usr/local/lib/lcc
+	mkdir -p /usr/local/lib/l2ld
+	- cp -n l2ld/libs.conf /usr/local/lib/l2ld/
 
 clean:
 	rm -rf /usr/local/bin/lvm

@@ -8,6 +8,7 @@ import (
 	"github.com/Knetic/govaluate"
 	"strconv"
 	"os"
+	"runtime"
 )
 
 var level int = 0
@@ -24,6 +25,7 @@ const (
 	POINT
 	NULL
 )
+
 type Variable_Static struct {
 	Name string
 	Type int
@@ -33,6 +35,13 @@ type Variable_Static struct {
 	Scope int
 	Const bool
 	Extern bool
+	ArgNum int
+}
+
+type FunctionDecl struct {
+	Name string
+	Token lexer.Token
+	Set []lexer.Token
 }
 
 type Scope struct {
@@ -41,6 +50,8 @@ type Scope struct {
 }
 
 var Variables = []Variable_Static {}
+var FunctionDecls = []FunctionDecl {}
+
 var Scopes = []Scope {
 	Scope{ID: 1, Parent: -1},
 }
@@ -115,12 +126,13 @@ func StringParse(tokens []lexer.Token, start int) (string, int) {
 	// Start would be the first token
 	var str string = ""
 	var loc int = 0
+	
 	if strings.HasPrefix(tokens[start].Value, "\"") == false {
 		error.Error(2, "\"", tokens[start], &tokens)		
 	}
 	if strings.HasSuffix(tokens[start].Value, "\"") {
-		tokens[start].Value = strings.Trim(tokens[start].Value, "\"")
-		str = tokens[start].Value
+		word := strings.Trim(tokens[start].Value, "\"")
+		str = word
 		loc = start
 	} else {
 		var strtokens = []string { tokens[start].Value }
@@ -132,11 +144,22 @@ func StringParse(tokens []lexer.Token, start int) (string, int) {
 			}
 		}
 		str = strings.Join(strtokens, " ")
-		str = strings.Trim(str,  "\"")
+		str = strings.TrimSuffix(str,  "\"")
 		loc = start
 	}
 	
 	return str, loc
+}
+
+func FuncDeclLookup(Name string) (lexer.Token, *[]lexer.Token) {
+	for _, d := range FunctionDecls {
+		if d.Name == Name {
+			return d.Token, &d.Set
+		}
+	}
+	fmt.Println("Compiler fault: func not found on lookup")
+	os.Exit(1)
+	return lexer.Token{Type: lexer.TokEOF}, &[]lexer.Token {}
 }
 
 func ParseExpression(tokens []lexer.Token, start int, Scope int) (int, int) {
@@ -219,24 +242,52 @@ func Parse(tokens []lexer.Token, Scope int) {
 					pp_dir := expect(lexer.TokIdent)	
 					switch pp_dir {
 					case "include":
-						filename := expect(lexer.TokIdent)
-						filename = strings.ReplaceAll(filename, "\"", "")
+						filename := ""
+						global := false
 						
+						if peek(0).Type != lexer.TokLAngle {
+							filename = expect(lexer.TokIdent)
+							filename = strings.ReplaceAll(filename, "\"", "")
+						} else {
+							global = true
+							expect(lexer.TokLAngle)
+							filename = tokens[i].Value
+							i++
+							filename = filename + tokens[i].Value
+							i++
+							filename = filename + tokens[i].Value
+							i++
+							if runtime.GOOS != "windows" {
+								filename = "/usr/local/lib/lcc/" + filename
+							} else {
+								filename = "C:\\luna\\lcc\\" + filename
+							}
+							expect(lexer.TokRAngle)
+						}
+						
+						top:
 						data, err := os.ReadFile(filename)
 						if err != nil {
-							error.ErrorNoGaze(16, "'" + filename + "'", peek(-1))
+							if global == false {
+								if runtime.GOOS != "windows" {
+									filename = "/usr/local/lib/lcc/" + filename
+								} else {
+									filename = "C:\\luna\\lcc\\" + filename
+								}
+								global = true
+								goto top
+							} else {
+								error.ErrorNoGaze(16, "'" + filename + "'", peek(-1))
+							}
 						}
-						tokens := lexer.Lex(string(data))
-						ofn := error.Filename
-						error.Filename = filename
+						tokens := lexer.Lex(string(data), filename)	
 						Parse(tokens, 1)
-						error.Filename = ofn
 					case "pragma":
 						directive := expect(lexer.TokIdent)
 						switch directive {
-						case "__bits16":
+						case "__16bit":
 							BitPref = 16
-						case "__bits32":
+						case "__32bit":
 							BitPref = 32
 						default:
 							error.Warning(17, "'" + directive + "'", peek(-1), &tokens)	
@@ -244,6 +295,19 @@ func Parse(tokens []lexer.Token, Scope int) {
 					default:
 						error.Error(15, "'" + pp_dir + "'", peek(-1), &tokens)	
 					}
+					continue
+				}
+				if peek(0).Value == "asm" || peek(0).Value == "__asm__" {
+					expect(lexer.TokIdent)
+					if peek(0).Value == "volatile" {
+						expect(lexer.TokQualifier)
+					}
+					expect(lexer.TokLParen)
+					str, end := StringParse(tokens, i)
+					i = end + 1
+					WritePre(str, false)
+					expect(lexer.TokRParen)
+					expect(lexer.TokSemi)
 					continue
 				}
 				if peek(0).Type == lexer.TokQualifier {	
@@ -286,7 +350,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 			}
 
 			name := expect(lexer.TokIdent)
-			
+		
 			var rtype int	
 			switch _type {
 			case "int":
@@ -308,25 +372,27 @@ func Parse(tokens []lexer.Token, Scope int) {
 			_variable := LookupVariable(name, false, Scope, tokens[i - 1], &tokens) 
 			if _variable.Name != "__ZERO" && _variable.Scope == Scope {	
 				error.Error(3, "'" + name + "'", tokens[i - 1], &tokens)
-			}	
+			}
+
+			FunctionDecls = append(FunctionDecls, FunctionDecl{Name: name, Token: peek(-1), Set: tokens})
 
 			if peek(0).Type == lexer.TokLParen {
 				rns := false
 				if name == "main" {
 					rns = true
 					name = "_start"
-				}
-				Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: nil, Scope: Scope, Real: "t7", Extern: extern})
+				}	
 				expect(lexer.TokLParen)
 				fscope := CreateScope(Scope)	
 		
 				register := 0
+				nargs := 0
 				switch peek(0).Type {
 				case lexer.TokType:
 					if name == "_start" {
 						error.Warning(10, "", peek(0), &tokens)
 					}
-					register = 1
+					register = 0
 					expComma := false
 					for j := i; j < len(tokens); j++ {
 						if peek(0).Type == lexer.TokRParen {
@@ -334,7 +400,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 							break
 						}
 						if expComma == false {
-							if register >= 7 {
+							if register >= 6 {
 								error.Error(9, "", peek(0), &tokens)	
 							}
 							ptr := false
@@ -344,8 +410,9 @@ func Parse(tokens []lexer.Token, Scope int) {
 								expect(lexer.TokStar)
 							}	
 							__name := expect(lexer.TokIdent)	
-							Variables = append(Variables, Variable_Static{Name: __name, Type: rtype, Value: nil, Scope: fscope, Real: fmt.Sprintf("t%d", register), Pointer: ptr})
+							Variables = append(Variables, Variable_Static{Name: __name, Type: rtype, Value: nil, Scope: fscope, Real: fmt.Sprintf("e%d", register), Pointer: ptr})
 							register++
+							nargs++
 							expComma = true
 						} else {
 							expect(lexer.TokComma)
@@ -355,6 +422,8 @@ func Parse(tokens []lexer.Token, Scope int) {
 				case lexer.TokRParen:
 					expect(lexer.TokRParen)
 				}
+
+				Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: nil, Scope: Scope, Real: "e6", Extern: extern, ArgNum: nargs})
 
 				noreturn := false
 				if peek(0).Value == "__attribute__" {
@@ -435,8 +504,8 @@ func Parse(tokens []lexer.Token, Scope int) {
 					level = 1
 					topLevelName = name
 					if register > 0 {
-						for r := register; r > 0; r-- {
-							Write("pop t" + fmt.Sprintf("%d", r), true)
+						for r := register; r >= 0; r-- {
+							Write("pop e" + fmt.Sprintf("%d", r), true)
 						}
 					} 
 					Parse(Children, fscope)
@@ -547,10 +616,12 @@ func Parse(tokens []lexer.Token, Scope int) {
 							expect(lexer.TokRParen)
 							expect(lexer.TokSemi)
 						default:
-							if LookupVariable(name, false, Scope, peek(-2), &tokens).Name == "__ZERO" {
+							fvar := LookupVariable(name, false, Scope, peek(-2), &tokens) 
+							if fvar.Name == "__ZERO" {
 								error.Error(19, "'" + name + "'; ISO C99 and later do not support implicit function declarations", peek(-2), &tokens)	
 							}
 							var expComma bool = false
+							var pushed int = 0
 							for j := i; j < len(tokens); j++ {
 								if tokens[j].Type == lexer.TokRParen {
 									i = j
@@ -583,7 +654,17 @@ func Parse(tokens []lexer.Token, Scope int) {
 										}
 										expComma = true
 									}
+									pushed++	
 								}
+							} 
+							if pushed < fvar.ArgNum {
+								t, s := FuncDeclLookup(name)
+								error.Note(22, "'" + name + "' declared here", t, s)
+								error.Error(20, "expected " + fmt.Sprintf("%d", fvar.ArgNum) + ", have " + fmt.Sprintf("%d", pushed), peek(0), &tokens)	
+							} else if pushed > fvar.ArgNum {
+								t, s := FuncDeclLookup(name)
+								error.Note(22, "'" + name + "' declared here", t, s)
+								error.Error(21, "expected " + fmt.Sprintf("%d", fvar.ArgNum) + ", have " + fmt.Sprintf("%d", pushed), peek(0), &tokens)	
 							}
 							expect(lexer.TokRParen)
 							expect(lexer.TokSemi)
@@ -624,11 +705,11 @@ func Parse(tokens []lexer.Token, Scope int) {
 									Write("lodf r1, r1", true)
 									Write("mov r2, " + var_2.Real, true)
 									Write("lodf r2, r2", true)
-									Write("cmp t7, r1, r2", true)
+									Write("cmp e6, r1, r2", true)
 								} else {
 									Write("mov r1, " + fmt.Sprintf("%v", var_1.Value), true)	
 									Write("mov r2, " + fmt.Sprintf("%v", var_2.Value), true)	
-									Write("cmp t7, r1, r2", true)
+									Write("cmp e6, r1, r2", true)
 								}
 							}		
 						default:
@@ -661,7 +742,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 					name := expect(lexer.TokIdent)
 					expect(lexer.TokSemi)
 					LookupVariable(name, true, Scope, _name_token, &tokens)
-					Write("mov t7, " + name, true)
+					Write("mov e6, " + name, true)
 				} else {
 					expect(lexer.TokSemi)
 				}
@@ -718,9 +799,9 @@ func Parse(tokens []lexer.Token, Scope int) {
 				elseName := "else_stmt_" + fmt.Sprintf("%d", IDCounter)
 				IDCounter++	
 				if peek(0).Type == lexer.TokElse {
-					Write("jz t7, " + elseName, true)
+					Write("jz e6, " + elseName, true)
 				} else {
-					Write("jz t7, " + afterName, true)
+					Write("jz e6, " + afterName, true)
 				}
 				Write("if_stmt_" + fmt.Sprintf("%v", IDCounter) + ":", false)
 				otln := topLevelName

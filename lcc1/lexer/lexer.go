@@ -18,9 +18,7 @@ const (
 	TokLParen
 	TokRParen
 	TokLCurly
-	TokRCurly
-	TokLBrack
-	TokRBrack	
+	TokRCurly	
 	TokSemi
 	TokPlus
 	TokMinus
@@ -43,6 +41,7 @@ type Token struct {
 	Type TokenType
 	Value string
 	Line int
+	File string
 }
 
 func contains(set string, c byte) bool {
@@ -54,7 +53,7 @@ func contains(set string, c byte) bool {
     return false
 }
 
-func Lex(code string) []Token {
+func Lex(code string, filename string) []Token {
 	var tokens = []Token {}
 	var s scanner.Scanner
     s.Init(strings.NewReader(code))
@@ -62,55 +61,55 @@ func Lex(code string) []Token {
     for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {	
 		content := s.TokenText()
 		if content == "int" || content == "void" || content == "char" {
-			tokens = append(tokens, Token{Type: TokType, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokType, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "volatile" || content == "unsigned" || content == "long" || content == "short" || content == "static" || content == "const" || content == "extern" {
-			tokens = append(tokens, Token{Type: TokQualifier, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokQualifier, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "return" {
-			tokens = append(tokens, Token{Type: TokReturn, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokReturn, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "if" {
-			tokens = append(tokens, Token{Type: TokIf, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokIf, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "else" {
-			tokens = append(tokens, Token{Type: TokElse, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokElse, Value: content, Line: s.Pos().Line, File: filename})
 		} else if _, err := strconv.ParseInt(content, 0, 64); err == nil {
-			tokens = append(tokens, Token{Type: TokNumber, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokNumber, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "(" {
-			tokens = append(tokens, Token{Type: TokLParen, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokLParen, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == ")" {
-			tokens = append(tokens, Token{Type: TokRParen, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokRParen, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "{" {
-			tokens = append(tokens, Token{Type: TokLCurly, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokLCurly, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "}" {
-			tokens = append(tokens, Token{Type: TokRCurly, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokRCurly, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == ";" {
-			tokens = append(tokens, Token{Type: TokSemi, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokSemi, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "+" {
-			tokens = append(tokens, Token{Type: TokPlus, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokPlus, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "-" {
-			tokens = append(tokens, Token{Type: TokMinus, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokMinus, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "*" {
-			tokens = append(tokens, Token{Type: TokStar, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokStar, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "/" {
-			tokens = append(tokens, Token{Type: TokSlash, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokSlash, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "=" {
-			tokens = append(tokens, Token{Type: TokEqual, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokEqual, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "," {
-			tokens = append(tokens, Token{Type: TokComma, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokComma, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == ":" {
-			tokens = append(tokens, Token{Type: TokColon, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokColon, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "goto" {
-			tokens = append(tokens, Token{Type: TokGoto, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokGoto, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "for" {
-			tokens = append(tokens, Token{Type: TokFor, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokFor, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "while" {
-			tokens = append(tokens, Token{Type: TokWhile, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokWhile, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "do" {
-			tokens = append(tokens, Token{Type: TokDo, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokDo, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "<" {
-			tokens = append(tokens, Token{Type: TokLAngle, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokLAngle, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == ">" {
-			tokens = append(tokens, Token{Type: TokRAngle, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokRAngle, Value: content, Line: s.Pos().Line, File: filename})
 		} else {
-			tokens = append(tokens, Token{Type: TokIdent, Value: content, Line: s.Pos().Line})
+			tokens = append(tokens, Token{Type: TokIdent, Value: content, Line: s.Pos().Line, File: filename})
 		} 
 	}
 	return tokens
