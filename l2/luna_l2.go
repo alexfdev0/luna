@@ -133,7 +133,11 @@ var ClockSpeed int64 = 1158000
 func Log(text string) {
 	if LogOn == true {
 		fmt.Println("\033[33m" + fmt.Sprintf("0x%08x: ", getRegister(0x001a)) + text + "\033[0m")
-	}
+		for _, r := range Registers {
+			fmt.Println("\033[33m" + r.Name + ": " + fmt.Sprintf("0x%08x", r.Value) + "\033[0m")
+		}
+		fmt.Printf("\n\n")
+	}	
 }
 
 // CPU code
@@ -331,7 +335,7 @@ func execute() {
 					value = uint32(uint16(Mapper(ProgramCounter + 2)) << 8 | uint16(Mapper(ProgramCounter + 3)))
 					next = ProgramCounter + 4
 				} else {
-					value = uint32(Mapper(ProgramCounter + 2)) << 24 | uint32(Mapper(ProgramCounter + 3))	<< 16 | uint32(Mapper(ProgramCounter + 4)) << 8 | uint32(Mapper(ProgramCounter + 5))
+					value = uint32(Mapper(ProgramCounter + 2)) << 24 | uint32(Mapper(ProgramCounter + 3)) << 16 | uint32(Mapper(ProgramCounter + 4)) << 8 | uint32(Mapper(ProgramCounter + 5))
 					next = ProgramCounter + 6
 				}	
 				setRegister(0x001a, next)

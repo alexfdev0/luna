@@ -31,6 +31,11 @@ var errors = []string {
 	"too few arguments to function call,",
 	"too many arguments to function call,",
 	"",
+	"return type of",
+	"change return type to",
+	"type specifier missing, defaults to 'int'; ISO C99 and later do not support implicit int",
+	"indirection requires pointer operand",
+	"cannot take the address of an rvalue of type",
 }
 
 var Warnings int = 0
@@ -75,6 +80,7 @@ func Stargaze(Tokens *[]lexer.Token, where int) {
 	text = strings.ReplaceAll(text, " ;", ";")
 	text = strings.ReplaceAll(text, " ,", ",")
 	text = strings.ReplaceAll(text, "# ", "#")
+	text = strings.ReplaceAll(text, "* ", "*")
 	text = strings.ReplaceAll(text, "\033[34mchar\033[0m *", "\033[34mchar\033[0m*")
 	text = strings.ReplaceAll(text, "\033[34mint\033[0m *", "\033[34mint\033[0m*")
 

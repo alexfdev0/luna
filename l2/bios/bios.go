@@ -95,13 +95,13 @@ func IntHandler(code uint32) {
 		address := getRegister(0x0001)
 		word := getRegister(0x0002)
 		if types.Bits32 == false {
-			video.MemoryVideo[video.Clamp(address, 0, MEMCAP)] = byte(uint16(word) >> 8)
-			video.MemoryVideo[video.Clamp(address + 1, 0, MEMCAP)] = byte(uint16(word) & 0xFF)
+			video.MemoryVideo[video.Clamp(address, 0, 63999)] = byte(uint16(word) >> 8)
+			video.MemoryVideo[video.Clamp(address + 1, 0, 63999)] = byte(uint16(word) & 0xFF)
 		} else {
-			video.MemoryVideo[video.Clamp(address, 0, MEMCAP)] = byte(uint32(word) >> 24)
-			video.MemoryVideo[video.Clamp(address + 1, 0, MEMCAP)] = byte(uint32(word) >> 16)
-			video.MemoryVideo[video.Clamp(address + 2, 0, MEMCAP)] = byte(uint32(word) >> 8)
-			video.MemoryVideo[video.Clamp(address + 3, 0, MEMCAP)] = byte(uint32(word) & 0xFF)
+			video.MemoryVideo[video.Clamp(address, 0, 63999)] = byte(uint32(word) >> 24)
+			video.MemoryVideo[video.Clamp(address + 1, 0, 63999)] = byte(uint32(word) >> 16)
+			video.MemoryVideo[video.Clamp(address + 2, 0, 63999)] = byte(uint32(word) >> 8)
+			video.MemoryVideo[video.Clamp(address + 3, 0, 63999)] = byte(uint32(word) & 0xFF)
 		}
 	} else if code == 0x4 {
 		// BIOS configure input mode

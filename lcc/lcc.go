@@ -145,16 +145,19 @@ func main() {
 		}
 
 		object_files = append(object_files, name + ".o")
-		cleanup = append(cleanup, name + ".o")
+		if nolink == false {
+			cleanup = append(cleanup, name + ".o")
+		}	
 	}
 
 	if nolink == true {
+		cleanupFiles(cleanup)
 		os.Exit(0)
 	}
 	
 	// Third pass: link all assembly files to final executable
 
-	success := execute("l2ld " + strings.Join(object_files, " ") + " -o " + output_file, false)
+	success := execute("l2ld -a " + strings.Join(object_files, " ") + " -o " + output_file, false)
 	if success != true {
 		cleanupFiles(cleanup)
 		stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39mlinker command failed.\033[0m")

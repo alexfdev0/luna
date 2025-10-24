@@ -343,6 +343,11 @@ func Parse(tokens []lexer.Token, Scope int) {
 				}
 			}
 
+			if peek(0).Type == lexer.TokIdent {
+				error.Error(25, "", peek(0), &tokens)
+			}
+
+			_typetok := tokens[i]
 			_type := expect(lexer.TokType)
 			if peek(0).Type == lexer.TokStar {
 				ptr = true
@@ -469,6 +474,10 @@ func Parse(tokens []lexer.Token, Scope int) {
 					continue
 				}
 
+				if name == "_start" && _type != "void" {
+					error.Warning(23, "'_start' is not 'void'", _typetok, &tokens)
+					error.Note(24, "'void'", _typetok, &tokens)
+				}
 				expect(lexer.TokLCurly)	
 
 				var Children = []lexer.Token {}
@@ -540,12 +549,16 @@ func Parse(tokens []lexer.Token, Scope int) {
 
 					if ptr == true {
 						rn := "var_" + fmt.Sprintf("%d", IDCounter)
-						IDCounter++	
+						IDCounter++
 						Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: val, Pointer: true, Real: rn, Scope: Scope, Const: constant})
 						WritePre(rn + ":", false)
-						WritePre(".word " + fmt.Sprintf("%d", val), true)
+						WritePre(".ptr " + fmt.Sprintf("%d", val), true)
 					} else {
-						Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: val, Pointer: false, Scope: Scope, Const: constant})	
+						rn := "var_" + fmt.Sprintf("%d", IDCounter)
+						IDCounter++
+						Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: val, Pointer: false, Real: rn, Scope: Scope, Const: constant})
+						WritePre(rn + ":", false)
+						WritePre(".ptr " + fmt.Sprintf("%d", val), true)	
 					}
 					i = end + 1
 				case "char":
@@ -574,7 +587,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 						rn := "var_" + fmt.Sprintf("%d", IDCounter)
 						WritePre(rn + ":", false)
 						IDCounter++
-						WritePre(".word " + fmt.Sprintf("%d", 0), true)
+						WritePre(".ptr " + fmt.Sprintf("%d", 0), true)
 						Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: 0, Pointer: true, Real: rn, Scope: Scope, Const: constant})
 					} else {
 						Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: 0, Pointer: false, Scope: Scope, Const: constant})	
@@ -597,8 +610,19 @@ func Parse(tokens []lexer.Token, Scope int) {
 			// Variable reassignment / function call
 			var type_ lexer.TokenType = peek(0).Type
 			switch type_ {
-			case lexer.TokIdent:
+			case lexer.TokIdent, lexer.TokStar, lexer.TokAmpersand:
 				_name_token := tokens[i]
+
+				deref := false	
+
+				if peek(2).Type != lexer.TokLParen {
+					if peek(0).Type == lexer.TokStar {
+						expect(lexer.TokStar)
+						deref = true
+					}
+				}
+
+				_ntok := peek(0)
 				name := expect(lexer.TokIdent)
 				if name == "asm" || name == "__asm__" {
 					if peek(0).Value == "volatile" {
@@ -670,15 +694,39 @@ func Parse(tokens []lexer.Token, Scope int) {
 							expect(lexer.TokSemi)
 							Write("call " + name, true)
 					}
-				} else if peek(0).Type == lexer.TokEqual {
-					switch peek(1).Type {
-						case lexer.TokEqual:
-							expect(lexer.TokEqual)
-							expect(lexer.TokEqual)
+				} else if peek(0).Type == lexer.TokEqual || peek(0).Type == lexer.TokExclamation || peek(0).Type == lexer.TokLAngle || peek(0).Type == lexer.TokRAngle {
+					switch {
+						case peek(1).Type == lexer.TokEqual || peek(0).Type == lexer.TokLAngle || peek(0).Type == lexer.TokRAngle:
+							not := false
+							gt := false
+							lt := false
+							if peek(0).Type == lexer.TokExclamation {
+								not = true
+								expect(lexer.TokExclamation)
+							} else if peek(0).Type == lexer.TokLAngle {
+								lt = true
+								expect(lexer.TokLAngle)
+							} else if peek(0).Type == lexer.TokRAngle {
+								gt = true
+								expect(lexer.TokRAngle)
+							} else {
+								expect(lexer.TokEqual)
+							}
+
+							if lt != true && gt != true {
+								expect(lexer.TokEqual)	
+							}
 							// We'll just compare 2 variables for now...
 
 							var_1 := LookupVariable(name, true, Scope, _name_token, &tokens)
 							_var_2_token := tokens[i]
+
+							deref_2 := false
+							if peek(0).Type == lexer.TokStar {
+								deref_2 = true
+								expect(lexer.TokStar)
+							}
+
 							name2 := expect(lexer.TokIdent)
 							var_2 := LookupVariable(name2, true, Scope, _var_2_token, &tokens)
 							expect(lexer.TokSemi)
@@ -698,40 +746,112 @@ func Parse(tokens []lexer.Token, Scope int) {
 									} else {
 										str2 = "int"
 									}
-									error.Error(8, "('" + str1 + "' and '" + str2 + "')", _var_2_token, &tokens)
+									error.Warning(8, "('" + str1 + "' and '" + str2 + "')", _var_2_token, &tokens)
 								}
-								if var_1.Pointer == true {
+
+								if deref == false {
+									Write("mov r1, " + var_1.Real, true)
+									Write("lodf r1, r1", true)	
+								} else {		
 									Write("mov r1, " + var_1.Real, true)
 									Write("lodf r1, r1", true)
+									Write("lodf r1, r1", true)
+								}
+
+								if deref_2 == false {
+									Write("mov r2, " + var_2.Real, true)
+									Write("lodf r2, r2", true)	
+								} else {		
 									Write("mov r2, " + var_2.Real, true)
 									Write("lodf r2, r2", true)
+									Write("lodf r2, r2", true)
+								}
+	
+								if not == true {
 									Write("cmp e6, r1, r2", true)
+									Write("not e6, e6", true)
+								} else if lt == true {
+									Write("ilt e6, r1, r2", true)
+								} else if gt == true {
+									Write("igt e6, r1, r2", true)
 								} else {
-									Write("mov r1, " + fmt.Sprintf("%v", var_1.Value), true)	
-									Write("mov r2, " + fmt.Sprintf("%v", var_2.Value), true)	
 									Write("cmp e6, r1, r2", true)
 								}
 							}		
 						default:
 							expect(lexer.TokEqual)
-							variable := LookupVariable(name, true, Scope, _name_token, &tokens)
+							variable := LookupVariable(name, true, Scope, _name_token, &tokens)	
 							switch peek(0).Type {
-							case lexer.TokNumber:
-								if variable.Type != NUMBER16 && variable.Type != NUMBER32 {
-									error.Error(5, "'" + peek(0).Value + "'", peek(0), &tokens)
+							case lexer.TokNumber:	
+								if deref == false {
+									if variable.Type != NUMBER16 && variable.Type != NUMBER32 {
+										error.Error(5, "'" + peek(0).Value + "'", peek(0), &tokens)
+									}
+									value, end := ParseExpression(tokens, i, Scope)
+									Write("mov r1, " + name, true)
+									Write("mov r2, " + fmt.Sprintf("%d", value), true)
+									Write("str r1, r2", true)
+									i = end
+								} else {
+									if variable.Pointer == false {
+										error.Error(26, "", _ntok, &tokens)
+									}
+									value, end := ParseExpression(tokens, i, Scope)
+									Write("mov r1, " + variable.Real, true)
+									Write("mov r2, " + fmt.Sprintf("%d", value), true)
+									Write("lodf r1, r1", true)
+									Write("strf r1, r2", true)
+									i = end + 1
 								}
-								value, end := ParseExpression(tokens, i, Scope)
-								Write("mov r1, " + name, true)
-								Write("mov r2, " + fmt.Sprintf("%d", value), true)
-								Write("str r1, r2", true)
-								i = end
-							}
+							case lexer.TokIdent, lexer.TokAmpersand:
+								addr := false
+								if peek(0).Type == lexer.TokAmpersand {
+									expect(lexer.TokAmpersand)
+									addr = true
+								}	
+								name_ := expect(lexer.TokIdent)	
+								variable__ := LookupVariable(name_, true, Scope, peek(-1), &tokens)
+								if deref == false {
+									if addr == false {
+										Write("mov r1, " + variable__.Real, true)	
+										Write("mov r2, " + variable.Real, true)
+										Write("lodf r2, r2", true)
+										Write("strf r1, r2", true)
+									} else {
+										Write("mov r1, " + variable__.Real, true)	
+										Write("mov r2, " + variable.Real, true)
+										Write("strf r1, r2", true)
+									}
+								} else {
+									if addr == false {
+										Write("mov r1, " + variable.Real, true)
+										Write("lodf r1, r1", true)
+										Write("mov r2, " + variable__.Real, true)
+										Write("lodf r2, r2", true)
+										Write("strf r1, r2", true)
+									} else {
+										Write("mov r1, " + variable.Real, true)
+										Write("lodf r1, r1", true)
+										Write("mov r2, " + variable__.Real, true)	
+										Write("strf r1, r2", true)
+									}
+								}
+							}	
 							expect(lexer.TokSemi)
 					}	
 				} else if peek(0).Type == lexer.TokColon {
 					expect(lexer.TokColon)
 					Write(name + ":", false)
 					Variables = append(Variables, Variable_Static{Name: name, Type: POINT, Value: NULL, Scope: 1})
+				} else if peek(0).Type == lexer.TokPlus && peek(1).Type == lexer.TokPlus {
+					expect(lexer.TokPlus)
+					expect(lexer.TokPlus)
+					_var := LookupVariable(name, true, Scope, _ntok, &tokens)
+					Write("mov r4, " + _var.Real, true)
+					Write("lodf r4, r5", true)
+					Write("inc r5", true)
+					Write("strf r4, r5", true);
+					expect(lexer.TokSemi)
 				} else {
 					expect(lexer.TokSemi)
 				}

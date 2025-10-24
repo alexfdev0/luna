@@ -1,4 +1,4 @@
-Luna Microsystems General Purpose License
+alexfdev0 General Purpose License
 =========================================
 
 Permission Grant
@@ -14,24 +14,29 @@ Conditions
 1. Non-commercial use
     The Work, and any modifications or derivative works, may not be sold, licensed,
     or otherwise used for commercial purposes without the express written permission
-    of Luna Microsystems LLC.
+    of Alexander Flax.
+    “Commercial use” means use intended for or directed toward commercial advantage 
+    or monetary compensation.
 
 2. Attribution
     Any redistribution or modification must clearly state that it is based on
-    software developed by Luna Microsystems LLC and must include visible attribution
-    to Luna Microsystems LLC.
+    software developed by Alexander Flax and must include visible attribution
+    to Alexander Flax. Attribution must remain in source and binary redistributions, 
+    in documentation, or about dialogs where feasible.
 
 3. Patent waiver
-    No person or entity may file, claim, or enforce any patent or patent application
-    covering the Work or any derivative works. By using the Work, you agree to
-    permanently waive all patent rights related to it.
+    Each recipient of the Work, by exercising any rights granted herein, 
+    irrevocably covenants not to assert or assist in asserting any patent claim against 
+    Alexander Flax or any user of the Work, alleging that the Work or a derivative infringes 
+    such claim. Any party initiating or participating in such a claim shall have all rights 
+    under this license automatically terminated.
 
 Disclaimer
 ==========
 
 This work is provided "as is," without warranties or conditions of any kind, either
-express or implied. Luna Microsystems LLC shall not be liable for any damages 
+express or implied. Alexander Flax shall not be liable for any damages 
 arising from the use of this work.
 
-All files in this repository are licensed under the Luna Microsystems General 
+All files in this repository are licensed under the alexfdev0 General 
 Purpose License except where otherwise noted.

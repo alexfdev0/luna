@@ -194,7 +194,7 @@ func main() {
 
 	var input_files []string
 	var output_filename string = ""
-	var noauto bool = false
+	var auto bool = false
 
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -208,8 +208,8 @@ func main() {
 		case "-o":
 			output_filename = os.Args[i + 1]
 			i++
-		case "-n":
-			noauto = true
+		case "-a":
+			auto = true
 		default:
 			input_files = append(input_files, arg)
 		}
@@ -245,7 +245,7 @@ func main() {
 
 	for _, ub := range unresolvedBindings {
 		if ub.Solved == false {
-			if libs[ub.Name] != "" && noauto == false {
+			if libs[ub.Name] != "" && auto == true {
 				file := libs[ub.Name]
 				data, err := os.ReadFile(file)
 				if err != nil {

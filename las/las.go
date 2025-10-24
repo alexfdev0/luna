@@ -712,11 +712,9 @@ func assemble(text string) {
 
 			switch mode {
 			case "16":
-				write([]byte{0x1b, 0x00})
-				write([]byte("L_16BIT"))
+				write([]byte{0x1b, 0x00})	
 			case "32":
-				write([]byte{0x1b, 0x01})
-				write([]byte("L_32BIT"))
+				write([]byte{0x1b, 0x01})	
 			}
 			i++
 		case "str":
@@ -823,9 +821,11 @@ func assemble(text string) {
 		case ".bits":
 			switch words[i + 1] {
 			case "16":
-				Bits32 = false	
+				Bits32 = false
+				write([]byte("L_16BIT"))
 			case "32":
 				Bits32 = true
+				write([]byte("L_32BIT"))
 			default:
 				error(9, "")
 			}
@@ -883,6 +883,9 @@ func assemble(text string) {
 			i++
 		case ".noentry":
 			write([]byte("L_NOENTRY"))
+		case ".ptr":
+			write(parse(words[i + 1]))
+			i++
 		default:
 			error(4, "'"+words[i]+"'")
 		}

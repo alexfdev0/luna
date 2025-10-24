@@ -4,6 +4,7 @@ import (
 	"text/scanner"
 	"strconv"
 	"strings"
+	"fmt"
 )
 
 type TokenType int
@@ -35,6 +36,8 @@ const (
 	TokDo
 	TokLAngle
 	TokRAngle
+	TokAmpersand
+	TokExclamation
 )
 
 type Token struct {
@@ -70,8 +73,8 @@ func Lex(code string, filename string) []Token {
 			tokens = append(tokens, Token{Type: TokIf, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "else" {
 			tokens = append(tokens, Token{Type: TokElse, Value: content, Line: s.Pos().Line, File: filename})
-		} else if _, err := strconv.ParseInt(content, 0, 64); err == nil {
-			tokens = append(tokens, Token{Type: TokNumber, Value: content, Line: s.Pos().Line, File: filename})
+		} else if num, err := strconv.ParseInt(content, 0, 64); err == nil {
+			tokens = append(tokens, Token{Type: TokNumber, Value: fmt.Sprintf("%d", num), Line: s.Pos().Line, File: filename})
 		} else if content == "(" {
 			tokens = append(tokens, Token{Type: TokLParen, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == ")" {
@@ -108,6 +111,10 @@ func Lex(code string, filename string) []Token {
 			tokens = append(tokens, Token{Type: TokLAngle, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == ">" {
 			tokens = append(tokens, Token{Type: TokRAngle, Value: content, Line: s.Pos().Line, File: filename})
+		} else if content == "&" {
+			tokens = append(tokens, Token{Type: TokAmpersand, Value: content, Line: s.Pos().Line, File: filename})
+		} else if content == "!" {
+			tokens = append(tokens, Token{Type: TokExclamation, Value: content, Line: s.Pos().Line, File: filename})
 		} else {
 			tokens = append(tokens, Token{Type: TokIdent, Value: content, Line: s.Pos().Line, File: filename})
 		} 
