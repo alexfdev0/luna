@@ -21,6 +21,29 @@ func Clamp[T cmp.Ordered](x T, min T, max T) T {
     return x
 }
 
+func scrollUp() {
+    const (
+        screenWidth  = 320
+        screenHeight = 200
+        charHeight   = 8
+    )
+
+    lineSize := screenWidth * charHeight // 2560
+    visibleLines := screenHeight / charHeight
+
+    // Shift all but the first text line up by exactly one full line block.
+    copy(MemoryVideo[0:], MemoryVideo[lineSize:])
+
+    // Fully clear bottom 8 rows (the new empty line region)
+    bottomStart := (visibleLines - 1) * lineSize
+    for i := bottomStart; i < len(MemoryVideo); i++ {
+        MemoryVideo[i] = 0
+    }
+
+    // Keep the cursor clamped to the last visible text row
+    CursorY = visibleLines - 1
+}
+
 func PushChar(x, y int, ch rune, fg byte, bg byte) {
     idx := int(ch)
     glyph := font.Font[0x00]
@@ -57,23 +80,21 @@ func PrintChar(ch rune, fg byte, bg byte) {
 		return
 	} else if ch == 0x00 {
 		return
-	}	
+	}
+
+	if CursorY >= 200/8 {
+		scrollUp()	
+	}
 
 	x := CursorX * 8
-	y := CursorY * 8	
+	y := CursorY * 8		
 
-	PushChar(x, y, ch, fg, bg)
+	PushChar(x, y, ch, fg, bg)	
 
 	CursorX++
 	if CursorX >= 320/8 {
 		CursorY++
 		CursorX = 0
-	}
-	if CursorY >= 200/8 {
-		for i := 0; i <= 63999; i++ {
-			MemoryVideo[i] = byte(00)
-		} 
-		CursorY = 0
 	}
 }
 

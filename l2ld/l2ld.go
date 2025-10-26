@@ -11,6 +11,8 @@ import (
 type binding struct {
 	Name string
 	Location []byte
+	File string
+	Global bool
 }
 
 type unresolvedBinding struct {
@@ -26,6 +28,7 @@ var section string = "text"
 
 var bindings = []binding {}
 var unresolvedBindings = []unresolvedBinding {}
+var Globals = []string {}
 
 var FillSize int = 0
 var Org int = 0
@@ -47,16 +50,29 @@ func write(content byte) {
 	Buffer = append(Buffer, content)	
 }
 
-func checkBinding(name string) ([]byte, bool) {
+func checkBinding(name string) binding {
 	for i := range bindings {
 		if bindings[i].Name == name {
-			return bindings[i].Location, true
+			return bindings[i] 
 		}
 	}
-	return nil, false
+	return binding{Name: "nil"}
+}
+
+func CheckGlobal(name string) bool {
+	if name == "_start" {
+		return true
+	}
+	for _, g := range Globals {
+		if g == name {
+			return true
+		}
+	}
+	return false
 }
 
 var GBits32 bool = false
+
 func Filter(data []byte, filename string) {	
 	for i := 0; i < len(data); i++ {
 		if bytes.HasPrefix(data[i:], []byte("LD16_")) || bytes.HasPrefix(data[i:], []byte("LD32_")) {
@@ -76,17 +92,19 @@ func Filter(data []byte, filename string) {
 			if Org != 0 {
 				org = Org
 			}
-
+		
 			if Bits32 == false {
 				H := byte((org + len(Buffer)) >> 8)
-				L := byte((org + len(Buffer)) & 0xFF)
-				bindings = append(bindings, binding{Name: name, Location: []byte{H, L}})
+				L := byte((org + len(Buffer)) & 0xFF)	
+				bindings = append(bindings, binding{Name: name, Location: []byte{H, L}, File: filename, Global: CheckGlobal(name)})
 
 				for i, ub := range unresolvedBindings {
 					if ub.Name == name {
-						unresolvedBindings[i].Solved = true
-						Buffer[ub.BufferLoc] = H
-						Buffer[ub.BufferLoc + 1] = L
+						if CheckGlobal(name) == true || (CheckGlobal(name) == false && ub.File == filename) {
+							unresolvedBindings[i].Solved = true
+							Buffer[ub.BufferLoc] = H
+							Buffer[ub.BufferLoc + 1] = L
+						}
 					}
 				}
 			} else {
@@ -94,15 +112,17 @@ func Filter(data []byte, filename string) {
 				HL := byte((org + len(Buffer)) >> 16)
 				LH := byte((org + len(Buffer)) >> 8)
 				LL := byte((org + len(Buffer)) & 0xFF)
-				bindings = append(bindings, binding{Name: name, Location: []byte{HH, HL, LH, LL}})
+				bindings = append(bindings, binding{Name: name, Location: []byte{HH, HL, LH, LL}, File: filename, Global: CheckGlobal(name)})
 
 				for i, ub := range unresolvedBindings {
 					if ub.Name == name {
-						unresolvedBindings[i].Solved = true
-						Buffer[ub.BufferLoc] = HH
-						Buffer[ub.BufferLoc + 1] = HL
-						Buffer[ub.BufferLoc + 2] = LH
-						Buffer[ub.BufferLoc + 3] = LL
+						if CheckGlobal(name) == true || (CheckGlobal(name) == false && ub.File == filename) {
+							unresolvedBindings[i].Solved = true
+							Buffer[ub.BufferLoc] = HH
+							Buffer[ub.BufferLoc + 1] = HL
+							Buffer[ub.BufferLoc + 2] = LH
+							Buffer[ub.BufferLoc + 3] = LL
+						}	
 					}
 				}
 			}
@@ -114,9 +134,18 @@ func Filter(data []byte, filename string) {
 			}
 			name := string(data[i + 3:j])
 			j++
-			location, found := checkBinding(name)
-			if found == true {
-				for _, b := range location {
+			binding := checkBinding(name)	
+			OK := false
+			if binding.Global == false {	
+				if filename == binding.File {	
+					OK = true
+				}
+			} else {
+				OK = true
+			}
+
+			if binding.Name != "nil" && OK == true {
+				for _, b := range binding.Location {
 					write(b)
 				}
 			} else {
@@ -154,6 +183,15 @@ func Filter(data []byte, filename string) {
 				GBits32 = false
 			}
 			i += 6
+		} else if bytes.HasPrefix(data[i:], []byte("L_GLOBL_")) {
+			j := i + 8
+			for j < len(data) && data[j] != 0x00 {
+				j++
+			}
+			name := string(data[i + 8:j])
+			j++
+			Globals = append(Globals, name)
+			i = j - 1
 		} else {
 			write(data[i])
 		}
@@ -227,7 +265,7 @@ func main() {
 		data, err := os.ReadFile(file)
 		if err != nil {
 			error(1, "path=" + file)
-		}
+		}	
 		Filter(data, file)		
 	}
 
@@ -235,11 +273,11 @@ func main() {
 
 	var buffer = []byte{}	
 	if Entry == true {
-		startloc, found := checkBinding("_start")
-		if found == false {
+		binding := checkBinding("_start")
+		if binding.Name == "nil" {
 			error(3, "\n  \"_start\", referenced from\n    <initial-undefines>")	
 		}	
-		buffer = append(buffer, startloc...)
+		buffer = append(buffer, binding.Location...)
 	}
 	buffer = append(buffer, Buffer...)	
 

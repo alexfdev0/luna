@@ -53,8 +53,16 @@ func getRegister(address uint32) uint32 {
 	return 0x0000
 }
 
-func LoadSector(sector int, enforce bool) {
-	data, err := os.ReadFile(types.Filename)
+func LoadSector(drive int, sector int, enforce bool) {	
+	var file string
+	switch drive {
+	case 0:
+		file = types.Filename
+	case 1:
+		file = types.SDFilename	
+	}
+
+	data, err := os.ReadFile(file)
 	if err != nil {
 		if enforce == false {
 			fmt.Println("luna-l2: could not reload block device")
@@ -66,13 +74,44 @@ func LoadSector(sector int, enforce bool) {
 	}
 	start := sector * 512
 	if start > len(data) {
-		fmt.Println("read at address " + fmt.Sprintf("0x%08x", start) + " out of bounds")	
+		fmt.Println("luna-l2: read at address " + fmt.Sprintf("0x%08x", start) + " out of bounds")	
 		return
 	}
 	if start + 512 > len(data) {
 		copy((*Memory)[start:start + 512], data[start:])
 	} else {
 		copy((*Memory)[start:start + 512], data[start:start + 512])
+	}
+}
+
+func WriteSector(drive int, sector int) {
+	var file string
+	switch drive {
+	case 0:
+		file = types.Filename
+	case 1:
+		file = types.SDFilename	
+	}
+
+	data, err := os.ReadFile(file)
+	if err != nil {
+		fmt.Println("luna-l2: could not reload block device")
+		return
+	}
+
+	start := sector * 512
+
+	if len(data) < start + 512 {
+		new_data := make([]byte, start + 512)
+		copy(new_data, data)
+		data = new_data
+	}
+
+	copy(data[start:start + 512], (*Memory)[start:start + 512])
+	
+	_err := os.WriteFile(types.Filename, data, 0644)
+	if _err != nil {
+		fmt.Println("luna-l2: could not write to block device")
 	}
 }
 
@@ -160,10 +199,30 @@ func IntHandler(code uint32) {
 		}
 	} else if code == 0xb {
 		sector := getRegister(0x0001)
-		LoadSector(int(sector), false)
+		drive := getRegister(0x0002)
+		LoadSector(int(drive), int(sector), false)
 	} else if code == 0xc {
 		video.CursorX = int(getRegister(0x0001))
 		video.CursorY = int(getRegister(0x0002))
+	} else if code == 0xd {
+		sector := getRegister(0x0001)
+		drive := getRegister(0x0002)
+		WriteSector(int(drive), int(sector))
+	} else if code == 0xe {
+		setRegister(0x0001, uint32(video.CursorX))
+		setRegister(0x0002, uint32(video.CursorY))
+	} else if code == 0xf {
+		types.BootDrive = int(getRegister(0x0001))
+		for i, _ := range (*Registers) {
+			(*Registers)[i].Value = uint32(0)
+		}
+		types.Bits32 = false	
+		*Memory = [0x70000000]byte {}
+		video.MemoryVideo = [64000]byte {}
+		video.CursorX = 0
+		video.CursorY = 0
+	} else if code == 0x10 {
+		setRegister(0x0001, uint32(types.DriveNumber))
 	}
 }
 

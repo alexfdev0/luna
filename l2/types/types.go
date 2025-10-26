@@ -7,4 +7,7 @@ type Register struct {
 }
 
 var Bits32 bool = false
-var Filename string
+var Filename string = ""
+var SDFilename string = ""
+var DriveNumber int = 0
+var BootDrive int = 0

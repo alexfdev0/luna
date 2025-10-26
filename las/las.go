@@ -226,34 +226,42 @@ func formatString(text string) string {
 	return text
 }
 
+
 func Lex(text string) []string {
-	var tokens = []string {}
-	var buf = []rune {}
+    var tokens []string
+    var buf []rune
+    inString := false
 
-	for _, r := range text {
-		switch {
-		case r == '\n':	
-			if len(buf) > 0 {
-				tokens = append(tokens, string(buf))
-				buf = buf[:0]
-			}
-			tokens = append(tokens, "\n")
-		case unicode.IsSpace(r):
-			if len(buf) > 0 {
-				tokens = append(tokens, string(buf))
-				buf = buf[:0]
-			}
-		default:
-			buf = append(buf, r)
-		}
-	}
-
-	if len(buf) > 0 {
-		tokens = append(tokens, string(buf))
-	}
-
-	return tokens
+    for i, r := range text {
+        switch {
+        case r == '"':
+            buf = append(buf, r)
+            if inString { 
+                tokens = append(tokens, string(buf))
+                buf = buf[:0]
+            }
+            inString = !inString
+        case r == '\n' && !inString:
+            if len(buf) > 0 {
+                tokens = append(tokens, string(buf))
+                buf = buf[:0]
+            }
+            tokens = append(tokens, "\n")
+        case unicode.IsSpace(r) && !inString:
+            if len(buf) > 0 {
+                tokens = append(tokens, string(buf))
+                buf = buf[:0]
+            }
+        default:
+            buf = append(buf, r)
+        }
+        if i == len(text)-1 && len(buf) > 0 {
+            tokens = append(tokens, string(buf))
+        }
+    }
+    return tokens
 }
+
 
 func assemble(text string) {
 	words := Lex(text)
@@ -291,7 +299,7 @@ func assemble(text string) {
 	}
 
 	for i := 0; i < len(words); i++ {
-		if strings.HasSuffix(words[i], ":") {
+		if strings.HasSuffix(words[i], ":") && !strings.Contains(words[i], "\"") {
 			end := len(words)
 			for j := i + 1; j < len(words); j++ {
 				if strings.HasSuffix(words[j], ":") {
@@ -785,8 +793,8 @@ func assemble(text string) {
 			i = ending
 		case ".asciz":	
 			var value string	
-			var tokens = []string {}
-			
+			var tokens = []string {}	
+
 			if string(words[i+1][0]) != "\"" {
 				error(7, "'" + words[i+1] + "'")
 			}
@@ -885,6 +893,21 @@ func assemble(text string) {
 			write([]byte("L_NOENTRY"))
 		case ".ptr":
 			write(parse(words[i + 1]))
+			i++
+		case ".pad":
+			word := words[i + 1]
+			num, err := strconv.ParseInt(word, 0, 64)
+			if err != nil {
+				error(11, ", got '" + word + "'")
+			}
+			for j := 0; int64(j) < num; j++ {
+				write([]byte{0x00})
+			}
+			i++
+		case ".global":
+			label := words[i + 1]
+			write([]byte("L_GLOBL_" + label))
+			write([]byte{0x00})
 			i++
 		default:
 			error(4, "'"+words[i]+"'")

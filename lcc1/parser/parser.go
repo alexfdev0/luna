@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"os"
 	"runtime"
+	"path/filepath"
 )
 
 var level int = 0
@@ -235,6 +236,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 			unsigned := false
 			constant := false
 			extern := false
+			static := false
 			bits := BitPref
 			for {
 				if peek(0).Value[0] == '#' {
@@ -243,11 +245,16 @@ func Parse(tokens []lexer.Token, Scope int) {
 					switch pp_dir {
 					case "include":
 						filename := ""
+						basename := ""
 						global := false
 						
 						if peek(0).Type != lexer.TokLAngle {
 							filename = expect(lexer.TokIdent)
 							filename = strings.ReplaceAll(filename, "\"", "")
+							basename = filename
+							baseDir := filepath.Dir(peek(0).File)
+							relPath := filepath.Join(baseDir, filename)
+							filename = filepath.Clean(relPath)	
 						} else {
 							global = true
 							expect(lexer.TokLAngle)
@@ -257,6 +264,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 							i++
 							filename = filename + tokens[i].Value
 							i++
+							basename = filename
 							if runtime.GOOS != "windows" {
 								filename = "/usr/local/lib/lcc/" + filename
 							} else {
@@ -270,9 +278,9 @@ func Parse(tokens []lexer.Token, Scope int) {
 						if err != nil {
 							if global == false {
 								if runtime.GOOS != "windows" {
-									filename = "/usr/local/lib/lcc/" + filename
+									filename = "/usr/local/lib/lcc/" + basename
 								} else {
-									filename = "C:\\luna\\lcc\\" + filename
+									filename = "C:\\luna\\lcc\\" + basename
 								}
 								global = true
 								goto top
@@ -337,6 +345,8 @@ func Parse(tokens []lexer.Token, Scope int) {
 						constant = true
 					case "extern":
 						extern = true
+					case "static":
+						static = true
 					}
 				} else {
 					break
@@ -511,7 +521,14 @@ func Parse(tokens []lexer.Token, Scope int) {
 				Write(name + ":", false)	
 				if len(Children) > 0 {
 					level = 1
+					if static == false {
+						WritePre(".global " + name, false)
+					}
 					topLevelName = name
+					if name != "_start" && noreturn == false {
+						Write("pop e11", true)
+						Write("push e11", true)
+					}
 					if register > 0 {
 						for r := register; r >= 0; r-- {
 							Write("pop e" + fmt.Sprintf("%d", r), true)
@@ -519,6 +536,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 					} 
 					Parse(Children, fscope)
 					if name != "_start" && noreturn == false {
+						Write("pop e11", true)
 						Write("ret", true)
 					}
 					IDCounter++
@@ -601,7 +619,11 @@ func Parse(tokens []lexer.Token, Scope int) {
 						WritePre(".asciz \"\"", true)
 					} else {	
 						Variables = append(Variables, Variable_Static{Name: name, Type: STRING, Value: "", Pointer: false, Scope: Scope, Const: constant})
-					}	
+					}
+				case "void":
+					if ptr == true {
+						Variables = append(Variables, Variable_Static{Name: name, Type: NULL, Value: nil, Pointer: true, Real: name, Scope: Scope, Const: constant})
+					}
 				}
 			} else {
 				error.Error(1, "'" + peek(0).Value + "'", _typetoken, &tokens)
@@ -718,6 +740,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 							}
 							// We'll just compare 2 variables for now...
 
+							
 							var_1 := LookupVariable(name, true, Scope, _name_token, &tokens)
 							_var_2_token := tokens[i]
 
@@ -727,7 +750,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 								expect(lexer.TokStar)
 							}
 
-							name2 := expect(lexer.TokIdent)
+							name2 := expect(lexer.TokIdent)	
 							var_2 := LookupVariable(name2, true, Scope, _var_2_token, &tokens)
 							expect(lexer.TokSemi)
 
@@ -867,6 +890,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 					expect(lexer.TokSemi)
 				}
 				if topLevelName == "_start" {
+					Write("pop e11", true)
 					Write("ret", true)	
 				}
 			case lexer.TokSemi:
@@ -877,10 +901,17 @@ func Parse(tokens []lexer.Token, Scope int) {
 				var exptokens = []lexer.Token {}
 				var bodytokens = []lexer.Token {}
 				var elsetokens = []lexer.Token {}
+
+				depth := 1
 				for j := i; j < len(tokens); j++ {
 					if tokens[j].Type == lexer.TokRParen {
-						i = j
-						break
+						depth--
+						if depth == 0 {
+							i = j
+							break
+						}
+					} else if tokens[j].Type == lexer.TokLParen {
+						depth++
 					}
 					exptokens = append(exptokens, tokens[j])
 				}
@@ -958,8 +989,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 								break
 							}	
 						}	
-					}
-					expect(lexer.TokSemi)
+					}	
 					oltn := topLevelName
 					topLevelName = elseName	
 					IDCounter++

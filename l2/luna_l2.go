@@ -129,14 +129,11 @@ func MapperIndex(address uint32) uint32 {
 // Meta-code
 var LogOn bool = false
 var Debug bool = false
-var ClockSpeed int64 = 1158000
+var ClockSpeed int64 = 29000000
+var BIOS_REBOOT bool = false
 func Log(text string) {
 	if LogOn == true {
-		fmt.Println("\033[33m" + fmt.Sprintf("0x%08x: ", getRegister(0x001a)) + text + "\033[0m")
-		for _, r := range Registers {
-			fmt.Println("\033[33m" + r.Name + ": " + fmt.Sprintf("0x%08x", r.Value) + "\033[0m")
-		}
-		fmt.Printf("\n\n")
+		fmt.Println("\033[33m" + fmt.Sprintf("0x%08x: ", getRegister(0x001a)) + text + "\033[0m")	
 	}	
 }
 
@@ -225,8 +222,13 @@ func execute() {
 				next = ProgramCounter + 5
 			}
 			bios.IntHandler(code)
+			if code == 0xf {
+				Log("system reboot")
+				BIOS_REBOOT = true
+				return
+			}
 			setRegister(0x001a, next)
-			Log("int " + fmt.Sprintf("0x%08x", code))
+			Log("int " + fmt.Sprintf("0x%08x", code))	
 			stall(34)
 		case 0x05:
 			// JNZ
@@ -545,6 +547,7 @@ func execute() {
 				Log("32 bit mode")
 			}
 			setRegister(0x001a, ProgramCounter + 2)
+			stall(1)
 		case 0x1c:
 			// STR
 			// str <addr> <register>
@@ -552,6 +555,7 @@ func execute() {
 			value := uint32(Memory[ProgramCounter+2])
 			MapperWrite(addr, byte(getRegister(value)))
 			setRegister(0x001a, ProgramCounter + 3)
+			stall(100)
 		default:
 			setRegister(0x0001, uint32(op))
 			Log("\033[31mIllegal instruction 0x" + fmt.Sprintf("%08x", uint32(op)) + "\033[33m")
@@ -696,11 +700,9 @@ func main() {
 			}
 		}
 
-		bios.Splash()
-
 		if bios.CheckArgs() == false {
 			return
-		}
+		}	
 	
 		for i := 1; i < len(os.Args); i++ {
 			arg := os.Args[i]
@@ -720,18 +722,47 @@ func main() {
 			case "--debug":
 				Debug = true
 				LogOn = true
+			case "-sd":
+				types.SDFilename = os.Args[i + 1]
+				i++
+			case "-boot":
+				next := os.Args[i + 1]
+				switch next {
+				case "hdd":
+					types.BootDrive = 0
+				case "sd":
+					types.BootDrive = 1
+				default:
+					fmt.Println("luna-l2: invalid boot drive")
+				}
+				i++
 			default:
 				types.Filename = arg
 			}
 		}
 
-		if types.Filename == "" {
+		boot:
+		bios.Splash()
+	
+		if types.BootDrive == 0 {
+			bios.WriteLine("Booting from hard disk...", 255, 0)
+			bios.LoadSector(0, 0, true)
+			types.DriveNumber = 0
+		} else if types.BootDrive == 1 {
+			bios.WriteLine("Booting from SD...", 255, 0)
+			bios.LoadSector(1, 0, true)
+			types.DriveNumber = 1
+		} else {
 			bios.WriteLine("No bootable device", 255, 0)
 			return
-		}	
-
-		bios.LoadSector(0, true)	
+		}
+	
 		execute()
+
+		if BIOS_REBOOT == true {
+			BIOS_REBOOT = false
+			goto boot
+		}
 	}()	
 	InitializeWindow()
 }
