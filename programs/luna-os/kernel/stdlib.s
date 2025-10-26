@@ -11,6 +11,7 @@
 .global PROMPTBUF
 .global setup_copy
 .global checkpass
+.global save_buffer
 
 readin:
     pop e11
@@ -223,15 +224,29 @@ checkpass:
 
     ret
 
+save_buffer:
+    pop e11
+    pop r2
+    pop r1
+
+    mov r3, 512
+    div r4, r1, r3
+
+    mov r1, r4
+   
+    int 0x0d
+
+    ret
+
 FILE:
-    .pad 512
+    .pad 128
 
 TEMPBUF:
-    .pad 512
+    .pad 64
 
 PROMPTBUF:
     .asciz "> "
-    .pad 13
+    .pad 5
 
 PASSBUF:
-    .pad 64
+    .pad 32

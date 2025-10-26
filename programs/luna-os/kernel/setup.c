@@ -5,7 +5,7 @@ void user_setup() {
     readin(PASSBUF, 1);
     xor_cycle(PASSBUF);
     puts32("\n\n", 255, 0);
-    writeout(9, 1); 
+    save_buffer(PASSBUF, 1); 
     return;
 }
 
@@ -22,7 +22,7 @@ void setup() {
         pause();
         
         puts32("Setup is copying files to the hard disk... ", 255, 0);
-        setup_copy(11);
+        setup_copy(9);
         puts32("done.\n\n", 255, 0);
 
         puts32("Setup will now restart this machine to complete the setup process.\n", 255, 0);

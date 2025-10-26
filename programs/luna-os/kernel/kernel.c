@@ -26,7 +26,7 @@ top:
     if (strcmp("promptedit", TEMPBUF)) {
         puts32("Enter terminal prompt: ", 255, 0);
         readin(PROMPTBUF, 0);
-        writeout(8, 0);
+        save_buffer(PROMPTBUF, 0);
 
         puts32("\n", 255, 0);
         goto top;
@@ -34,7 +34,7 @@ top:
     
     if (strcmp("notepad", TEMPBUF)) {
         readin(FILE, 0);
-        writeout(4, 0);
+        save_buffer(FILE, 0);
 
         puts32("\n", 255, 0);
         goto top;
@@ -48,7 +48,7 @@ top:
             puts32("Enter new password: ", 255, 0);
             readin(PASSBUF, 1);
             xor_cycle(PASSBUF);
-            writeout(8, 0);
+            save_buffer(PASSBUF, 0);
         } else
             puts32("Password is incorrect.", 255, 0); 
         puts32("\n", 255, 0);

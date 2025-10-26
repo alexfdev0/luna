@@ -3,6 +3,7 @@ extern void writeout(int sector, int drive);
 extern void xor_cycle(char* buffer);
 extern void puts32(char* str, int fg, int bg);
 extern void setup_copy(int sectors);
+extern void save_buffer(char* buffer, int drive);
 extern int checkpass();
 extern int strcmp(char* buf1, char* buf2);
 extern int strlen(char* str);
