@@ -241,6 +241,7 @@ func Splash() {
 
 func CheckArgs() bool {
 	if len(os.Args) < 2 {
+		Splash()
 		WriteLine("No bootable device", 255, 0)
 		return false
 	}
