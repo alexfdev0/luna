@@ -115,6 +115,8 @@ func Lex(code string, filename string) []Token {
 			tokens = append(tokens, Token{Type: TokAmpersand, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "!" {
 			tokens = append(tokens, Token{Type: TokExclamation, Value: content, Line: s.Pos().Line, File: filename})
+		} else if content == "//" {
+
 		} else {
 			tokens = append(tokens, Token{Type: TokIdent, Value: content, Line: s.Pos().Line, File: filename})
 		} 

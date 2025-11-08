@@ -19,7 +19,7 @@ _start:
 
     // Set up loop
 
-    mov re2, pc
+    mov e9, pc
     nop
 
     // Pride flag
@@ -375,17 +375,17 @@ _start:
     push 0x00
     call draw
 
-    jmp re2
+    jmp e9
 
 draw:
-    pop re1
+    pop e11
     pop r2
     mov r3, r2
 
     mov r4, 40 // Num chars per row
     mov r5, 0
 
-    mov re3, pc
+    mov e10, pc
     nop
 
     mov r1, 1 
@@ -393,12 +393,12 @@ draw:
     inc r5
 
     cmp r6, r5, r4
-    jz r6, re3 
+    jz r6, e10
 
     ret
 
 wait:
-    pop re1
+    pop e11
     mov r1, 2500
     int 2
     ret

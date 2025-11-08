@@ -68,6 +68,7 @@ func main() {
 	var input_files = []string {}
 	var cleanup = []string {}
 	var output_file string = ""
+	var cc1args []string
 
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -85,7 +86,9 @@ func main() {
 			fmt.Println("Target: luna-l2")
 			os.Exit(0)
 		case "-S":
-			noassemble = true	
+			noassemble = true
+		case "-Werror":
+			cc1args = append(cc1args, "-Werror")
 		default:
 			input_files = append(input_files, arg)
 		}
@@ -115,7 +118,7 @@ func main() {
 
 		switch ext {
 		case ".c", ".h":
-			success := execute("lcc1 -S " + file + " -o " + name + ".s", false)
+			success := execute("lcc1 -S " + file + " -o " + name + ".s " + strings.Join(cc1args, " "), false)
 			if success != true {
 				continue
 			}

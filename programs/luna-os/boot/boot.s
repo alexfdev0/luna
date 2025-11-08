@@ -91,7 +91,7 @@ write:
     ret 
 
 num_sectors: 
-    .word 0x000a
+    .word 0x01a5
 
 msg_memory_error:
     .asciz "There is not enough memory to load the operating system.\n"

@@ -92,7 +92,7 @@ func WriteSector(drive int, sector int) {
 	case 1:
 		file = types.SDFilename	
 	}
-
+	
 	data, err := os.ReadFile(file)
 	if err != nil {
 		fmt.Println("luna-l2: could not reload block device")
@@ -109,7 +109,7 @@ func WriteSector(drive int, sector int) {
 
 	copy(data[start:start + 512], (*Memory)[start:start + 512])
 	
-	_err := os.WriteFile(types.Filename, data, 0644)
+	_err := os.WriteFile(file, data, 0644)
 	if _err != nil {
 		fmt.Println("luna-l2: could not write to block device")
 	}
@@ -190,7 +190,7 @@ func IntHandler(code uint32) {
 			audio.MemoryAudio[video.Clamp(address + 3, 0, MEMCAP)] = byte(uint32(word) & 0xFF)
 		}	
 	} else if code == 0x9 {
-		audio.Play()
+		go audio.Play()
 	} else if code == 0xa {
 		if types.Bits32 == false {
 			setRegister(0x0001, 0xffff)
@@ -223,6 +223,13 @@ func IntHandler(code uint32) {
 		video.CursorY = 0
 	} else if code == 0x10 {
 		setRegister(0x0001, uint32(types.DriveNumber))
+	} else if code == 0x11 {
+		if audio.Done == true {
+			setRegister(0x0001, 1)
+			audio.Done = false
+		} else {
+			setRegister(0x0001, 0)
+		}
 	}
 }
 

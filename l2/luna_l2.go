@@ -14,6 +14,7 @@ import (
 	"luna_l2/keyboard"
 	"luna_l2/types"
 	"luna_l2/audio"
+	"luna_l2/network"
 
 	"gioui.org/app"	
 	"gioui.org/f32"
@@ -102,6 +103,8 @@ func Mapper(address uint32) byte {
 		return video.MemoryVideo[address - MEMSIZE]
 	case address >= 0x7000FA00 && address <= 0x7001A643:
 		return audio.MemoryAudio[address - 0x7000FA00]
+	case address >= 0x7001A644 && address <= 0x7001B65C:
+		return network.MemoryNetwork[address - 0x7001A644]
 	}
 	return Memory[0x00000000]
 }
@@ -114,6 +117,8 @@ func MapperWrite(address uint32, content byte) {
 		video.MemoryVideo[address - MEMSIZE] = content
 	case address >= 0x7000FA00 && address <= 0x7001A643:
 		audio.MemoryAudio[address - 0x7000FA00] = content
+	case address >= 0x7001A644 && address <= 0x7001B65C:
+		network.MemoryNetwork[address - 0x7001A644] = content
 	}
 }
 
@@ -129,7 +134,7 @@ func MapperIndex(address uint32) uint32 {
 // Meta-code
 var LogOn bool = false
 var Debug bool = false
-var ClockSpeed int64 = 29000000
+var ClockSpeed int64 = 33000000
 var BIOS_REBOOT bool = false
 func Log(text string) {
 	if LogOn == true {
@@ -350,11 +355,15 @@ func execute() {
 			sp := getRegister(0x0019)
 			if types.Bits32 == false {
 				sp = video.Clamp(sp - 2, 0, MEMCAP)
+				MapperWrite(sp, byte(value & 0xFF))
+				MapperWrite(sp + 1, byte(value >> 8))
 			} else {
 				sp = video.Clamp(sp - 4, 0, MEMCAP)
-			}
-			MapperWrite(sp, byte(value & 0xFF))
-			MapperWrite(sp + 1, byte(value >> 8))
+				MapperWrite(sp, byte(value & 0xFF))
+				MapperWrite(sp + 1, byte(value >> 8))
+				MapperWrite(sp + 2, byte(value >> 16))
+				MapperWrite(sp + 3, byte(value >> 24))
+			}	
 			setRegister(0x0019, uint32(sp))	
 			stall(2)
 		case 0x0c:
@@ -366,7 +375,7 @@ func execute() {
 			if types.Bits32 == false {
 				value = uint32(uint16(Mapper(sp)) | uint16(Mapper(sp + 1)) << 8) 
 			} else {	
-				value = uint32(Mapper(sp)) | uint32(Mapper(sp + 1)) << 8 | uint32(Mapper(sp + 2)) << 16 | uint32(Mapper(sp + 3))
+				value = uint32(Mapper(sp)) | uint32(Mapper(sp + 1)) << 8 | uint32(Mapper(sp + 2)) << 16 | uint32(Mapper(sp + 3)) << 24
 			}
 			Log("value: " + fmt.Sprintf("0x%08x", value))
 			setRegister(uint32(register), uint32(value))
@@ -503,7 +512,7 @@ func execute() {
 			toregister := uint32(Memory[ProgramCounter+2])
 			setRegister(toregister, uint32(Mapper(addr)))
 			setRegister(0x001a, ProgramCounter + 3)
-			Log("lod " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(toregister))
+			Log("lod " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(toregister) + " (" + fmt.Sprintf("0x%02x", Mapper(addr)) + ")")
 			stall(100)
 		case 0x19:
 			// STRF
@@ -756,7 +765,10 @@ func main() {
 			bios.WriteLine("No bootable device", 255, 0)
 			return
 		}
-	
+
+		// Start routines and execute
+
+		go network.NetController()
 		execute()
 
 		if BIOS_REBOOT == true {

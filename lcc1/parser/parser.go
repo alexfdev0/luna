@@ -526,14 +526,16 @@ func Parse(tokens []lexer.Token, Scope int) {
 					}
 					topLevelName = name
 					if name != "_start" && noreturn == false {
-						Write("pop e11", true)
-						Write("push e11", true)
+						Write("pop e11", true)	
 					}
 					if register > 0 {
 						for r := register; r >= 0; r-- {
 							Write("pop e" + fmt.Sprintf("%d", r), true)
 						}
-					} 
+					}
+					if name != "_start" && noreturn == false {
+						Write("push e11", true)
+					}
 					Parse(Children, fscope)
 					if name != "_start" && noreturn == false {
 						Write("pop e11", true)

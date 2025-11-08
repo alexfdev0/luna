@@ -4,15 +4,15 @@ void user_setup() {
     puts32("Enter a password: ", 255, 0);
     readin(PASSBUF, 1);
     xor_cycle(PASSBUF);
-    puts32("\n\n", 255, 0);
-    save_buffer(PASSBUF, 1); 
+    puts32("\n\n", 255, 0); 
     return;
 }
 
 void setup() { 
     puts32("Setup LunaOS\n", 255, 0);
     puts32("Welcome to LunaOS!\n\nThis interactive setup will guide you through\nthe process of setting up LunaOS\non your computer.\n\n", 255, 0);
-    pause();
+    pause(); 
+
     puts32("Detecting your drive...\n", 255, 0);
     if (getdrive()) {
         puts32("Setup has detected you are running Setup on a USB device.\n\n", 255, 0);
@@ -22,7 +22,7 @@ void setup() {
         pause();
         
         puts32("Setup is copying files to the hard disk... ", 255, 0);
-        setup_copy(9);
+        setup_copy(13);
         puts32("done.\n\n", 255, 0);
 
         puts32("Setup will now restart this machine to complete the setup process.\n", 255, 0);
