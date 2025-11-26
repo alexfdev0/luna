@@ -22,6 +22,10 @@ type unresolvedBinding struct {
 	File string
 }
 
+type export struct {
+	Name string
+}
+
 var Buffer []byte
 
 var section string = "text"
@@ -29,6 +33,7 @@ var section string = "text"
 var bindings = []binding {}
 var unresolvedBindings = []unresolvedBinding {}
 var Globals = []string {}
+var Exports = []export {}
 
 var FillSize int = 0
 var Org int = 0
@@ -192,6 +197,14 @@ func Filter(data []byte, filename string) {
 			j++
 			Globals = append(Globals, name)
 			i = j - 1
+		} else if bytes.HasPrefix(data[i:], []byte("L_EXPORT_")) {
+			j := i + 9
+			for j < len(data) && data[j] != 0x00 {
+				j++
+			}
+			name := string(data[i + 9:j])
+			Exports = append(Exports, export{Name: name})
+			i = j
 		} else {
 			write(data[i])
 		}
@@ -233,6 +246,7 @@ func main() {
 	var input_files []string
 	var output_filename string = ""
 	var auto bool = false
+	var exportFile string = "linker.lnk"
 
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -248,6 +262,9 @@ func main() {
 			i++
 		case "-a":
 			auto = true
+		case "-e":
+			exportFile = os.Args[i + 1]
+			i++
 		default:
 			input_files = append(input_files, arg)
 		}
@@ -295,6 +312,28 @@ func main() {
 			error(3, "\n  \"" + ub.Name + "\", referenced from\n    " + ub.File)
 		}
 	}
+
+	if len(Exports) > 0 {
+		text := ""
+
+		for i := 0; i < len(Exports); i++ {
+			binding := checkBinding(Exports[i].Name)
+
+			if binding.Name == "nil" {
+				print("ERROR: " + Exports[i].Name + " NOT FOUND\n")
+			}
+			var loc uint32 = 0
+			if len(binding.Location) == 2 {
+				loc = uint32(uint16(binding.Location[0]) << 8 | uint16(binding.Location[1]))
+			} else {
+				loc = uint32(binding.Location[0]) << 24 | uint32(binding.Location[1]) << 16 | uint32(binding.Location[2]) << 8 | uint32(binding.Location[3])
+			}
+			text = text + Exports[i].Name + " " + fmt.Sprintf("%d", loc) + "\n"
+		}
+
+		os.WriteFile(exportFile, []byte(text), 0644)
+	}
+
 	if FillSize > 0 {	
 		if len(buffer) > FillSize {
 			error(4, "\n  directive: " + fmt.Sprintf("%d", FillSize) + ", actual: " + fmt.Sprintf("%d", len(buffer)))

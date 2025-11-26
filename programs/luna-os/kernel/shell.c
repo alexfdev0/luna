@@ -4,6 +4,9 @@ top:
     readin(TEMPBUF, 1); 
     if (strcmp("reboot", TEMPBUF)) {
         puts32("Rebooting...", 255, 0);
+        // play_sound(SHUTDOWN_SOUND, 207748, 1);
+        sleep(500);
+        asm ("mov r1, 0");
         asm ("int 0xf");  
     }
 
@@ -26,8 +29,8 @@ top:
     }
     
     if (strcmp("notepad", TEMPBUF)) {
-        readin(FILE, 0);
-        save_buffer(FILE, 0);
+        readin(TEMPBUF, 0);
+        lufs_write_file("NOTEPAD SYS     ", TEMPBUF);
 
         puts32("\n", 255, 0);
         goto top;
@@ -54,6 +57,13 @@ top:
         
         puts32("\n", 255, 0);
         goto top;
+    }
+
+    if (strcmp("shutdown", TEMPBUF)) {
+        puts32("Shutting down...\n", 255, 0);
+        // play_sound(SHUTDOWN_SOUND, 207748, 1);
+        sleep(500);
+        asm ("int 0x11");
     }
 
     puts32("'", 255, 0);

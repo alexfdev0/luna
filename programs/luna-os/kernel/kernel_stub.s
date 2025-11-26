@@ -1,8 +1,9 @@
 .bits 16
-.org 512
 .noentry
+.org 1024
 
-.word 0xAA55
+// LUFS header
+.pad 32
 
 set 32
 .bits 32

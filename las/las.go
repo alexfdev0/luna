@@ -152,7 +152,7 @@ func warning(errno int, args string) {
 		label = "lcc"
 	}
 
-	fmt.Println("\033[1;39m" + label + ": \033[1;33mwarning: \033[1;35m" + errors[errno] + " " + args + "\033[0m")
+	fmt.Println("\033[1;39m" + label + ": \033[1;35mwarning: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
 	Warnings++
 }
 
@@ -300,6 +300,7 @@ func assemble(text string) {
 
 	for i := 0; i < len(words); i++ {
 		if strings.HasSuffix(words[i], ":") && !strings.Contains(words[i], "\"") {
+			
 			end := len(words)
 			for j := i + 1; j < len(words); j++ {
 				if strings.HasSuffix(words[j], ":") {
@@ -308,7 +309,11 @@ func assemble(text string) {
 				}
 			}
 
-			words[i] = strings.TrimSuffix(words[i], ":")
+			if strings.HasSuffix(words[i], "::") {
+				write([]byte("L_EXPORT_" + strings.ReplaceAll(words[i], ":", "") + string(byte(0x00))))
+			}
+
+			words[i] = strings.ReplaceAll(words[i], ":", "")
 			if Bits32 == false || words[i] == "_start" {
 				write(append([]byte("LD16_" + words[i]), 0x00))
 			} else {
@@ -738,6 +743,42 @@ func assemble(text string) {
 			write([]byte{check})
 			write([]byte{one})
 			i = i + 2
+		case "shl":
+			check := isRegister(words[i+1])
+			one := isRegister(words[i+2])
+			two := isRegister(words[i+3])
+			if check == 0xff {
+				error(2, "'"+words[i+1]+"'")
+			}
+			if one == 0xff {
+				error(2, "'"+words[i+2]+"'")
+			}
+			if two == 0xff {
+				error(2, "'"+words[i+3]+"'")
+			}
+			write([]byte{0x1d})
+			write([]byte{check})
+			write([]byte{one})
+			write([]byte{two})
+			i = i + 3
+		case "shr":
+			check := isRegister(words[i+1])
+			one := isRegister(words[i+2])
+			two := isRegister(words[i+3])
+			if check == 0xff {
+				error(2, "'"+words[i+1]+"'")
+			}
+			if one == 0xff {
+				error(2, "'"+words[i+2]+"'")
+			}
+			if two == 0xff {
+				error(2, "'"+words[i+3]+"'")
+			}
+			write([]byte{0x1e})
+			write([]byte{check})
+			write([]byte{one})
+			write([]byte{two})
+			i = i + 3
 		case "call":
 			label := words[i + 1]
 			if Bits32 == false {
@@ -909,6 +950,19 @@ func assemble(text string) {
 			write([]byte("L_GLOBL_" + label))
 			write([]byte{0x00})
 			i++
+		case ".db":
+			for j := i + 1; j < len(words); j++ {
+				if words[j] != "\n" {
+					num, err := strconv.ParseInt(strings.ReplaceAll(words[j], ",", ""), 0, 8)
+					if err != nil {
+						error(11, ", got '" + words[j] + "'")
+					}
+					write([]byte{byte(num)})
+				} else {
+					i = j
+					break
+				}
+			}
 		default:
 			error(4, "'"+words[i]+"'")
 		}

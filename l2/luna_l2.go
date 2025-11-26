@@ -15,6 +15,7 @@ import (
 	"luna_l2/types"
 	"luna_l2/audio"
 	"luna_l2/network"
+	"luna_l2/rtc"
 
 	"gioui.org/app"	
 	"gioui.org/f32"
@@ -103,8 +104,10 @@ func Mapper(address uint32) byte {
 		return video.MemoryVideo[address - MEMSIZE]
 	case address >= 0x7000FA00 && address <= 0x7001A643:
 		return audio.MemoryAudio[address - 0x7000FA00]
-	case address >= 0x7001A644 && address <= 0x7001B65C:
+	case address >= 0x7001A644 && address <= 0x7001B65D:
 		return network.MemoryNetwork[address - 0x7001A644]
+	case address >= 0x7001B65E && address <= 0x7001B663:
+		return rtc.MemoryRTC[address - 0x7001B65E]
 	}
 	return Memory[0x00000000]
 }
@@ -119,6 +122,8 @@ func MapperWrite(address uint32, content byte) {
 		audio.MemoryAudio[address - 0x7000FA00] = content
 	case address >= 0x7001A644 && address <= 0x7001B65C:
 		network.MemoryNetwork[address - 0x7001A644] = content
+	case address >= 0x7001B65E && address <= 0x7001B663:
+		rtc.MemoryRTC[address - 0x7001B65E] = content
 	}
 }
 
@@ -136,6 +141,7 @@ var LogOn bool = false
 var Debug bool = false
 var ClockSpeed int64 = 33000000
 var BIOS_REBOOT bool = false
+var BIOS_SHUTDOWN bool = false
 func Log(text string) {
 	if LogOn == true {
 		fmt.Println("\033[33m" + fmt.Sprintf("0x%08x: ", getRegister(0x001a)) + text + "\033[0m")	
@@ -227,9 +233,13 @@ func execute() {
 				next = ProgramCounter + 5
 			}
 			bios.IntHandler(code)
-			if code == 0xf {
+			if code == 0x0f {
 				Log("system reboot")
 				BIOS_REBOOT = true
+				return
+			} else if code == 0x11 {
+				Log("system shutdown")
+				BIOS_SHUTDOWN = true
 				return
 			}
 			setRegister(0x001a, next)
@@ -560,11 +570,27 @@ func execute() {
 		case 0x1c:
 			// STR
 			// str <addr> <register>
-			addr := getRegister(uint32(Memory[ProgramCounter+1]))
-			value := uint32(Memory[ProgramCounter+2])
+			addr := getRegister(uint32(Memory[ProgramCounter + 1]))
+			value := uint32(Memory[ProgramCounter + 2])
 			MapperWrite(addr, byte(getRegister(value)))
 			setRegister(0x001a, ProgramCounter + 3)
 			stall(100)
+		case 0x1d:
+			// SHL
+			// shl <dest> <value> <by>
+			dest := uint32(Memory[ProgramCounter + 1])
+			value := getRegister(uint32(Memory[ProgramCounter + 2]))
+			by := getRegister(uint32(Memory[ProgramCounter + 3]))
+			setRegister(dest, uint32(value) << uint32(by))
+			stall(95)
+		case 0x1e:
+			// SHR
+			// shr <dest> <value> <by>
+			dest := uint32(Memory[ProgramCounter + 1])
+			value := getRegister(uint32(Memory[ProgramCounter + 2]))
+			by := getRegister(uint32(Memory[ProgramCounter + 3]))
+			setRegister(dest, uint32(value) >> uint32(by))
+			stall(95)
 		default:
 			setRegister(0x0001, uint32(op))
 			Log("\033[31mIllegal instruction 0x" + fmt.Sprintf("%08x", uint32(op)) + "\033[33m")
@@ -698,6 +724,7 @@ func InitializeWindow() {
 func main() {
 	bios.Registers = &Registers
 	bios.Memory = &Memory
+	audio.Memory = &Memory
 	go func() {
 		if Ready == false {	
 			for {
@@ -734,6 +761,9 @@ func main() {
 			case "-sd":
 				types.SDFilename = os.Args[i + 1]
 				i++
+			case "-dvd":
+				types.OpticalFilename = os.Args[i + 1]
+				i++	
 			case "-boot":
 				next := os.Args[i + 1]
 				switch next {
@@ -741,6 +771,8 @@ func main() {
 					types.BootDrive = 0
 				case "sd":
 					types.BootDrive = 1
+				case "dvd":
+					types.BootDrive = 2
 				default:
 					fmt.Println("luna-l2: invalid boot drive")
 				}
@@ -752,28 +784,38 @@ func main() {
 
 		boot:
 		bios.Splash()
-	
-		if types.BootDrive == 0 {
+
+		switch types.BootDrive {
+		case 0:
 			bios.WriteLine("Booting from hard disk...", 255, 0)
 			bios.LoadSector(0, 0, true)
 			types.DriveNumber = 0
-		} else if types.BootDrive == 1 {
+		case 1:
 			bios.WriteLine("Booting from SD...", 255, 0)
 			bios.LoadSector(1, 0, true)
 			types.DriveNumber = 1
-		} else {
+		case 2:
+			bios.WriteLine("Booting from DVD...", 255, 0)
+			bios.LoadSector(2, 0, true)
+			types.DriveNumber = 2
+		default:
 			bios.WriteLine("No bootable device", 255, 0)
 			return
-		}
+		}	
 
-		// Start routines and execute
-
+		// Initialize components
 		go network.NetController()
+		go audio.AudioController()
+		go rtc.RTCController()
+
+		// Execute
 		execute()
 
 		if BIOS_REBOOT == true {
 			BIOS_REBOOT = false
 			goto boot
+		} else if BIOS_SHUTDOWN == true {
+			os.Exit(0)
 		}
 	}()	
 	InitializeWindow()

@@ -92,7 +92,32 @@ func Lex(code string, filename string) []Token {
 		} else if content == "*" {
 			tokens = append(tokens, Token{Type: TokStar, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "/" {
-			tokens = append(tokens, Token{Type: TokSlash, Value: content, Line: s.Pos().Line, File: filename})
+			next := s.Peek()
+
+			if next == '/' {
+				for {
+					r := s.Next()
+					if r == '\n' || r == scanner.EOF {
+						break
+					}
+				}
+				continue
+			} else if next == '*' {
+				s.Next()
+				for {
+					r := s.Next()
+					if r == scanner.EOF {
+						break
+					}
+					if r == '*' && s.Peek() == '/' {
+						s.Next()
+						break
+					}
+				}
+				continue
+			} else {
+				tokens = append(tokens, Token{Type: TokSlash, Value: content, Line: s.Pos().Line, File: filename})
+			}	
 		} else if content == "=" {
 			tokens = append(tokens, Token{Type: TokEqual, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "," {

@@ -5,7 +5,6 @@
 .global writeout
 .global xor_cycle
 .global getdrive
-.global FILE
 .global PASSBUF
 .global TEMPBUF
 .global PROMPTBUF
@@ -20,8 +19,7 @@
 .global serve_await_connection
 .global serve_connection_close
 .global render
-.global play_sound
-.global SOUND
+.global sleep
 
 readin:
     pop e11
@@ -500,12 +498,17 @@ render:
 
     jnz r2, e10
     ret
-    
-FILE:
-    .pad 128
 
+sleep:
+    pop e11
+    pop r1
+
+    int 2
+
+    ret
+    
 TEMPBUF:
-    .pad 64
+    .pad 256
 
 PROMPTBUF:
     .asciz "> "

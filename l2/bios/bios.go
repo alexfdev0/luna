@@ -58,8 +58,13 @@ func LoadSector(drive int, sector int, enforce bool) {
 	switch drive {
 	case 0:
 		file = types.Filename
+		time.Sleep(time.Duration(12) * time.Millisecond)
 	case 1:
-		file = types.SDFilename	
+		file = types.SDFilename
+		time.Sleep(time.Duration(2) * time.Millisecond)
+	case 2:
+		file = types.OpticalFilename
+		time.Sleep(time.Duration(110) * time.Millisecond)
 	}
 
 	data, err := os.ReadFile(file)
@@ -89,8 +94,13 @@ func WriteSector(drive int, sector int) {
 	switch drive {
 	case 0:
 		file = types.Filename
+		time.Sleep(time.Duration(15) * time.Millisecond)
 	case 1:
-		file = types.SDFilename	
+		file = types.SDFilename
+		time.Sleep(time.Duration(8) * time.Millisecond)
+	case 2:
+		file = types.OpticalFilename
+		time.Sleep(time.Duration(200) * time.Millisecond)
 	}
 	
 	data, err := os.ReadFile(file)
@@ -190,7 +200,7 @@ func IntHandler(code uint32) {
 			audio.MemoryAudio[video.Clamp(address + 3, 0, MEMCAP)] = byte(uint32(word) & 0xFF)
 		}	
 	} else if code == 0x9 {
-		go audio.Play()
+		audio.Play()	
 	} else if code == 0xa {
 		if types.Bits32 == false {
 			setRegister(0x0001, 0xffff)
@@ -205,6 +215,7 @@ func IntHandler(code uint32) {
 		video.CursorX = int(getRegister(0x0001))
 		video.CursorY = int(getRegister(0x0002))
 	} else if code == 0xd {
+		print("Save signal\n")
 		sector := getRegister(0x0001)
 		drive := getRegister(0x0002)
 		WriteSector(int(drive), int(sector))
@@ -223,13 +234,6 @@ func IntHandler(code uint32) {
 		video.CursorY = 0
 	} else if code == 0x10 {
 		setRegister(0x0001, uint32(types.DriveNumber))
-	} else if code == 0x11 {
-		if audio.Done == true {
-			setRegister(0x0001, 1)
-			audio.Done = false
-		} else {
-			setRegister(0x0001, 0)
-		}
 	}
 }
 

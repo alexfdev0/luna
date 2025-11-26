@@ -14,6 +14,7 @@ void setup() {
     pause(); 
 
     puts32("Detecting your drive...\n", 255, 0);
+    lufs_create_file("NOTEPAD SYS     ", 256); // Create notepad file
     if (getdrive()) {
         puts32("Setup has detected you are running Setup on a USB device.\n\n", 255, 0);
         user_setup();
@@ -22,7 +23,7 @@ void setup() {
         pause();
         
         puts32("Setup is copying files to the hard disk... ", 255, 0);
-        setup_copy(13);
+        setup_copy(0x11);
         puts32("done.\n\n", 255, 0);
 
         puts32("Setup will now restart this machine to complete the setup process.\n", 255, 0);
