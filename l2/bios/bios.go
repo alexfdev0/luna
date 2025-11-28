@@ -214,8 +214,7 @@ func IntHandler(code uint32) {
 	} else if code == 0xc {
 		video.CursorX = int(getRegister(0x0001))
 		video.CursorY = int(getRegister(0x0002))
-	} else if code == 0xd {
-		print("Save signal\n")
+	} else if code == 0xd {	
 		sector := getRegister(0x0001)
 		drive := getRegister(0x0002)
 		WriteSector(int(drive), int(sector))

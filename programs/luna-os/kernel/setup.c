@@ -23,7 +23,7 @@ void setup() {
         pause();
         
         puts32("Setup is copying files to the hard disk... ", 255, 0);
-        setup_copy(0x11);
+        setup_copy(0x1c);
         puts32("done.\n\n", 255, 0);
 
         puts32("Setup will now restart this machine to complete the setup process.\n", 255, 0);
