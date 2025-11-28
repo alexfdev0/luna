@@ -19,7 +19,7 @@ PC: program counter/instruction pointer<br>
 RE1-RE3: reserved registers (you may use RE3 for storing PC when using loops)<br><br>
 
 ## Instructions
-The Luna L2 has 27 unique instructions that allow the CPU to interact with registers, memory, and the BIOS<br><br>
+The Luna L2 has 29 unique instructions that allow the CPU to interact with registers, memory, and the BIOS<br><br>
 
 1. MOV: moves a value from the source to the destination; source can be register or immediate.<br>
 2. HLT: stops the CPU from executing instructions.<br>
@@ -48,6 +48,8 @@ The Luna L2 has 27 unique instructions that allow the CPU to interact with regis
 25. STR: stores a value to a memory address from a register. (bytewise)<br>
 26. LODF: loads 2 bytes (16-bit mode) or 4 bytes (32-bit mode) from memory to a register.<br>
 27. SET: if the operand is 00, it sets the CPU to 16 bit mode. If the operand is 01, it sets the CPU to 32 bit mode.<br>
+28. SHL: Shifts the value in a register to the left by a certain value.<br>
+29. SHR: Shifts the value in a register to the right by a certain value.<br>
 (bytewise: scheme where storing a register value to memory stores the low byte in `address` and the high byte in `address + 1`; in 32 bit mode, it's from `address` to `address + 3`)<br><br>
 
 ## Interrupts

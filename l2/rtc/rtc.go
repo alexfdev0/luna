@@ -15,6 +15,6 @@ func RTCController() {
 		MemoryRTC[0x0003] = byte(now.Day())
 		MemoryRTC[0x0004] = byte(now.Month())
 		MemoryRTC[0x0005] = byte(now.Year() - 2000)
-		time.Sleep(time.Duration(1000) * time.Millisecond)
+		time.Sleep(time.Duration(1000) * time.Millisecond) 
 	}
 }

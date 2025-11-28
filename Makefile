@@ -1,3 +1,12 @@
+#
+# NOTE:
+#
+# The Makefile is legacy and should not be used for building;
+# instead, use the installer delegated for your OS in the build directory.
+#
+# The Makefile should only be used for building legacy Luna L1 software OR to build the MacOS installer
+#
+
 LUAC=env luac
 LUA=env lua
 SRC=./
@@ -19,7 +28,7 @@ luna-l1:
 	sudo chmod +x /usr/local/bin/lasm-l1
 
 bin/luna-l2: $(SRC)/l2/*
-	cd l2 && go build -o ../bin/luna-l2 ./luna_l2.go
+	cd l2 && go build -o ../bin/luna-l2 ./luna_l2.go	
 
 bin/las: $(SRC)/las/*
 	cd las && go build -o ../bin/las ./las.go
@@ -33,11 +42,18 @@ bin/lcc: $(SRC)/lcc/*
 bin/l2ld: $(SRC)/l2ld/*	
 	cd l2ld && go build -o ../bin/l2ld ./l2ld.go
 
-install:
-	cp bin/* /usr/local/bin/
-	mkdir -p /usr/local/lib/lcc
-	mkdir -p /usr/local/lib/l2ld
-	- cp -n l2ld/libs.conf /usr/local/lib/l2ld/
+macos-installer:
+	sudo cp bin/lcc Mac/pkgroot2/usr/local/bin/
+	sudo cp bin/las Mac/pkgroot2/usr/local/bin/
+	sudo cp bin/lcc1 Mac/pkgroot2/usr/local/bin/
+	sudo cp bin/l2ld Mac/pkgroot2/usr/local/bin/	
+	pkgbuild \
+		--root Mac/pkgroot2 \
+		--install-location / \
+		--identifier com.alexfdev0.lunal2.tools \
+		--version 1.0 \
+		--scripts Mac/scripts \
+		build/"Luna L2.pkg"	
 
 clean:
 	rm -rf /usr/local/bin/lvm
