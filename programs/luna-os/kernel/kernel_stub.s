@@ -1,5 +1,4 @@
 .bits 16
-.noentry
 .org 1024
 
 // LUFS header

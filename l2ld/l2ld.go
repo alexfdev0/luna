@@ -37,7 +37,6 @@ var Exports = []export {}
 
 var FillSize int = 0
 var Org int = 0
-var Entry bool = true
 
 var errors = []string {
 	"no object files specified",
@@ -93,7 +92,7 @@ func Filter(data []byte, filename string) {
 			name := string(data[i + 5:j])
 			j++
 			
-			org := 2
+			org := 0
 			if Org != 0 {
 				org = Org
 			}
@@ -178,9 +177,6 @@ func Filter(data []byte, filename string) {
 			L := data[i + 1]	
 			Org = int(H) << 8 | int(L) 	
 			i++
-		} else if bytes.HasPrefix(data[i:], []byte("L_NOENTRY")) {
-			i += 8
-			Entry = false	
 		} else if bytes.HasPrefix(data[i:], []byte("L_16BIT")) || bytes.HasPrefix(data[i:], []byte("L_32BIT")) {	
 			if bytes.HasPrefix(data[i:], []byte("L_32BIT")) {
 				GBits32 = true
@@ -289,13 +285,6 @@ func main() {
 	done:
 
 	var buffer = []byte{}	
-	if Entry == true {
-		binding := checkBinding("_start")
-		if binding.Name == "nil" {
-			error(3, "\n  \"_start\", referenced from\n    <initial-undefines>")	
-		}	
-		buffer = append(buffer, binding.Location...)
-	}
 	buffer = append(buffer, Buffer...)	
 
 	for _, ub := range unresolvedBindings {

@@ -930,8 +930,6 @@ func assemble(text string) {
 			L := byte(num & 0xFF)
 			write(append([]byte("LO_"), []byte{H, L}...))
 			i++
-		case ".noentry":
-			write([]byte("L_NOENTRY"))
 		case ".ptr":
 			write(parse(words[i + 1]))
 			i++

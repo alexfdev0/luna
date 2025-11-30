@@ -1,6 +1,8 @@
 .bits 16
 .fill 492
 
+jmp _start
+
 _start:
     // Setup stack
     mov sp, 0xffff

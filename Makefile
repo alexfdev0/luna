@@ -43,6 +43,7 @@ bin/l2ld: $(SRC)/l2ld/*
 	cd l2ld && go build -o ../bin/l2ld ./l2ld.go
 
 macos-installer:
+	sudo cp bin/luna-l2 Mac/pkgroot2/usr/local/bin/"Luna L2"/Contents/MacOS/
 	sudo cp bin/lcc Mac/pkgroot2/usr/local/bin/
 	sudo cp bin/las Mac/pkgroot2/usr/local/bin/
 	sudo cp bin/lcc1 Mac/pkgroot2/usr/local/bin/

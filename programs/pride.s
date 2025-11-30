@@ -1,5 +1,7 @@
 .bits 16
 
+jmp _start
+
 _start:
     // Set up low-level stuff
 

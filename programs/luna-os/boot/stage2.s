@@ -1,7 +1,6 @@
 .bits 16
 .fill 532
 .org 492
-.noentry
 
 PARTITION_TABLE:
     .pad 20 

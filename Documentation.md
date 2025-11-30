@@ -71,11 +71,20 @@ Except for STR, the destination register is always the first register in the ins
 You can use a label name followed by a colon to make a label, which gets turned into a numerical offset at assembly time. Therefore you can treat them as numbers as well. These can also be used as functions with `call` and `ret`.<br>
 # Custom directives
 There are some directives in LAS that do not correspond to any instruction on L2. They are as follows:<br>
-`call`: calculates the return address, pushes it onto the stack, and jumps to the label specified (`call mylabel`)<br>
+`call <label>`: calculates the return address, pushes it onto the stack, and jumps to the label specified (`call mylabel`)<br>
 `ret`: jumps to the value in register `re1`<br>
-`.ascii`: defines a sequence of ASCII bytes, wrapped in quotation marks<br>
-`.asciz`: defines a sequence of ASCII bytes, wrapped in quotation marks (null terminated)<br>
-`.word`: defines a 2-byte constant<br>
+`.ascii <string>`: defines a sequence of ASCII bytes, wrapped in quotation marks<br>
+`.asciz <string>`: defines a sequence of ASCII bytes, wrapped in quotation marks (null terminated)<br>
+`.word <number>`: defines a 2-byte constant<br>
+`.double <number>`: defines a 4-byte constant<br>
+`.ptr <number or label>`: defines a number with the width of the current mode; memory locations can be used with this.<br>
+`.global <label>`: exposes a symbol to other object files.<br>
+`.bits <16/32>` changes the mode of the assembler to the specified mode (does not change CPU; use `SET`)<br>
+`.embed <file (no quotes)>`: includes a file in the object code the assembler at that location.<br>
+`.org <location>`: tells the linker to calculate all offsets with respect to the origin.<br>
+`.fill <number>`: Tells the linker to fill the resulting binary until it reaches the size specified.<br>
+`.pad <number>`: inserts the specified number of null bytes at that location.<br>
+`.db <bytes, seperated by a comma>`: inserts the specified bytes at that location until a newline.<br>
 # Examples
 `mov r1, 5` (destination: r1, source: 5)<br>
 `pop r1` (destination: r1)<br>
@@ -85,6 +94,7 @@ There are some directives in LAS that do not correspond to any instruction on L2
     ret`<br>
 `call mylabel`<br>
 `.ascii "Hello world!"`<br>
+`.global mysymbol` (exposes 'mysymbol' to other object code)<br>
 # Assembling a program
 To assemble a program, use the following: `las <flags> <input file(s)> -o <output file>`<br>
 The flags are as follows:<br>
