@@ -67,26 +67,23 @@ func LoadSector(drive int, sector int, enforce bool) {
 		time.Sleep(time.Duration(110) * time.Millisecond)
 	}
 
-	data, err := os.ReadFile(file)
+	f, err := os.OpenFile(file, os.O_RDONLY, 0)
 	if err != nil {
 		if enforce == false {
-			fmt.Println("luna-l2: could not reload block device")
+			fmt.Println("luna-l2: could not load/reload block device")
 			return
 		} else {
-			fmt.Println("luna-l2: could not open '" + types.Filename + "'")
+			fmt.Println("luna-l2: could not open '" + file + "'", err)
 			os.Exit(1)
 		}
 	}
+	defer f.Close()
+
 	start := sector * 512
-	if start > len(data) {
-		fmt.Println("luna-l2: read at address " + fmt.Sprintf("0x%08x", start) + " out of bounds")	
-		return
-	}
-	if start + 512 > len(data) {
-		copy((*Memory)[start:start + 512], data[start:])
-	} else {
-		copy((*Memory)[start:start + 512], data[start:start + 512])
-	}
+	_, err = f.ReadAt((*Memory)[start:start + 512], int64(start))
+	if err != nil {
+		fmt.Println("luna-l2: could not read from disk: ", err)
+	}	
 }
 
 func WriteSector(drive int, sector int) {
@@ -103,24 +100,17 @@ func WriteSector(drive int, sector int) {
 		time.Sleep(time.Duration(200) * time.Millisecond)
 	}
 	
-	data, err := os.ReadFile(file)
+	f, err := os.OpenFile(file, os.O_RDWR | os.O_SYNC, 0)
 	if err != nil {
-		fmt.Println("luna-l2: could not reload block device")
+		fmt.Println("luna-l2: could not load/reload block device")
 		return
 	}
+	defer f.Close()
 
 	start := sector * 512
 
-	if len(data) < start + 512 {
-		new_data := make([]byte, start + 512)
-		copy(new_data, data)
-		data = new_data
-	}
-
-	copy(data[start:start + 512], (*Memory)[start:start + 512])
-	
-	_err := os.WriteFile(file, data, 0644)
-	if _err != nil {
+	_, err = f.WriteAt((*Memory)[start:start + 512], int64(start))
+	if err != nil {
 		fmt.Println("luna-l2: could not write to block device")
 	}
 }

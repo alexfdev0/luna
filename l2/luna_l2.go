@@ -157,13 +157,7 @@ func stall(cycles int64) {
 func execute() {
 	for {
 		ProgramCounter := getRegister(0x001a)
-		op := Mapper(ProgramCounter)
-	
-		if ProgramCounter == 0x0000 {
-			codesect := uint32(Mapper(ProgramCounter)) << 8 | uint32(Mapper(ProgramCounter + 1))
-			setRegister(0x001a, codesect)
-			continue
-		}
+		op := Mapper(ProgramCounter)	
 
 		switch op {
 		case 0x00:
@@ -211,14 +205,14 @@ func execute() {
 					loc = uint32(uint16(Memory[ProgramCounter + 2]) << 8 | uint16(Memory[ProgramCounter + 3]))
 				} else {
 					loc = uint32(Memory[ProgramCounter + 2]) << 24 | uint32(Memory[ProgramCounter + 3])	<< 16 | uint32(Memory[ProgramCounter + 4]) << 8 | uint32(Memory[ProgramCounter + 5])
-				}	
-				setRegister(0x001a, loc)
+				}
 				Log("jmp " + fmt.Sprintf("0x%08x", loc))
+				setRegister(0x001a, loc)	
 			} else if mode == 0x02 {
 				frm := uint32(Memory[ProgramCounter+2])
-				loc := getRegister(frm)	
-				setRegister(0x001a, loc)
+				loc := getRegister(frm)
 				Log("jmp " + getRegisterName(frm))
+				setRegister(0x001a, loc)	
 			}
 			stall(8)
 		case 0x04:

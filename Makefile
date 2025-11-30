@@ -53,7 +53,15 @@ macos-installer:
 		--identifier com.alexfdev0.lunal2.tools \
 		--version 1.0 \
 		--scripts Mac/scripts \
-		build/"Luna L2.pkg"	
+		build/"Luna L2.pkg"
+
+windows-installer:
+	cd l2 && GOOS=windows GOARCH=amd64 go build -o ../Windows/luna-l2.exe luna_l2.go
+	cd lcc && GOOS=windows GOARCH=amd64 go build -o ../Windows/lcc.exe lcc.go
+	cd las && GOOS=windows GOARCH=amd64 go build -o ../Windows/las.exe las.go
+	cd lcc1 && GOOS=windows GOARCH=amd64 go build -o ../Windows/lcc1.exe lcc1.go
+	cd l2ld && GOOS=windows GOARCH=amd64 go build -o ../Windows/l2ld.exe l2ld.go
+	cd Windows && wixl -v msi.xml -o "Luna L2.msi"	
 
 clean:
 	rm -rf /usr/local/bin/lvm
