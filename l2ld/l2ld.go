@@ -211,7 +211,7 @@ var libs = make(map[string]string)
 func ParseLibs() {
 	file := ""
 	if runtime.GOOS == "windows" {
-		file = "C:\\luna\\l2ld\\libs.conf"
+		file = "C:\\Program Files (x86)\\Luna L2\\l2ld\\libs.conf"
 	} else {
 		file = "/usr/local/lib/l2ld/libs.conf"
 	}

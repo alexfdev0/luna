@@ -18,6 +18,12 @@ const (
 	MEMCAP uint32 = 0x6FFFFFFF
 )
 
+// Interrupt modes:
+	// 0: BIOS handle
+	// 1: Software handle
+	// 2: Dual handle (BIOS first)
+	// 3: Dual handle (Software first)
+
 func WriteChar(char string, fg uint8, bg uint8) {
 	video.PrintChar(rune(char[0]), byte(fg), byte(bg))
 }
@@ -167,7 +173,7 @@ func IntHandler(code uint32) {
 		KeyTrap = true
 		for {
 			if KeyTrap == true {
-				time.Sleep(500)
+				time.Sleep(time.Duration(15) * time.Millisecond)
 			} else {
 				break
 			}
@@ -239,4 +245,37 @@ func CheckArgs() bool {
 		return false
 	}
 	return true
+}
+
+func IntWrapper(code uint32, next uint32) {
+	var mem_location uint32 = 0x6FFF0000 + uint32(((code - 1) * 6))	
+	if Memory[mem_location + 1] != 0 { 
+		sp := getRegister(0x0019)
+		if types.Bits32 == false {
+			sp = video.Clamp(sp - 2, 0, MEMCAP)
+			Memory[sp] = byte(next & 0xFF)
+			Memory[sp + 1] = byte(next >> 8)
+		} else {
+			sp = video.Clamp(sp - 4, 0, MEMCAP)
+			Memory[sp] = byte(next & 0xFF)
+			Memory[sp + 1] = byte(next >> 8)
+			Memory[sp + 2] = byte(next >> 16)
+			Memory[sp + 3] = byte(next >> 24)
+		}
+		setRegister(0x0019, sp)
+	}
+
+	loc := uint32(Memory[mem_location + 2]) << 24 | uint32(Memory[mem_location + 3]) << 16 | uint32(Memory[mem_location + 4]) << 8 | uint32(Memory[mem_location + 5])	
+	switch Memory[mem_location + 1] {
+	case 0x00:
+		IntHandler(code)
+	case 1:	
+		setRegister(0x001a, loc)
+	case 2:
+		IntHandler(code)
+		setRegister(0x001a, loc)
+	case 3:	
+		setRegister(0x001a, loc)
+		IntHandler(code)	
+	}
 }

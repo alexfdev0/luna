@@ -96,13 +96,22 @@ func getRegisterName[T uint32 | byte](address T) string {
 	return ""
 }
 
+// Memory map:
+	// 0x00000000 - 0x6FFEFFFF: general purpose RAM (1.7499 GiB)
+	// 0x6FFF0000 - 0x6FFFFFFF: reserved region for IDT (65 KB)
+	// 0x70000000 - 0x7000F9FF: video RAM (64 KB)
+	// 0x7000FA00 - 0x7000FA09: audio RAM (9 B)
+	// 0x7000FA0A - 0x7001A643: empty region
+	// 0x7001A644 - 0x7001B65D: network RAM (4.1 KB)
+	// 0x7001B65E - 0x7001B663: clock RAM (6 B)
+
 func Mapper(address uint32) byte {
 	switch {
 	case address >= 0x00000000 && address <= MEMCAP:
 		return Memory[address]
 	case address >= 0x70000000 && address <= 0x7000F9FF:
 		return video.MemoryVideo[address - MEMSIZE]
-	case address >= 0x7000FA00 && address <= 0x7001A643:
+	case address >= 0x7000FA00 && address <= 0x7000FA09:
 		return audio.MemoryAudio[address - 0x7000FA00]
 	case address >= 0x7001A644 && address <= 0x7001B65D:
 		return network.MemoryNetwork[address - 0x7001A644]
@@ -118,7 +127,7 @@ func MapperWrite(address uint32, content byte) {
 		Memory[address] = content
 	case address >= 0x70000000 && address <= 0x7000F9FF:
 		video.MemoryVideo[address - MEMSIZE] = content
-	case address >= 0x7000FA00 && address <= 0x7001A643:
+	case address >= 0x7000FA00 && address <= 0x7000FA09:
 		audio.MemoryAudio[address - 0x7000FA00] = content
 	case address >= 0x7001A644 && address <= 0x7001B65C:
 		network.MemoryNetwork[address - 0x7001A644] = content
@@ -149,9 +158,14 @@ func Log(text string) {
 }
 
 // CPU code
+var accumulated int64
 func stall(cycles int64) { 
 	cycleTime := int64(int(time.Second)) / ClockSpeed
-	time.Sleep(time.Duration(cycleTime * cycles))
+	accumulated += cycles
+	if accumulated >= 66000 {
+		time.Sleep(time.Duration(cycleTime * accumulated))
+		accumulated = 0
+	}	
 }
 
 func execute() {
@@ -162,7 +176,11 @@ func execute() {
 		switch op {
 		case 0x00:
 			Log("null")
-			return
+			now := ProgramCounter
+			bios.IntWrapper(0x7, ProgramCounter + 1)
+			if getRegister(0x001a) == now {
+				return
+			}
 		case 0x01:
 			// MOV
 			mode := Mapper(ProgramCounter + 1)
@@ -219,6 +237,7 @@ func execute() {
 			// INT
 			var code uint32 = 0
 			var next uint32 = 0
+	
 			if types.Bits32 == false {
 				code = uint32(uint16(Memory[ProgramCounter + 1]) << 8 | uint16(Memory[ProgramCounter + 2]))
 				next = ProgramCounter + 3
@@ -226,7 +245,9 @@ func execute() {
 				code = uint32(Memory[ProgramCounter + 1]) << 24 | uint32(Memory[ProgramCounter + 2])	<< 16 | uint32(Memory[ProgramCounter + 3]) << 8 | uint32(Memory[ProgramCounter + 4])
 				next = ProgramCounter + 5
 			}
-			bios.IntHandler(code)
+
+			bios.IntWrapper(code, next)
+
 			if code == 0x0f {
 				Log("system reboot")
 				BIOS_REBOOT = true
@@ -588,11 +609,14 @@ func execute() {
 		default:
 			setRegister(0x0001, uint32(op))
 			Log("\033[31mIllegal instruction 0x" + fmt.Sprintf("%08x", uint32(op)) + "\033[33m")
-			bios.IntHandler(0x7)	
+			now := ProgramCounter
+			bios.IntWrapper(0x7, ProgramCounter + 1)	
 			if Debug == true {
 				setRegister(0x001a, ProgramCounter + 1)
 			} else {
-				return
+				if getRegister(0x001a) == now {
+					return
+				}
 			}
 		}
 
@@ -693,7 +717,7 @@ func WindowManage(window *app.Window) error {
 			paint.PaintOp{}.Add(GTX.Ops)	
 			E.Frame(GTX.Ops)
 			Ready = true
-			time.Sleep(time.Duration(150) * time.Millisecond)
+			time.Sleep(time.Duration(14) * time.Millisecond)
 			window.Invalidate()
 		}
 	}
@@ -801,6 +825,24 @@ func main() {
 		go network.NetController()
 		go audio.AudioController()
 		go rtc.RTCController()
+		copy(Memory[0x6FFF0000:], []byte{ // IDT setup
+			0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x03, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x04, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x05, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x06, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x07, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x09, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x0A, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x0B, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x0C, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x0D, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x0E, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x0F, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x10, 0x00, 0x00, 0x00, 0x00, 0x00,
+		})
 
 		// Execute
 		execute()

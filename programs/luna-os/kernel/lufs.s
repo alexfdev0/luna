@@ -7,7 +7,7 @@ lufs_create_file:
     pop r2 // FILE SIZE (bytes)
     pop r1 // NAME BUFFER
 
-    mov r3, 0x41c
+    mov r3, 0x61c
     lodf r3, r4 // Load the next file pointer
     mov e12, r4
 
@@ -64,7 +64,7 @@ lufs_write_file:
     pop r1 // NAME
     push e11
     
-    mov r3, 0x41c
+    mov r3, 0x61c
     lodf r3, r3 // Load the next file pointer
 lufs_write_file_top:
     mov r5, "LFSF"
@@ -97,7 +97,7 @@ lufs_find_file:
     pop r1 // Restore registers
 
     jnz e6, lufs_find_file_match
-    jz e6, lufs_find_file_fail
+    jmp lufs_find_file_fail
 lufs_find_file_match:
     mov r10, 16
     add r3, r3, r10 // SKIP OVER NAME + SIZE
@@ -135,7 +135,7 @@ lufs_find_file_match:
     mov e6, 1
 
     // SAVE NEXT FILE PTR
-    mov r1, 0x41c
+    mov r1, 0x61c
     lodf r1, r2
     pop r3
     add r2, r2, r3

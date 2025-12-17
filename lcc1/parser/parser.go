@@ -73,6 +73,14 @@ func WritePre(text string, spaced bool) {
 	}
 }
 
+func PreWrite(text string, spaced bool) {
+	if spaced == false {
+		Code1 = text + "\n" + Code1
+	} else {
+		Code1 = "    " + text + "\n" + Code1
+	}
+}
+
 func CheckNum(token lexer.Token) bool {
 	if _, err := strconv.ParseInt(token.Value, 0, 64); err == nil {
 		return true
@@ -582,7 +590,12 @@ func Parse(tokens []lexer.Token, Scope int) {
 			
 				expect(lexer.TokRCurly)
 	
-				Write(name + ":", false)	
+				Write(name + ":", false)
+
+				if name == "_start" {
+					PreWrite("jmp _start", false)
+				}
+
 				if len(Children) > 0 {
 					level = 1
 					if static == false {

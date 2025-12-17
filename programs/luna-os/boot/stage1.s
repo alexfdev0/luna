@@ -11,7 +11,12 @@ _start:
     int 0x10
     mov r2, r1
     mov r1, 1
-    int 11 
+    int 11
+
+    int 0x10
+    mov r2, r1
+    mov r1, 2
+    int 11
 
     // Load sectors
     push msg_loading
@@ -37,7 +42,7 @@ load_sectors:
     int 0x10
     mov r2, r1
 
-    mov r1, 2
+    mov r1, 3
 
     mov e10, pc
     nop
@@ -114,7 +119,7 @@ check_vol_ret:
     ret
 
 num_sectors: 
-    .word 0x001c
+    .word 0x0155
 
 msg_loading:
     .asciz "Loading...\n\n"

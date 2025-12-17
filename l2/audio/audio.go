@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var MemoryAudio [44100]byte
+var MemoryAudio [10]byte
 var Memory *[0x70000000]byte
 
 // MEMORY layout:
@@ -47,7 +47,6 @@ func AudioController() {
 	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second / 10))
 	for {
 		if MemoryAudio[0] == 1 {
-			print("Play signal\n")
 			MemoryAudio[0] = 0
 			Play()	
 		}

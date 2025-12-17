@@ -21,7 +21,7 @@ void _cstart() __attribute__((noreturn)) {
     }
 enterpass:
     puts32("Password: ", 255, 0);
-    readin(TEMPBUF, 1);
+    readin(TEMPBUF, 1, 1);
     xor_cycle(TEMPBUF);
     if (strcmp(PASSBUF, TEMPBUF)) {
         // play_sound(STARTUP_SOUND, 205130, 0);

@@ -1,4 +1,4 @@
-extern void readin(char* buffer, int clrdone);
+extern void readin(char* buffer, int clrdone, int blind);
 extern void writeout(int sector, int drive);
 extern void xor_cycle(char* buffer);
 extern void puts32(char* str, int fg, int bg);
@@ -12,6 +12,7 @@ extern void serve_read();
 extern void serve_connection_close();
 extern void render(char* buffer);
 extern void sleep(int ms);
+extern void screen_fill(int col);
 extern int checkpass();
 extern int strcmp(char* buf1, char* buf2);
 extern int strlen(char* str);

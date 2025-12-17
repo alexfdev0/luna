@@ -20,9 +20,11 @@
 .global serve_connection_close
 .global render
 .global sleep
+.global screen_fill
 
 readin:
     pop e11
+    pop e1
     pop e9
     pop r4
     mov r12, r4
@@ -56,9 +58,27 @@ readin_rdy:
 
     cmp r8, r1, r7
     jnz r8, readin_bksp
-
+    jnz e1, readin_bt
     int 1
-
+    jmp readin_nxt
+readin_bt:
+    push e8
+    push e7
+    mov e8, 0x0a
+    cmp e7, e8, r1
+    jnz e7, readin_bt_nl
+    push r1
+    mov r1, "*"
+    int 1
+    pop r1
+    jmp readin_bt_done
+readin_bt_nl:
+    mov r1, 0x0a
+    int 1
+readin_bt_done:
+    pop e7
+    pop e8
+readin_nxt:
     cmp r6, r1, r5
     jnz r6, readin_done
 
@@ -504,6 +524,35 @@ sleep:
     pop r1
 
     int 2
+
+    ret
+
+screen_fill:
+    pop e11
+    pop r2
+
+    mov r1, 0x0
+    mov r4, 0
+    mov r3, 64000
+
+    mov e10, pc
+    int 3
+
+    inc r4
+    inc r4
+    inc r4
+    inc r4
+    inc r1
+    inc r1
+    inc r1
+    inc r1
+
+    igt r5, r4, r3
+    jz r5, e10
+
+    mov r1, 0
+    mov r2, 0
+    int 0xc
 
     ret
     

@@ -1,3 +1,2 @@
-extern void play_sound(char* buffer, int size, int block);
-extern void* STARTUP_SOUND;
-extern void* SHUTDOWN_SOUND;
+extern void play_sound(void* buffer, int size, int block);
+extern void* CRASH_SOUND;

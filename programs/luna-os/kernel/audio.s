@@ -1,8 +1,7 @@
 .bits 32
 
 .global play_sound
-.global SHUTDOWN_SOUND
-.global STARTUP_SOUND
+.global CRASH_SOUND
 
 play_sound:
     pop e11
@@ -41,8 +40,5 @@ play_sound_block:
     str r3, r4
     ret
 
-STARTUP_SOUND:
-    .embed kernel/audio/startup.pcm
-
-SHUTDOWN_SOUND:
-    .embed kernel/audio/shutdown.pcm
+CRASH_SOUND:
+    .embed kernel/audio/crash.raw

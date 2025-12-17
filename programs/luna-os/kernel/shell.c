@@ -1,7 +1,7 @@
 void shell() {
 top:
     puts32(PROMPTBUF, 255, 0);
-    readin(TEMPBUF, 1); 
+    readin(TEMPBUF, 1, 0); 
     if (strcmp("reboot", TEMPBUF)) {
         puts32("Rebooting...", 255, 0);
         // play_sound(SHUTDOWN_SOUND, 207748, 1);
@@ -21,7 +21,7 @@ top:
 
     if (strcmp("promptedit", TEMPBUF)) {
         puts32("Enter terminal prompt: ", 255, 0);
-        readin(PROMPTBUF, 0);
+        readin(PROMPTBUF, 0, 0);
         save_buffer(PROMPTBUF, 0);
 
         puts32("\n", 255, 0);
@@ -29,7 +29,7 @@ top:
     }
     
     if (strcmp("notepad", TEMPBUF)) {
-        readin(TEMPBUF, 0);
+        readin(TEMPBUF, 0, 0);
         lufs_write_file("NOTEPAD SYS     ", TEMPBUF);
 
         puts32("\n", 255, 0);
@@ -38,11 +38,11 @@ top:
 
     if (strcmp("passwd", TEMPBUF)) {
         puts32("Enter old password: ", 255, 0);
-        readin(TEMPBUF, 1);
+        readin(TEMPBUF, 1, 1);
         xor_cycle(TEMPBUF);
         if (strcmp(TEMPBUF, PASSBUF)) {
             puts32("Enter new password: ", 255, 0);
-            readin(PASSBUF, 1);
+            readin(PASSBUF, 1, 1);
             xor_cycle(PASSBUF);
             save_buffer(PASSBUF, 0);
         } else
@@ -65,6 +65,17 @@ top:
         sleep(500);
         asm ("int 0x11");
     }
+
+    if (strcmp("ws", TEMPBUF)) {
+        puts32("Listening on port 3000", 255, 0);
+        serve(3000);
+        await:
+        serve_await_connection(500);
+        serve_read();
+        serve_write("HTTP/1.1\r\nContent-Type: text/html\r\nServer: FurNet\r\n\r\n<!DOCTYPE html>\r\n<html>\r\n<body>\r\n<h1>Hello world!</h1>\r\n</body>\r\n</html>\r\n\r\n");
+        serve_connection_close();
+        goto await;
+    } 
 
     puts32("'", 255, 0);
     puts32(TEMPBUF, 255, 0);
