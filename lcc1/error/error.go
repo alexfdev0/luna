@@ -36,6 +36,7 @@ var errors = []string {
 	"type specifier missing, defaults to 'int'; ISO C99 and later do not support implicit int",
 	"indirection requires pointer operand",
 	"cannot take the address of an rvalue of type",
+	"duplicate",
 }
 
 var Warnings int = 0

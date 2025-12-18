@@ -410,12 +410,24 @@ func Parse(tokens []lexer.Token, Scope int) {
 						long = true
 						bits = 32
 					case "unsigned":
+						if unsigned == true {
+							error.Error(28, "'unsigned'", peek(-1), &tokens)
+						}
 						unsigned = true
 					case "const":
+						if constant == true {
+							error.Error(28, "'const'", peek(-1), &tokens)
+						}
 						constant = true
 					case "extern":
+						if extern == true {
+							error.Error(28, "'extern'", peek(-1), &tokens)
+						}
 						extern = true
 					case "static":
+						if static == true {
+							error.Error(28, "'static'", peek(-1), &tokens)
+						}
 						static = true
 					}
 				} else {

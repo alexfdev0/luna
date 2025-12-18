@@ -21,6 +21,9 @@
 .global render
 .global sleep
 .global screen_fill
+.global render_buf
+.global save_graphics_buf
+.global GBUF
 
 readin:
     pop e11
@@ -555,6 +558,69 @@ screen_fill:
     int 0xc
 
     ret
+
+render_buf:
+    pop e11
+    pop r1 // BUFFER
+
+    mov r2, 0x70000000
+    mov r3, 0
+    mov r4, 64000
+
+    mov e10, pc
+
+    lodf r1, r5
+    strf r2, r5 // we'll use fast here :3
+
+    inc r1
+    inc r1
+    inc r1
+    inc r1
+    inc r3
+    inc r3
+    inc r3
+    inc r3
+    inc r2
+    inc r2
+    inc r2
+    inc r2
+
+    cmp r6, r3, r4
+    jz r6, e10
+
+    ret
+
+save_graphics_buf:
+    pop e11
+
+    mov r1, GBUF
+    mov r2, 0x70000000
+    mov r3, 0
+    mov r4, 64000
+
+    mov e10, pc
+
+    
+    lodf r2, r5
+    strf r1, r5
+
+    inc r1
+    inc r1
+    inc r1
+    inc r1
+    inc r3
+    inc r3
+    inc r3
+    inc r3
+    inc r2
+    inc r2
+    inc r2
+    inc r2
+
+    cmp r6, r3, r4
+    jz r6, e10
+
+    ret 
     
 TEMPBUF:
     .pad 256
@@ -568,3 +634,6 @@ PASSBUF:
 
 NETBUF:
     .pad 2048
+
+GBUF:
+    .pad 64000

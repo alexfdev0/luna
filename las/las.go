@@ -880,7 +880,7 @@ func assemble(text string) {
 			}
 			i++
 		case ".embed":
-			file := words[i + 1]
+			file := strings.ReplaceAll(words[i + 1],  "\"", "")
 			data, err := os.ReadFile(file)
 			if err != nil {
 				error(1, "'" + file + "'")
@@ -951,7 +951,7 @@ func assemble(text string) {
 		case ".db":
 			for j := i + 1; j < len(words); j++ {
 				if words[j] != "\n" {
-					num, err := strconv.ParseInt(strings.ReplaceAll(words[j], ",", ""), 0, 8)
+					num, err := strconv.ParseUint(strings.ReplaceAll(words[j], ",", ""), 0, 8)
 					if err != nil {
 						error(11, ", got '" + words[j] + "'")
 					}

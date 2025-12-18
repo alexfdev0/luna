@@ -1,3 +1,5 @@
+#include "bayachao.h"
+
 void shell() {
 top:
     puts32(PROMPTBUF, 255, 0);
@@ -75,7 +77,16 @@ top:
         serve_write("HTTP/1.1\r\nContent-Type: text/html\r\nServer: FurNet\r\n\r\n<!DOCTYPE html>\r\n<html>\r\n<body>\r\n<h1>Hello world!</h1>\r\n</body>\r\n</html>\r\n\r\n");
         serve_connection_close();
         goto await;
-    } 
+    }
+
+    if (strcmp("bc", TEMPBUF)) {
+        save_graphics_buf();
+        render_buf(BAYACHAO_IMG);
+        asm ("int 0x6");
+        render_buf(GBUF);
+
+        goto top;
+    }
 
     puts32("'", 255, 0);
     puts32(TEMPBUF, 255, 0);

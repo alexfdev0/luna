@@ -739,6 +739,8 @@ func InitializeWindow() {
 	app.Main()
 }
 
+
+var RequireDevicePresent bool = true
 func main() {
 	bios.Registers = &Registers
 	bios.Memory = &Memory
@@ -806,20 +808,21 @@ func main() {
 		switch types.BootDrive {
 		case 0:
 			bios.WriteLine("Booting from hard disk...", 255, 0)
-			bios.LoadSector(0, 0, true)
+			bios.LoadSector(0, 0, RequireDevicePresent)
 			types.DriveNumber = 0
 		case 1:
 			bios.WriteLine("Booting from SD...", 255, 0)
-			bios.LoadSector(1, 0, true)
+			bios.LoadSector(1, 0, RequireDevicePresent)
 			types.DriveNumber = 1
 		case 2:
 			bios.WriteLine("Booting from DVD...", 255, 0)
-			bios.LoadSector(2, 0, true)
+			bios.LoadSector(2, 0, RequireDevicePresent)
 			types.DriveNumber = 2
 		default:
 			bios.WriteLine("No bootable device", 255, 0)
 			return
-		}	
+		}
+		RequireDevicePresent = false
 
 		// Initialize components
 		go network.NetController()
