@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strconv"
 	"bufio"
+	"math/rand"
 
 	"luna_l2/bios"		
 	"luna_l2/video"
@@ -118,7 +119,7 @@ func Mapper(address uint32) byte {
 	case address >= 0x7001B65E && address <= 0x7001B663:
 		return rtc.MemoryRTC[address - 0x7001B65E]
 	}
-	return Memory[0x00000000]
+	return byte(rand.Intn(0xFF - 0x00) + 0x00)
 }
 
 func MapperWrite(address uint32, content byte) {
@@ -697,7 +698,7 @@ func WindowManage(window *app.Window) error {
 			for y := 0; y < 200; y++ {
 				for x := 0; x < 320; x++ {
 					i = video.Clamp(i, 0, 63999)	
-					img.Set(x, y, video.Palette[video.MemoryVideo[i]])
+					img.Set(x, y, video.Palette[Mapper(0x70000000 + uint32(i))])
 					i++
 				}
 			}

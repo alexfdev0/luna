@@ -50,8 +50,14 @@ type Scope struct {
 	Parent int
 }
 
+type Define struct {
+	From string
+	To string
+}
+
 var Variables = []Variable_Static {}
 var FunctionDecls = []FunctionDecl {}
+var Defines = []Define {}
 
 var Scopes = []Scope {
 	Scope{ID: 1, Parent: -1},
@@ -365,7 +371,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 							BitPref = 32
 						default:
 							error.Warning(17, "'" + directive + "'", peek(-1), &tokens)	
-						}
+						}	
 					default:
 						error.Error(15, "'" + pp_dir + "'", peek(-1), &tokens)	
 					}
