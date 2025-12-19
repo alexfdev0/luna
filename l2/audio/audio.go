@@ -4,10 +4,10 @@ import (
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 	"time"
+	"luna_l2/shared"
 )
 
 var MemoryAudio [10]byte
-var Memory *[0x70000000]byte
 
 // MEMORY layout:
 	// Byte 1: Play flag
@@ -15,19 +15,21 @@ var Memory *[0x70000000]byte
 	// Byte 6, 7, 8, 9: 32-bit size of audio
 	// Byte 10: done flag
 type PCMStreamer struct {	
-	cursor int
+	cursor uint32
 }
 
-func (s *PCMStreamer) Stream(samples [][2]float64) (n int, ok bool) {
-	Pointer := uint32(MemoryAudio[1]) << 24 | uint32(MemoryAudio[2]) << 16 | uint32(MemoryAudio[3]) << 8 | uint32(MemoryAudio[4])
-	Size := uint32(MemoryAudio[5]) << 24 | uint32(MemoryAudio[6]) << 16 | uint32(MemoryAudio[7]) << 8 | uint32(MemoryAudio[8])
+var Cursor uint32
+var Pointer uint32
+var Size uint32
+
+func (s *PCMStreamer) Stream(samples [][2]float64) (n int, ok bool) {	
 	for i := range samples {
-		if uint32(s.cursor + 2) > Size {
+		if uint32(Cursor + 2) > Pointer + Size {
 			return i, false
 		}
 
-		v := float64(int(int8((*Memory)[Pointer:Pointer + Size][s.cursor]))) / 128.0
-		s.cursor++
+		v := float64(int(int8(shared.Mapper(Cursor)))) / 128.0
+		Cursor++
 		samples[i][0] = v
 		samples[i][1] = v
 	}
@@ -48,6 +50,9 @@ func AudioController() {
 	for {
 		if MemoryAudio[0] == 1 {
 			MemoryAudio[0] = 0
+			Pointer = uint32(MemoryAudio[1]) << 24 | uint32(MemoryAudio[2]) << 16 | uint32(MemoryAudio[3]) << 8 | uint32(MemoryAudio[4])
+			Size = uint32(MemoryAudio[5]) << 24 | uint32(MemoryAudio[6]) << 16 | uint32(MemoryAudio[7]) << 8 | uint32(MemoryAudio[8])
+			Cursor = Pointer
 			Play()	
 		}
 		time.Sleep(time.Duration(15) * time.Millisecond)

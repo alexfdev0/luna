@@ -26,7 +26,8 @@ var CharTable = [][2]rune{
     {'/', '?'},
 }
 
-var Shift bool = false 
+var Shift bool = false
+var MemoryMouse [2]byte
 
 func Lower(str string) string {
     if len(str) == 0 {

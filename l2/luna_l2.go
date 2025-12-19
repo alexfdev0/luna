@@ -2,33 +2,28 @@ package main
 
 import (	
 	"image"
-	"image/color"	
 	"os"	
 	"time"
 	"fmt"
 	"strconv"
 	"bufio"
 	"math/rand"
+	"runtime"
 
 	"luna_l2/bios"		
 	"luna_l2/video"
-	"luna_l2/keyboard"
-	"luna_l2/types"
+	"luna_l2/shared"
 	"luna_l2/audio"
 	"luna_l2/network"
 	"luna_l2/rtc"
+	"luna_l2/keyboard"
 
-	"gioui.org/app"	
-	"gioui.org/f32"
-	"gioui.org/op"
-	"gioui.org/op/paint"
-	"gioui.org/op/clip"
-	"gioui.org/io/key"
-	"gioui.org/io/event"	
+	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/go-gl/glfw/v3.3/glfw"	
 )
 
 // Basic elements of CPU
-var Registers = []types.Register {
+var Registers = []shared.Register {
 	{0x0000, "R0", 0},
 	{0x0001, "R1", 0},
 	{0x0002, "R2", 0},
@@ -69,7 +64,7 @@ const (
 func setRegister(address uint32, value uint32) {
 	for i := range Registers {
 		if Registers[i].Address == address {
-			if types.Bits32 == false {
+			if shared.Bits32 == false {
 				Registers[i].Value = uint32(uint16(value))
 			} else {
 				Registers[i].Value = value
@@ -114,6 +109,8 @@ func Mapper(address uint32) byte {
 		return video.MemoryVideo[address - MEMSIZE]
 	case address >= 0x7000FA00 && address <= 0x7000FA09:
 		return audio.MemoryAudio[address - 0x7000FA00]
+	case address >= 0x7000FA0A && address <= 0x7000FA0B:
+		return keyboard.MemoryMouse[address - 0x7000FA0A]
 	case address >= 0x7001A644 && address <= 0x7001B65D:
 		return network.MemoryNetwork[address - 0x7001A644]
 	case address >= 0x7001B65E && address <= 0x7001B663:
@@ -190,7 +187,7 @@ func execute() {
 			if mode == 0x01 {
 				var imm uint32 = 0
 				var next uint32 = 0
-				if types.Bits32 == false {
+				if shared.Bits32 == false {
 					imm = uint32(uint16(Memory[ProgramCounter + 3]) << 8 | uint16(Memory[ProgramCounter + 4]))
 					next = ProgramCounter + 5
 				} else {
@@ -220,7 +217,7 @@ func execute() {
 
 			if mode == 0x01 {
 				var loc uint32 = 0
-				if types.Bits32 == false {
+				if shared.Bits32 == false {
 					loc = uint32(uint16(Memory[ProgramCounter + 2]) << 8 | uint16(Memory[ProgramCounter + 3]))
 				} else {
 					loc = uint32(Memory[ProgramCounter + 2]) << 24 | uint32(Memory[ProgramCounter + 3])	<< 16 | uint32(Memory[ProgramCounter + 4]) << 8 | uint32(Memory[ProgramCounter + 5])
@@ -239,7 +236,7 @@ func execute() {
 			var code uint32 = 0
 			var next uint32 = 0
 	
-			if types.Bits32 == false {
+			if shared.Bits32 == false {
 				code = uint32(uint16(Memory[ProgramCounter + 1]) << 8 | uint16(Memory[ProgramCounter + 2]))
 				next = ProgramCounter + 3
 			} else {
@@ -270,7 +267,7 @@ func execute() {
 			var not uint32 = 0
 
 			if mode == 0x01 {	
-				if types.Bits32 == false {
+				if shared.Bits32 == false {
 					loc = uint32(uint16(Memory[ProgramCounter + 3]) << 8 | uint16(Memory[ProgramCounter + 4]))
 					not = ProgramCounter + 5
 				} else {
@@ -320,7 +317,7 @@ func execute() {
 			var not uint32 = 0
 
 			if mode == 0x01 {	
-				if types.Bits32 == false {
+				if shared.Bits32 == false {
 					loc = uint32(uint16(Mapper(ProgramCounter + 3)) << 8 | uint16(Mapper(ProgramCounter + 4)))
 					not = ProgramCounter + 5
 				} else {
@@ -364,7 +361,7 @@ func execute() {
 			var value uint32	
 			if mode == 0x1 {	
 				var next uint32 = 0
-				if types.Bits32 == false {
+				if shared.Bits32 == false {
 					value = uint32(uint16(Mapper(ProgramCounter + 2)) << 8 | uint16(Mapper(ProgramCounter + 3)))
 					next = ProgramCounter + 4
 				} else {
@@ -379,7 +376,7 @@ func execute() {
 				Log("push " + getRegisterName(uint32(Mapper(ProgramCounter + 2))))
 			}	
 			sp := getRegister(0x0019)
-			if types.Bits32 == false {
+			if shared.Bits32 == false {
 				sp = video.Clamp(sp - 2, 0, MEMCAP)
 				MapperWrite(sp, byte(value & 0xFF))
 				MapperWrite(sp + 1, byte(value >> 8))
@@ -398,14 +395,14 @@ func execute() {
 			register := Mapper(ProgramCounter + 1)
 			sp := getRegister(0x0019)
 			var value uint32
-			if types.Bits32 == false {
+			if shared.Bits32 == false {
 				value = uint32(uint16(Mapper(sp)) | uint16(Mapper(sp + 1)) << 8) 
 			} else {	
 				value = uint32(Mapper(sp)) | uint32(Mapper(sp + 1)) << 8 | uint32(Mapper(sp + 2)) << 16 | uint32(Mapper(sp + 3)) << 24
 			}
 			Log("value: " + fmt.Sprintf("0x%08x", value))
 			setRegister(uint32(register), uint32(value))
-			if types.Bits32 == false {
+			if shared.Bits32 == false {
 				sp = video.Clamp(sp + 2, 0, MEMCAP)
 			} else {
 				sp = video.Clamp(sp + 4, 0, MEMCAP)
@@ -545,7 +542,7 @@ func execute() {
 			// strf <addr (register)> <value (register)>	
 			addr := getRegister(uint32(Memory[ProgramCounter+1]))
 			value := uint32(Memory[ProgramCounter+2])
-			if types.Bits32 == false {
+			if shared.Bits32 == false {
 				MapperWrite(addr, byte(getRegister(value) >> 8))
 				MapperWrite(addr + 1, byte(getRegister(value) & 0xFF))
 			} else {
@@ -562,7 +559,7 @@ func execute() {
 			// lodf <addr (register)> <destination register>
 			addr := getRegister(uint32(Memory[ProgramCounter+1]))
 			toregister := uint32(Memory[ProgramCounter+2])
-			if types.Bits32 == false {
+			if shared.Bits32 == false {
 				setRegister(toregister, uint32(uint16(Mapper(addr)) << 8 | uint16(Mapper(addr + 1))))
 			} else {
 				setRegister(toregister, uint32(Mapper(addr)) << 24 | uint32(Mapper(addr + 1)) << 16 | uint32(Mapper(addr + 2)) << 8 | uint32(Mapper(addr + 3)))
@@ -575,10 +572,10 @@ func execute() {
 			// set <00 or 01>
 			mode := uint32(Memory[ProgramCounter + 1])
 			if mode == 0 {
-				types.Bits32 = false
+				shared.Bits32 = false
 				Log("16 bit mode")
 			} else if mode == 1 {
-				types.Bits32 = true
+				shared.Bits32 = true
 				Log("32 bit mode")
 			}
 			setRegister(0x001a, ProgramCounter + 2)
@@ -628,124 +625,178 @@ func execute() {
 }
 
 // Frontend code
-var Ready bool = false
-func WindowManage(window *app.Window) error {
-	var ops op.Ops
-	img := image.NewRGBA(image.Rect(0, 0, 320, 200))
+var Ready bool
+var img = image.NewRGBA(image.Rect(0, 0, 320, 200))
+var Vertices = []float32 {
+	-1, -1, 0, 1,
+     1, -1, 1, 1,
+     1,  1, 1, 0,
 
-	video.InitializePalette()	
-	// Init framebuffer
+    -1, -1, 0, 1,
+     1,  1, 1, 0,
+    -1,  1, 0, 0,	
+}
+
+func UpdateFramebuffer() {
 	i := 0
 	for y := 0; y < 200; y++ {
 		for x := 0; x < 320; x++ {
-			img.Set(x, y, video.Palette[uint8(video.MemoryVideo[i])])
+			img.Set(x, y, video.Palette[Mapper(0x70000000 + uint32(i))])
 			i++
 		}
 	}
-
-	tex := paint.NewImageOp(img)
-	tex.Filter = paint.FilterNearest
-
-	for {
-		switch E := window.Event().(type) {
-		case app.DestroyEvent:
-			os.Exit(0)
-		case app.FrameEvent:	
-			GTX := app.NewContext(&ops, E)
-
-			paint.Fill(GTX.Ops, color.NRGBA{R: 0, G: 0, B: 0, A: 255})
-		
-			area := clip.Rect{Max: GTX.Constraints.Max}.Push(GTX.Ops)
-			event.Op(GTX.Ops, window)
-			for {
-				event, ok := GTX.Event(key.Filter{Name: ""})
-
-				if !ok {
-					break
-				}
-				switch event := event.(type) {
-				case key.Event:
-					if event.State == key.Press {
-						char := string(event.Name)
-
-						if event.Name == "Space" {
-							char = string(byte(0x20))
-						} else if event.Name == "⏎" {
-							char = string(byte(0x0a))
-						} else if event.Name == "Shift" {
-							if keyboard.Shift == false {
-								keyboard.Shift = true
-							} else {
-								keyboard.Shift = false
-							}
-							continue
-						}
-
-						if keyboard.Shift == false {
-							char = keyboard.Lower(char)	
-						} else {
-							char = keyboard.Upper(char)
-						}
-	
-    					setRegister(0x001b, uint32(rune(char[0])))
-    					bios.IntHandler(bios.KeyInterruptCode)
-					}
-				}
-			}
-			area.Pop()
-
-			i := 0
-			for y := 0; y < 200; y++ {
-				for x := 0; x < 320; x++ {
-					i = video.Clamp(i, 0, 63999)	
-					img.Set(x, y, video.Palette[Mapper(0x70000000 + uint32(i))])
-					i++
-				}
-			}
-
-			tex = paint.NewImageOp(img)
-			tex.Filter = paint.FilterNearest
-
-			scaleX := float32(GTX.Constraints.Max.X) / float32(320)
-			scaleY := float32(GTX.Constraints.Max.Y) / float32(200)
-
-			scale := scaleX
-			if scaleY < scaleX {
-				scale = scaleY
-			}
-			defer op.Affine(f32.Affine2D{}.Scale(f32.Pt(0, 0), f32.Pt(scale, scale))).Push(GTX.Ops).Pop()
-			tex.Add(GTX.Ops)
-			paint.PaintOp{}.Add(GTX.Ops)	
-			E.Frame(GTX.Ops)
-			Ready = true
-			time.Sleep(time.Duration(14) * time.Millisecond)
-			window.Invalidate()
-		}
-	}
-	return nil
 }
 
 func InitializeWindow() {
-	go func() {
-		w := new(app.Window)
-		w.Option(
-			app.Title("Luna L2"),
-			app.Size(640, 400),
-		)
-		if err := WindowManage(w); err != nil {
-			fmt.Println("luna-l2: Failed to initialize window.", 255, 0)
-			os.Exit(1)
-		}
-	}()
-	app.Main()
-}
+	video.InitializePalette()
+	err := glfw.Init()
+	if err != nil {
+		fmt.Println("luna-l2: could not initialize window: ", err)
+		os.Exit(1)
+	}
+	defer glfw.Terminate()
 
+	window, err := glfw.CreateWindow(640, 400, "Luna L2", nil, nil)
+	if err != nil {
+		fmt.Println("luna-l2: could not initialize window: ", err)
+		os.Exit(1)
+	}
+	window.MakeContextCurrent()
+
+	err = gl.Init();
+	if err != nil {
+		fmt.Println("luna-l2: could not initialize window: ", err)
+		os.Exit(1)
+	}	
+
+	gl.Viewport(0, 0, 640, 400)
+	gl.ClearColor(0, 0, 0, 1)
+
+	program := video.CreateProgram()
+	gl.UseProgram(program)
+
+	loc := gl.GetUniformLocation(program, gl.Str("tex\x00"))	
+	gl.Uniform1i(loc, 0)
+
+	var vao, vbo uint32
+
+	gl.GenVertexArrays(1, &vao)
+	gl.GenBuffers(1, &vbo)
+
+	gl.BindVertexArray(vao)
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+
+	gl.BufferData(
+		gl.ARRAY_BUFFER,
+		len(Vertices) * 4,
+		gl.Ptr(Vertices),
+		gl.STATIC_DRAW,
+	)
+
+	gl.EnableVertexAttribArray(0)
+	gl.VertexAttribPointer(0, 2, gl.FLOAT, false, 4*4, gl.PtrOffset(0))
+
+	gl.EnableVertexAttribArray(1)
+	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, 4*4, gl.PtrOffset(2*4))
+
+	window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+		if action == glfw.Press || action == glfw.Repeat {
+			shift := (mods & glfw.ModShift) != 0
+
+			var char string
+			switch key {
+			case glfw.KeySpace:
+				char = string(byte(0x20))
+			case glfw.KeyEnter:
+				char = string(byte(0x0A))
+			case glfw.KeyBackspace:
+				char = string(byte(0xC3))	
+			default:
+				char = glfw.GetKeyName(key, scancode)	
+			}
+
+			if shift {
+				char = keyboard.Upper(char)
+			} else {
+				char = keyboard.Lower(char)
+			}
+
+			if len(char) > 0 {
+				setRegister(0x001b, uint32(char[0]))
+				bios.IntHandler(bios.KeyInterruptCode)
+			}
+		}
+	})	
+
+	var texture uint32
+	gl.GenTextures(1, &texture)
+	gl.BindTexture(gl.TEXTURE_2D, texture)
+
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+
+	gl.TexImage2D(
+		gl.TEXTURE_2D,
+		0,
+		gl.RGBA8,
+		320, 200,
+		0,
+		gl.RGBA,
+		gl.UNSIGNED_BYTE,
+		nil,
+	)	
+
+	next := time.Now()
+	for !window.ShouldClose() {
+		Ready = true
+    	UpdateFramebuffer()
+
+		gl.ActiveTexture(gl.TEXTURE0)
+		gl.BindTexture(gl.TEXTURE_2D, texture)
+		gl.TexSubImage2D(
+			gl.TEXTURE_2D,
+			0,
+			0, 0,
+			320, 200,
+			gl.RGBA,
+			gl.UNSIGNED_BYTE,
+			gl.Ptr(img.Pix),
+		)
+
+		gl.Clear(gl.COLOR_BUFFER_BIT)
+
+		gl.UseProgram(program)
+		gl.BindVertexArray(vao)
+
+		gl.DrawArrays(gl.TRIANGLES, 0, 6)
+
+		next = next.Add(time.Second / 70)
+		sleep := time.Until(next)
+		if sleep > 0 {
+			time.Sleep(sleep)
+		} else {
+			next = time.Now()
+		}
+
+		window.SwapBuffers()
+		glfw.PollEvents()
+	}
+}
 
 var RequireDevicePresent bool = true
 func main() {
-	bios.Registers = &Registers
-	bios.Memory = &Memory
-	audio.Memory = &Memory
+	runtime.LockOSThread()
+
+	shared.Registers = &Registers
+	shared.Memory = &Memory
+	shared.MemoryVideo = &video.MemoryVideo
+	shared.MemoryAudio = &audio.MemoryAudio
+	shared.MemoryMouse = &keyboard.MemoryMouse
+	shared.MemoryNetwork = &network.MemoryNetwork
+	shared.MemoryRTC = &rtc.MemoryRTC
+
 	go func() {
 		if Ready == false {	
 			for {
@@ -755,7 +806,7 @@ func main() {
 					time.Sleep(500)
 				}
 			}
-		}
+		}	
 
 		if bios.CheckArgs() == false {
 			return
@@ -780,45 +831,45 @@ func main() {
 				Debug = true
 				LogOn = true
 			case "-sd":
-				types.SDFilename = os.Args[i + 1]
+				shared.SDFilename = os.Args[i + 1]
 				i++
 			case "-dvd":
-				types.OpticalFilename = os.Args[i + 1]
+				shared.OpticalFilename = os.Args[i + 1]
 				i++	
 			case "-boot":
 				next := os.Args[i + 1]
 				switch next {
 				case "hdd":
-					types.BootDrive = 0
+					shared.BootDrive = 0
 				case "sd":
-					types.BootDrive = 1
+					shared.BootDrive = 1
 				case "dvd":
-					types.BootDrive = 2
+					shared.BootDrive = 2
 				default:
 					fmt.Println("luna-l2: invalid boot drive")
 				}
 				i++
 			default:
-				types.Filename = arg
+				shared.Filename = arg
 			}
 		}
 
 		boot:
 		bios.Splash()
 
-		switch types.BootDrive {
+		switch shared.BootDrive {
 		case 0:
 			bios.WriteLine("Booting from hard disk...", 255, 0)
 			bios.LoadSector(0, 0, RequireDevicePresent)
-			types.DriveNumber = 0
+			shared.DriveNumber = 0
 		case 1:
 			bios.WriteLine("Booting from SD...", 255, 0)
 			bios.LoadSector(1, 0, RequireDevicePresent)
-			types.DriveNumber = 1
+			shared.DriveNumber = 1
 		case 2:
 			bios.WriteLine("Booting from DVD...", 255, 0)
 			bios.LoadSector(2, 0, RequireDevicePresent)
-			types.DriveNumber = 2
+			shared.DriveNumber = 2
 		default:
 			bios.WriteLine("No bootable device", 255, 0)
 			return
@@ -845,7 +896,7 @@ func main() {
 			0x0D, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x0E, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x0F, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x10, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x10, 0x00, 0x00, 0x00, 0x00, 0x00,	
 		})
 
 		// Execute

@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"luna_l2/font"
 	"cmp"
+	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
 var CursorX int = 0
@@ -28,19 +29,16 @@ func scrollUp() {
         charHeight   = 8
     )
 
-    lineSize := screenWidth * charHeight // 2560
+    lineSize := screenWidth * charHeight
     visibleLines := screenHeight / charHeight
-
-    // Shift all but the first text line up by exactly one full line block.
+ 
     copy(MemoryVideo[0:], MemoryVideo[lineSize:])
-
-    // Fully clear bottom 8 rows (the new empty line region)
+ 
     bottomStart := (visibleLines - 1) * lineSize
     for i := bottomStart; i < len(MemoryVideo); i++ {
         MemoryVideo[i] = 0
     }
-
-    // Keep the cursor clamped to the last visible text row
+ 
     CursorY = visibleLines - 1
 }
 
@@ -110,4 +108,73 @@ func InitializePalette() {
 
         Palette[i] = color.NRGBA{R, G, B, 255}
     }
+}
+
+const VertexShaderSrc = `
+#version 330 core
+layout (location = 0) in vec2 inPos;
+layout (location = 1) in vec2 inUV;
+
+out vec2 uv;
+
+void main() {
+    uv = inUV;
+    gl_Position = vec4(inPos, 0.0, 1.0);
+}
+` + "\x00"
+
+const FragmentShaderSrc = `
+#version 330 core
+in vec2 uv;
+out vec4 color;
+
+uniform sampler2D tex;
+
+void main() {
+    color = texture(tex, uv);
+}
+` + "\x00"
+
+func compileShader(src string, t uint32) uint32 {
+    shader := gl.CreateShader(t)
+    csrc, free := gl.Strs(src)
+    gl.ShaderSource(shader, 1, csrc, nil)
+    free()
+    gl.CompileShader(shader)
+
+    var status int32
+    gl.GetShaderiv(shader, gl.COMPILE_STATUS, &status)
+    if status == gl.FALSE {
+        var logLen int32
+        gl.GetShaderiv(shader, gl.INFO_LOG_LENGTH, &logLen)
+        log := make([]byte, logLen)
+        gl.GetShaderInfoLog(shader, logLen, nil, &log[0])
+        panic(string(log))
+    }
+    return shader
+}
+
+func CreateProgram() uint32 {
+    vs := compileShader(VertexShaderSrc, gl.VERTEX_SHADER)
+    fs := compileShader(FragmentShaderSrc, gl.FRAGMENT_SHADER)
+
+    program := gl.CreateProgram()
+    gl.AttachShader(program, vs)
+    gl.AttachShader(program, fs)
+    gl.LinkProgram(program)
+
+    var status int32
+    gl.GetProgramiv(program, gl.LINK_STATUS, &status)
+    if status == gl.FALSE {
+        var logLen int32
+        gl.GetProgramiv(program, gl.INFO_LOG_LENGTH, &logLen)
+        log := make([]byte, logLen)
+        gl.GetProgramInfoLog(program, logLen, nil, &log[0])
+        panic(string(log))
+    }
+
+    gl.DeleteShader(vs)
+    gl.DeleteShader(fs)
+
+    return program
 }

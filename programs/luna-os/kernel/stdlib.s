@@ -24,6 +24,7 @@
 .global render_buf
 .global save_graphics_buf
 .global GBUF
+.global mouse_move
 
 readin:
     pop e11
@@ -620,7 +621,17 @@ save_graphics_buf:
     cmp r6, r3, r4
     jz r6, e10
 
-    ret 
+    ret
+
+mouse_move:
+    pop e11
+    
+    mov r1, 0x41
+    mov r2, 0xFF
+    mov r3, 0x00
+    int 1
+
+    ret
     
 TEMPBUF:
     .pad 256

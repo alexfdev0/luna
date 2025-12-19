@@ -14,7 +14,15 @@ mov r2, 1
 str r1, r2
 
 mov r1, 0x6FFF0026
-mov r2, kernel_panic // Replace with placeholder error 
+mov r2, kernel_panic
+strf r1, r2
+
+mov r1, 0x6FFF0061
+mov r2, 1
+str r1, r2
+
+mov r1, 0x6FFF0062
+mov r2, mouse_move
 strf r1, r2
 
 // Jump to C code
