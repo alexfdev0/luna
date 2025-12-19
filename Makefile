@@ -69,7 +69,7 @@ macos-installer:
 		build/"Luna L2 (arm64).pkg"
 
 windows-installer:
-	cd l2 && GOOS=windows GOARCH=amd64 go build -o ../Windows/luna-l2.exe luna_l2.go
+	cd l2 && CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o ../Windows/luna-l2.exe luna_l2.go
 	cd lcc && GOOS=windows GOARCH=amd64 go build -o ../Windows/lcc.exe lcc.go
 	cd las && GOOS=windows GOARCH=amd64 go build -o ../Windows/las.exe las.go
 	cd lcc1 && GOOS=windows GOARCH=amd64 go build -o ../Windows/lcc1.exe lcc1.go

@@ -111,9 +111,10 @@ func InitializePalette() {
 }
 
 const VertexShaderSrc = `
-#version 330 core
-layout (location = 0) in vec2 inPos;
-layout (location = 1) in vec2 inUV;
+#version 150
+
+in vec2 inPos;
+in vec2 inUV;
 
 out vec2 uv;
 
@@ -124,7 +125,8 @@ void main() {
 ` + "\x00"
 
 const FragmentShaderSrc = `
-#version 330 core
+#version 150
+
 in vec2 uv;
 out vec4 color;
 
