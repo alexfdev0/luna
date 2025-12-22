@@ -31,7 +31,7 @@ _stage2:
     call write
 VOL_INP:
     // Tell user to select prompt
-    int 6
+    int 6 
 
     mov e1, 0x0a
     cmp e2, e1, e12
@@ -192,4 +192,3 @@ msg_header:
 
 msg_opts:
     .asciz "\nEnter: Reboot"
-

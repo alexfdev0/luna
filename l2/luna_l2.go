@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"bufio"
 	"math/rand"
-	"runtime"
+	"runtime"	
 
 	"luna_l2/bios"		
 	"luna_l2/video"
@@ -49,9 +49,10 @@ var Registers = []shared.Register {
 	{0x0016, "E9", 0},
 	{0x0017, "E10", 0},
 	{0x0018, "E11", 0},
+	{0x001b, "E12", 0},
 	{0x0019, "SP", 0},
 	{0x001a, "PC", 0},
-	{0x001b, "E12", 0},	
+	{0x001c, "IRV", 0},
 }
 
 var Memory [0x70000000]byte
@@ -109,8 +110,10 @@ func Mapper(address uint32) byte {
 		return video.MemoryVideo[address - MEMSIZE]
 	case address >= 0x7000FA00 && address <= 0x7000FA09:
 		return audio.MemoryAudio[address - 0x7000FA00]
-	case address >= 0x7000FA0A && address <= 0x7000FA0B:
+	case address >= 0x7000FA0A && address <= 0x7000FA11:
 		return keyboard.MemoryMouse[address - 0x7000FA0A]
+	case address >= 0x7000FA12 && address <= 0x7000FA12:
+		return keyboard.MemoryKeyboard[address - 0x7000FA12]
 	case address >= 0x7001A644 && address <= 0x7001B65D:
 		return network.MemoryNetwork[address - 0x7001A644]
 	case address >= 0x7001B65E && address <= 0x7001B663:
@@ -127,6 +130,10 @@ func MapperWrite(address uint32, content byte) {
 		video.MemoryVideo[address - MEMSIZE] = content
 	case address >= 0x7000FA00 && address <= 0x7000FA09:
 		audio.MemoryAudio[address - 0x7000FA00] = content
+	case address >= 0x7000FA0A && address <= 0x7000FA11:
+		keyboard.MemoryMouse[address - 0x7000FA0A] = content
+	case address >= 0x7000FA12 && address <= 0x7000FA12:
+		keyboard.MemoryKeyboard[address - 0x7000FA12] = content
 	case address >= 0x7001A644 && address <= 0x7001B65C:
 		network.MemoryNetwork[address - 0x7001A644] = content
 	case address >= 0x7001B65E && address <= 0x7001B663:
@@ -169,7 +176,14 @@ func stall(cycles int64) {
 func execute() {
 	for {
 		ProgramCounter := getRegister(0x001a)
-		op := Mapper(ProgramCounter)	
+		op := Mapper(ProgramCounter)
+
+		if shared.IntRaiseCode != 0 {
+			code := shared.IntRaiseCode
+			shared.IntRaiseCode = 0
+			bios.IntWrapper(code, ProgramCounter)
+			continue
+		}
 
 		switch op {
 		case 0x00:
@@ -207,13 +221,18 @@ func execute() {
 		case 0x02:
 			// HLT
 			Log("hlt")
+			now := ProgramCounter
 			for {
-				time.Sleep(time.Second)
+				if getRegister(0x001a) == now {
+					time.Sleep(time.Second)
+				} else {
+					break
+				}
 			}
-			setRegister(0x001a, ProgramCounter+1)
+			setRegister(0x001a, ProgramCounter + 1)
 		case 0x03:
 			// JMP	
-			mode := Memory[ProgramCounter+1]
+			mode := Memory[ProgramCounter + 1]
 
 			if mode == 0x01 {
 				var loc uint32 = 0
@@ -242,8 +261,9 @@ func execute() {
 			} else {
 				code = uint32(Memory[ProgramCounter + 1]) << 24 | uint32(Memory[ProgramCounter + 2])	<< 16 | uint32(Memory[ProgramCounter + 3]) << 8 | uint32(Memory[ProgramCounter + 4])
 				next = ProgramCounter + 5
-			}
+			}	
 
+			setRegister(0x001a, next)
 			bios.IntWrapper(code, next)
 
 			if code == 0x0f {
@@ -255,7 +275,7 @@ func execute() {
 				BIOS_SHUTDOWN = true
 				return
 			}
-			setRegister(0x001a, next)
+
 			Log("int " + fmt.Sprintf("0x%08x", code))	
 			stall(34)
 		case 0x05:
@@ -647,7 +667,17 @@ func UpdateFramebuffer() {
 	}
 }
 
+func ToggleGrab(window *glfw.Window, Grab bool) {
+	if Grab == true {
+		window.SetInputMode(glfw.CursorMode, glfw.CursorDisabled)
+	} else {
+		window.SetInputMode(glfw.CursorMode, glfw.CursorNormal)
+	}
+}
+
+var Grab bool
 func InitializeWindow() {
+	wd, _ := os.Getwd()
 	video.InitializePalette()
 	err := glfw.Init()
 	if err != nil {
@@ -707,6 +737,16 @@ func InitializeWindow() {
 	window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 		if action == glfw.Press || action == glfw.Repeat {
 			shift := (mods & glfw.ModShift) != 0
+			alt := (mods & glfw.ModAlt) != 0
+			ctrl := (mods & glfw.ModControl) != 0
+
+			if ctrl && alt && key == glfw.KeyG {
+				if Grab == true {
+					ToggleGrab(window, false)
+					Grab = false
+					return
+				}	
+			} 
 
 			var char string
 			switch key {
@@ -727,11 +767,53 @@ func InitializeWindow() {
 			}
 
 			if len(char) > 0 {
+				keyboard.MemoryKeyboard[0] = byte(char[0])
 				setRegister(0x001b, uint32(char[0]))
 				bios.IntHandler(bios.KeyInterruptCode)
 			}
 		}
-	})	
+	})
+
+	window.SetMouseButtonCallback(func(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
+		if button == glfw.MouseButtonLeft && action == glfw.Press {
+			if Grab == false {
+				ToggleGrab(window, true)
+				Grab = true
+				return
+			}
+		}
+	})
+
+	window.SetCursorPosCallback(func(w *glfw.Window, xpos float64, ypos float64) {
+		if Grab == false {
+			return
+		}
+
+		if xpos > 320 {
+			xpos = 320
+		} else if xpos < 0 {
+			xpos = 0
+		}
+
+		if ypos > 320 {
+			ypos = 320
+		} else if ypos < 0 {
+			ypos = 0
+		}
+	
+		ixh := int(xpos) >> 8
+		ixl := int(xpos) & 0xFF
+
+		iyh := int(ypos) >> 8
+		iyl := int(ypos) & 0xFF
+
+		keyboard.MemoryMouse[2] = byte(ixh)
+		keyboard.MemoryMouse[3] = byte(ixl)
+		keyboard.MemoryMouse[6] = byte(iyh)
+		keyboard.MemoryMouse[7] = byte(iyl)
+
+		shared.IntRaiseCode = 0x11	
+	})
 
 	var texture uint32
 	gl.GenTextures(1, &texture)
@@ -753,7 +835,8 @@ func InitializeWindow() {
 		nil,
 	)	
 
-	next := time.Now()
+	os.Chdir(wd)
+	next := time.Now()	
 	for !window.ShouldClose() {
 		Ready = true
     	UpdateFramebuffer()
@@ -799,6 +882,7 @@ func main() {
 	shared.MemoryVideo = &video.MemoryVideo
 	shared.MemoryAudio = &audio.MemoryAudio
 	shared.MemoryMouse = &keyboard.MemoryMouse
+	shared.MemoryKeyboard = &keyboard.MemoryKeyboard
 	shared.MemoryNetwork = &network.MemoryNetwork
 	shared.MemoryRTC = &rtc.MemoryRTC
 
@@ -901,7 +985,8 @@ func main() {
 			0x0D, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x0E, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x0F, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x10, 0x00, 0x00, 0x00, 0x00, 0x00,	
+			0x10, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x11, 0x00, 0x00, 0x00, 0x00, 0x00,
 		})
 
 		// Execute

@@ -92,6 +92,11 @@ top:
         asm ("jmp 0x7001A644");
     }
 
+    if (strcmp("hell", TEMPBUF)) {
+        asm ("set 16");
+        goto top;
+    }
+
     puts32("'", 255, 0);
     puts32(TEMPBUF, 255, 0);
     puts32("' is not recognized as an internal or external command.\n", 255, 0);

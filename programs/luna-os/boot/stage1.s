@@ -5,7 +5,7 @@ jmp _start
 
 _start:
     // Setup stack
-    mov sp, 0xffff
+    mov sp, 0xffff 
 
     // Load next sector
     int 0x10
@@ -125,7 +125,7 @@ msg_loading:
     .asciz "Loading...\n\n"
 
 msg_press_any_key:
-    .asciz "Press any key to reboot\n"
+    .asciz "Press any key to reboot...\n"
 
 msg_missing_os:
-    .asciz "Missing operating system\n"
+    .asciz "Missing operating system...\n"

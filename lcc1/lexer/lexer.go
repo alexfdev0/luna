@@ -5,6 +5,9 @@ import (
 	"strconv"
 	"strings"
 	"fmt"
+	"unicode"
+	"os"
+	"path/filepath"
 )
 
 type TokenType int
@@ -148,3 +151,167 @@ func Lex(code string, filename string) []Token {
 	}
 	return tokens
 }
+
+type SmallToken struct {
+	Value string
+	Line int
+}
+
+func Preprocessor(text string, filename string, just_split bool) string {
+	var out []SmallToken
+	defines := make(map[string][]SmallToken)
+	defines["__LCC__"] = []SmallToken{SmallToken{Value: "1", Line: 0}}
+	again := false	
+
+	tokenize := func(text string) []SmallToken {
+		currentLine := 1
+		inString := false
+		var tokens []SmallToken
+		var buf []rune
+		for i, r := range text {
+			switch {
+			case r == '"':
+				buf = append(buf, r)
+				if inString { 
+					tokens = append(tokens, SmallToken{Value: string(buf), Line: currentLine})
+					buf = buf[:0]
+				}
+				inString = !inString	
+			case r == '\n':
+				if len(buf) > 0 {
+					tokens = append(tokens, SmallToken{Value: string(buf), Line: currentLine})
+					buf = buf[:0]
+				}
+				tokens = append(tokens, SmallToken{Value: "\n", Line: currentLine})
+				currentLine++
+			case unicode.IsSpace(r) && inString == false:
+				if len(buf) > 0 {
+					tokens = append(tokens, SmallToken{Value: string(buf), Line: currentLine})
+					buf = buf[:0]
+				}
+			default:
+				buf = append(buf, r)
+			}
+			if i == len(text) - 1 && len(buf) > 0 {
+				tokens = append(tokens, SmallToken{Value: string(buf), Line: currentLine})
+			}
+		}
+		return tokens
+	}
+
+	tokens := tokenize(text)	
+
+	for i := 0; i < len(tokens); i++ {
+		switch tokens[i].Value {
+		case "#define":
+			alias := tokens[i + 1].Value
+			actual := []SmallToken {}
+			i += 2
+			
+			for j := i; j < len(tokens); j++ {
+				i++
+				if tokens[j].Value == "\n" {
+					break
+				}	
+				actual = append(actual, tokens[j]) 
+			}
+
+			defines[alias] = actual
+		case "#ifdef":
+			alias := tokens[i + 1].Value
+			i += 2
+			if _, ok := defines[alias]; ok {
+				for j := i; j < len(tokens); j++ {
+					if tokens[j].Value != "#else" && tokens[j].Value != "#endif" {
+						again = true
+						out = append(out, tokens[j])
+						i++
+					} else {
+						if tokens[j].Value == "#endif" {
+							i++
+						} else {
+							for k := j; k < len(tokens); k++ {
+								i++
+								if tokens[k].Value == "#endif" {
+									break
+								}
+							}
+						}
+						break
+					}
+				}
+					
+			} else {
+				for j := i; j < len(tokens); j++ {
+					i++
+					if tokens[j].Value == "#endif" {
+						break
+					} else if tokens[j].Value == "#else" {
+						for k := j + 1; k < len(tokens); k++ {
+							i++
+							if tokens[k].Value != "#endif" {
+								again = true
+								out = append(out, tokens[k])
+							} else {
+								break
+							}
+						}
+					}
+				}
+			}
+		case "#error":
+			i++
+			fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + "\033[0m \033[1;31merror:\033[0m \033[1;39m" + tokens[i].Value + "\033[0m")
+			os.Exit(1)
+		case "#include":
+			base := filepath.Dir(filename)
+			i++
+			again = true
+			raw := strings.ReplaceAll(tokens[i].Value, "\"", "")
+			path := raw
+
+			if !filepath.IsAbs(raw) {
+				path = filepath.Join(base, raw)
+			}
+
+			contents, err := os.ReadFile(path)
+			if err != nil {
+				fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + ":\033[0m \033[1;31merror:\033[0m \033[1;39mno such file or directory '" + path + "'\033[0m")
+				os.Exit(1)
+			}
+			i++
+			ntokens := tokenize(string(contents)) 
+			for j := 0; j < len(ntokens); j++ {
+				out = append(out, ntokens[j])
+			}
+		default:
+			token := tokens[i]
+			if tokens[i].Value[0] == '#' {
+				fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + ":\033[0m \033[1;31merror:\033[0m \033[1;39minvalid preprocessor directive '" + tokens[i].Value + "'\033[0m")
+				os.Exit(1)
+			}
+
+			if repl, ok := defines[token.Value]; ok {
+				for j := 0; j < len(repl); j++ {
+					out = append(out, repl[j])
+				}
+				i++
+			} else {
+				out = append(out, token)
+			}	
+		}	
+	}	
+
+	out_text := ""
+	for i := 0; i < len(out); i++ {
+		out_text = out_text + out[i].Value + " "
+	}
+
+	if again == true {
+		return Preprocessor(out_text, filename, false)
+	}
+
+	fmt.Println(out_text)
+	return out_text 
+}
+

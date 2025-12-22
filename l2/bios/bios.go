@@ -49,7 +49,7 @@ func LoadSector(drive int, sector int, enforce bool) {
 	case 2:
 		file = shared.OpticalFilename
 		time.Sleep(time.Duration(110) * time.Millisecond)
-	}
+	}	
 
 	f, err := os.OpenFile(file, os.O_RDONLY, 0)
 	if err != nil {
@@ -82,7 +82,7 @@ func WriteSector(drive int, sector int) {
 	case 2:
 		file = shared.OpticalFilename
 		time.Sleep(time.Duration(200) * time.Millisecond)
-	}
+	}	
 	
 	f, err := os.OpenFile(file, os.O_RDWR | os.O_SYNC, 0)
 	if err != nil {
@@ -227,33 +227,21 @@ func CheckArgs() bool {
 
 func IntWrapper(code uint32, next uint32) {
 	var mem_location uint32 = 0x6FFF0000 + uint32(((code - 1) * 6))	
-	if shared.Memory[mem_location + 1] != 0 { 
-		sp := shared.GetRegister(0x0019)
-		if shared.Bits32 == false {
-			sp = video.Clamp(sp - 2, 0, MEMCAP)
-			shared.Memory[sp] = byte(next & 0xFF)
-			shared.Memory[sp + 1] = byte(next >> 8)
-		} else {
-			sp = video.Clamp(sp - 4, 0, MEMCAP)
-			shared.Memory[sp] = byte(next & 0xFF)
-			shared.Memory[sp + 1] = byte(next >> 8)
-			shared.Memory[sp + 2] = byte(next >> 16)
-			shared.Memory[sp + 3] = byte(next >> 24)
-		}
-		shared.SetRegister(0x0019, sp)
-	}
-
-	loc := uint32(shared.Memory[mem_location + 2]) << 24 | uint32(shared.Memory[mem_location + 3]) << 16 | uint32(shared.Memory[mem_location + 4]) << 8 | uint32(shared.Memory[mem_location + 5])	
+	loc := uint32(shared.Memory[mem_location + 2]) << 24 | uint32(shared.Memory[mem_location + 3]) << 16 | uint32(shared.Memory[mem_location + 4]) << 8 | uint32(shared.Memory[mem_location + 5])
+	
 	switch shared.Memory[mem_location + 1] {
 	case 0x00:
 		IntHandler(code)
-	case 1:	
+	case 0x01:
+		shared.SetRegister(0x001c, next)
 		shared.SetRegister(0x001a, loc)
-	case 2:
+	case 0x02:
 		IntHandler(code)
+		shared.SetRegister(0x001c, next)
 		shared.SetRegister(0x001a, loc)
-	case 3:	
+	case 0x03:
+		shared.SetRegister(0x001c, next)
 		shared.SetRegister(0x001a, loc)
-		IntHandler(code)	
+		IntHandler(code)
 	}
 }

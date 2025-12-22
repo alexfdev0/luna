@@ -106,7 +106,9 @@ func isRegister(word string) byte {
 	case "pc":
 		return 0x1a
 	case "e12":
-		return 0x1b	
+		return 0x1b
+	case "irv":
+		return 0x1c
 	default:
 		return 0xff
 	}
@@ -799,6 +801,64 @@ func assemble(text string) {
 			i = i + 1
 		case "ret":
 			assemble(`jmp e11`)
+		case "pusha":
+			assemble(`
+				push r0
+				push r1
+				push r2
+				push r3
+				push r4
+				push r5
+				push r6
+				push r7
+				push r8
+				push r9
+				push r10
+				push r11
+				push r12
+				push e0
+				push e1
+				push e2
+				push e3
+				push e4
+				push e5
+				push e6
+				push e7
+				push e8
+				push e9
+				push e10
+				push e11
+				push e12
+			`)
+		case "popa":
+			assemble(`
+				pop e12
+				pop e11
+				pop e10
+				pop e9
+				pop e8
+				pop e7
+				pop e6
+				pop e5
+				pop e4
+				pop e3
+				pop e2
+				pop e1
+				pop e0
+				pop r12
+				pop r11
+				pop r10
+				pop r9
+				pop r8
+				pop r7
+				pop r6
+				pop r5
+				pop r4
+				pop r3
+				pop r2
+				pop r1
+				pop r0
+			`)
 		case ".ascii":	
 			var value string	
 			var tokens = []string {}

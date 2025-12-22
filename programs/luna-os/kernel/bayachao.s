@@ -2,4 +2,4 @@
 .global BAYACHAO_IMG
 
 BAYACHAO_IMG:
-    .embed "kernel/images/minecraft.raw"
+    .embed "kernel/images/bayachao.raw"

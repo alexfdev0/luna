@@ -24,7 +24,8 @@ var Registers *[]Register
 var Memory *[0x70000000]byte
 var MemoryVideo *[64000]byte
 var MemoryAudio *[10]byte
-var MemoryMouse *[2]byte
+var MemoryMouse *[8]byte
+var MemoryKeyboard *[1]byte
 var MemoryNetwork *[4122]byte
 var MemoryRTC *[6]byte
 
@@ -36,8 +37,10 @@ func Mapper(address uint32) byte {
 		return (*MemoryVideo)[address - MEMSIZE]
 	case address >= 0x7000FA00 && address <= 0x7000FA09:
 		return (*MemoryAudio)[address - 0x7000FA00]
-	case address >= 0x7000FA0A && address <= 0x7000FA0B:
+	case address >= 0x7000FA0A && address <= 0x7000FA11:
 		return (*MemoryMouse)[address - 0x7000FA0A]
+	case address >= 0x7000FA12 && address <= 0x7000FA12:
+		return (*MemoryKeyboard)[address - 0x7000FA12]
 	case address >= 0x7001A644 && address <= 0x7001B65D:
 		return (*MemoryNetwork)[address - 0x7001A644]
 	case address >= 0x7001B65E && address <= 0x7001B663:
@@ -54,8 +57,10 @@ func MapperWrite(address uint32, content byte) {
 		(*MemoryVideo)[address - MEMSIZE] = content
 	case address >= 0x7000FA00 && address <= 0x7000FA09:
 		(*MemoryAudio)[address - 0x7000FA00] = content
-	case address >= 0x7000FA0A && address <= 0x7000FA0B:
+	case address >= 0x7000FA0A && address <= 0x7000FA11:
 		(*MemoryMouse)[address - 0x7000FA0A] = content
+	case address >= 0x7000FA12 && address <= 0x7000FA12:
+		(*MemoryKeyboard)[address - 0x7000FA12] = content
 	case address >= 0x7001A644 && address <= 0x7001B65C:
 		(*MemoryNetwork)[address - 0x7001A644] = content
 	case address >= 0x7001B65E && address <= 0x7001B663:
@@ -90,3 +95,4 @@ var SDFilename string = ""
 var OpticalFilename string = ""
 var DriveNumber int = 0
 var BootDrive int = 0
+var IntRaiseCode uint32 = 0

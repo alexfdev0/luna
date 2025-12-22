@@ -9,5 +9,5 @@ all:
 	mkfs.lufs -d os.img -s 0x5F5E1000 -n "Luna" -hst 1536 -fst 0x2C000 -rebuild-bs
 	- printf '\033[32mSectors to load: 0x%X\033[0m\n' $$(( $$(stat -c%s kernel.bin) / 512 + 1 ))
 	rm kernel.bin
-	rm stage1.bin
+	# rm stage1.bin
 	rm stage2.bin

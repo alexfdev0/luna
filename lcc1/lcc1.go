@@ -85,7 +85,8 @@ func main() {
 		if err != nil {
 			os.Exit(1)
 		}
-		tokens := lexer.Lex(string(data), file)
+		code := lexer.Preprocessor(string(data), file, false)
+		tokens := lexer.Lex(code, file)
 		parser.Parse(tokens, 1)
 		name, _ := splitFile(file)
 		assembly_files = append(assembly_files, name + ".s")

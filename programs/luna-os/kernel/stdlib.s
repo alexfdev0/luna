@@ -25,12 +25,18 @@
 .global save_graphics_buf
 .global GBUF
 .global mouse_move
+.global key_click
 
 readin:
     pop e11
     pop e1
     pop e9
     pop r4
+
+    mov r1, 0x6FFF0019
+    mov r2, 1
+    // str r1, r2 // ENABLE KEYBOARD INTERRUPT
+
     mov r12, r4
 
     jnz e9, readin_rdy
@@ -117,6 +123,10 @@ readin_bksp:
     mov r3, r11
     jmp e10
 readin_done:
+    mov r1, 0x6FFF0019
+    mov r2, 0
+    // str r1, r2 // DISABLE KEYBOARD INTERRUPT
+
     str r4, r3
     ret
 
@@ -624,14 +634,38 @@ save_graphics_buf:
     ret
 
 mouse_move:
-    pop e11
-    
-    mov r1, 0x41
-    mov r2, 0xFF
-    mov r3, 0x00
-    int 1
+    pusha
 
-    ret
+    call save_graphics_buf
+   
+    mov r1, 0x7000FA0A
+    lodf r1, r2 // X
+
+    mov r1, 0x7000FA0E
+    lodf r1, r3 // Y
+
+    mov r4, 320
+
+    mul r5, r3, r4
+    add r5, r5, r2 // Turn from 320x200 space to 64KB space
+
+    mov r6, GBUF
+    add r6, r6, r5 // Get absolute addr
+
+    mov r7, 0xA0
+    str r6, r7
+
+    push GBUF
+    call render_buf 
+
+    popa
+    jmp irv
+
+key_click:
+    mov r2, 0x7000FA12
+    lod r2, r1
+    jmp e7
+    
     
 TEMPBUF:
     .pad 256

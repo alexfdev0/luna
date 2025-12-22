@@ -7,8 +7,6 @@ import (
 	"fmt"	
 	"strconv"
 	"os"
-	"runtime"
-	"path/filepath"
 )
 
 var level int = 0
@@ -310,73 +308,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 			extern := false
 			static := false
 			bits := BitPref
-			for {
-				if peek(0).Value[0] == '#' {
-					i++
-					pp_dir := expect(lexer.TokIdent)	
-					switch pp_dir {
-					case "include":
-						filename := ""
-						basename := ""
-						global := false
-						
-						if peek(0).Type != lexer.TokLAngle {
-							filename = expect(lexer.TokIdent)
-							filename = strings.ReplaceAll(filename, "\"", "")
-							basename = filename
-							baseDir := filepath.Dir(peek(0).File)
-							relPath := filepath.Join(baseDir, filename)
-							filename = filepath.Clean(relPath)	
-						} else {
-							global = true
-							expect(lexer.TokLAngle)
-							filename = tokens[i].Value
-							i++
-							filename = filename + tokens[i].Value
-							i++
-							filename = filename + tokens[i].Value
-							i++
-							basename = filename
-							if runtime.GOOS != "windows" {
-								filename = "/usr/local/lib/lcc/" + filename
-							} else {
-								filename = "C:\\luna\\lcc\\" + filename
-							}
-							expect(lexer.TokRAngle)
-						}
-						
-						top:
-						data, err := os.ReadFile(filename)
-						if err != nil {
-							if global == false {
-								if runtime.GOOS != "windows" {
-									filename = "/usr/local/lib/lcc/" + basename
-								} else {
-									filename = "C:\\luna\\lcc\\" + basename
-								}
-								global = true
-								goto top
-							} else {
-								error.ErrorNoGaze(16, "'" + filename + "'", peek(-1))
-							}
-						}
-						tokens := lexer.Lex(string(data), filename)	
-						Parse(tokens, 1)
-					case "pragma":
-						directive := expect(lexer.TokIdent)
-						switch directive {
-						case "__16bit":
-							BitPref = 16
-						case "__32bit":
-							BitPref = 32
-						default:
-							error.Warning(17, "'" + directive + "'", peek(-1), &tokens)	
-						}	
-					default:
-						error.Error(15, "'" + pp_dir + "'", peek(-1), &tokens)	
-					}
-					continue
-				}
+			for {	
 				if peek(0).Value == "asm" || peek(0).Value == "__asm__" {
 					expect(lexer.TokIdent)
 					if peek(0).Value == "volatile" {

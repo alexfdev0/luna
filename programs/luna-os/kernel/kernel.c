@@ -9,6 +9,12 @@ asm (".bits 32");
 #include "setup.c"
 #include "shell.c"
 
+#ifdef __LCC__
+
+#else
+    #error "LunaOS must be compiled with LCC (other compilers are not supported.)"
+#endif
+
 
 void _cstart() __attribute__((noreturn)) { 
     puts32("LunaOS\n", 255, 0);

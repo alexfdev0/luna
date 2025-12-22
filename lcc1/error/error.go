@@ -37,6 +37,7 @@ var errors = []string {
 	"indirection requires pointer operand",
 	"cannot take the address of an rvalue of type",
 	"duplicate",
+	"unterminated conditional directive",
 }
 
 var Warnings int = 0
