@@ -55,6 +55,7 @@ var Registers = []shared.Register {
 	{0x001a, "PC", 0},
 	{0x001c, "IRV", 0},
 	{0x001e, "IR", 0},
+	{0x001f, "B", 0}
 }
 
 var Memory [0x70000000]byte
@@ -95,7 +96,7 @@ func getRegisterName[T uint32 | byte](address T) string {
 	return ""
 }
 
-// Memory map:
+// Memory map (32 bit mode):
 	// 0x00000000 - 0x6FFEFFFF: general purpose RAM (1.7499 GiB)
 	// 0x6FFF0000 - 0x6FFFFFFF: reserved region for IDT (65 KB)
 	// 0x70000000 - 0x7000F9FF: video RAM (64 KB)
@@ -104,46 +105,69 @@ func getRegisterName[T uint32 | byte](address T) string {
 	// 0x7001A644 - 0x7001B65D: network RAM (4.1 KB)
 	// 0x7001B65E - 0x7001B663: clock RAM (6 B)
 
+// Memory map (16 bit mode):
+	// 0x0000 - 0xEFFF - general purpose RAM (61.4KB)
+	// 0xF000 - 0xFFFF - MMIO device (accessible via bank)
+// Bank map:
+	// 0 - 15: VRAM 
+	// 16: Audio RAM + Mouse RAM + Keyboard RAM + PIT RAM
+	// 17: Network RAM + RTC RAM
+
 func Mapper(address uint32) byte {
-	switch {
-	case address >= 0x00000000 && address <= MEMCAP:
-		return Memory[address]
-	case address >= 0x70000000 && address <= 0x7000F9FF:
-		return video.MemoryVideo[address - MEMSIZE]
-	case address >= 0x7000FA00 && address <= 0x7000FA09:
-		return audio.MemoryAudio[address - 0x7000FA00]
-	case address >= 0x7000FA0A && address <= 0x7000FA11:
-		return keyboard.MemoryMouse[address - 0x7000FA0A]
-	case address >= 0x7000FA12 && address <= 0x7000FA12:
-		return keyboard.MemoryKeyboard[address - 0x7000FA12]
-	case address >= 0x7000FA13 && address <= 0x7000FA1A:
-		return pit.MemoryPIT[address - 0x7000FA13]
-	case address >= 0x7001A644 && address <= 0x7001B65D:
-		return network.MemoryNetwork[address - 0x7001A644]
-	case address >= 0x7001B65E && address <= 0x7001B663:
-		return rtc.MemoryRTC[address - 0x7001B65E]
+	if shared.Bits32 == true {
+		switch {
+		case address >= 0x00000000 && address <= MEMCAP:
+			return Memory[address]
+		case address >= 0x70000000 && address <= 0x7000F9FF:
+			return video.MemoryVideo[address - MEMSIZE]
+		case address >= 0x7000FA00 && address <= 0x7000FA09:
+			return audio.MemoryAudio[address - 0x7000FA00]
+		case address >= 0x7000FA0A && address <= 0x7000FA11:
+			return keyboard.MemoryMouse[address - 0x7000FA0A]
+		case address >= 0x7000FA12 && address <= 0x7000FA12:
+			return keyboard.MemoryKeyboard[address - 0x7000FA12]
+		case address >= 0x7000FA13 && address <= 0x7000FA1A:
+			return pit.MemoryPIT[address - 0x7000FA13]
+		case address >= 0x7001A644 && address <= 0x7001B65D:
+			return network.MemoryNetwork[address - 0x7001A644]
+		case address >= 0x7001B65E && address <= 0x7001B663:
+			return rtc.MemoryRTC[address - 0x7001B65E]
+		}
+	} else {
+		switch {
+		case address >= 0x0000 && address <= 0xEFFF:
+			return Memory[address]
+		case address >= 0xF000 && address <= 0xF009:
+			return audio.MemoryAudio[address - 0xF000]
+		case address >= 0xFA0A && address <= 0xFA11:
+			return keyboard.MemoryMouse[address - 0xFA0A]
+		}
 	}
 	return byte(rand.Intn(0xFF - 0x00) + 0x00)
 }
 
 func MapperWrite(address uint32, content byte) {
-	switch {
-	case address >= 0x00000000 && address <= MEMCAP:
-		Memory[address] = content
-	case address >= 0x70000000 && address <= 0x7000F9FF:
-		video.MemoryVideo[address - MEMSIZE] = content
-	case address >= 0x7000FA00 && address <= 0x7000FA09:
-		audio.MemoryAudio[address - 0x7000FA00] = content
-	case address >= 0x7000FA0A && address <= 0x7000FA11:
-		keyboard.MemoryMouse[address - 0x7000FA0A] = content
-	case address >= 0x7000FA12 && address <= 0x7000FA12:
-		keyboard.MemoryKeyboard[address - 0x7000FA12] = content
-	case address >= 0x7000FA13 && address <= 0x7000FA1A:
-		pit.MemoryPIT[address - 0x7000FA13] = content
-	case address >= 0x7001A644 && address <= 0x7001B65C:
-		network.MemoryNetwork[address - 0x7001A644] = content
-	case address >= 0x7001B65E && address <= 0x7001B663:
-		rtc.MemoryRTC[address - 0x7001B65E] = content
+	if shared.Bits32 == true {
+		switch {
+		case address >= 0x00000000 && address <= MEMCAP:
+			Memory[address] = content
+		case address >= 0x70000000 && address <= 0x7000F9FF:
+			video.MemoryVideo[address - MEMSIZE] = content
+		case address >= 0x7000FA00 && address <= 0x7000FA09:
+			audio.MemoryAudio[address - 0x7000FA00] = content
+		case address >= 0x7000FA0A && address <= 0x7000FA11:
+			keyboard.MemoryMouse[address - 0x7000FA0A] = content
+		case address >= 0x7000FA12 && address <= 0x7000FA12:
+			keyboard.MemoryKeyboard[address - 0x7000FA12] = content
+		case address >= 0x7000FA13 && address <= 0x7000FA1A:
+			pit.MemoryPIT[address - 0x7000FA13] = content
+		case address >= 0x7001A644 && address <= 0x7001B65C:
+			network.MemoryNetwork[address - 0x7001A644] = content
+		case address >= 0x7001B65E && address <= 0x7001B663:
+			rtc.MemoryRTC[address - 0x7001B65E] = content
+		}
+	} else {
+		
 	}
 }
 
@@ -374,23 +398,23 @@ func execute() {
 		case 0x09:
 			// INC
 			// inc <register>
-			register := uint32(Mapper(ProgramCounter + 1))
-			setRegister(register, getRegister(register) + 1)
-			setRegister(0x001a, ProgramCounter + 2)
+			register := uint32(Memory[ProgramCounter+1])
+			setRegister(register, getRegister(register)+1)
+			setRegister(0x001a, ProgramCounter+2)
 			Log("inc " + getRegisterName(register))
 			stall(1)
 		case 0x0a:
 			// DEC
 			// dec <register>
-			register := uint32(Mapper(ProgramCounter + 1))
-			setRegister(register, getRegister(register) - 1)
-			setRegister(0x001a, ProgramCounter + 2)
+			register := uint32(Memory[ProgramCounter+1])
+			setRegister(register, getRegister(register)-1)
+			setRegister(0x001a, ProgramCounter+2)
 			Log("dec " + getRegisterName(register))
 			stall(1)
 		case 0x0b:
 			// PUSH
 			// push <mode> <immediate or register>
-			mode := Mapper(ProgramCounter + 1)
+			mode := Memory[ProgramCounter + 1]
 			var value uint32	
 			if mode == 0x1 {	
 				var next uint32 = 0
@@ -447,9 +471,9 @@ func execute() {
 		case 0x0d:
 			// ADD
 			// add <register> <register> <register>
-			toregister := Mapper(ProgramCounter + 1)
-			regone := Mapper(ProgramCounter + 2)
-			regtwo := Mapper(ProgramCounter + 3)
+			toregister := Memory[ProgramCounter+1]
+			regone := Memory[ProgramCounter+2]
+			regtwo := Memory[ProgramCounter+3]
 			setRegister(uint32(toregister), getRegister(uint32(regone))+getRegister(uint32(regtwo)))
 			setRegister(0x001a, ProgramCounter+4)
 			Log("add " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
@@ -457,9 +481,9 @@ func execute() {
 		case 0x0e:
 			// SUB
 			// SUB <register> <register> <register>
-			toregister := Mapper(ProgramCounter + 1)
-			regone := Mapper(ProgramCounter + 2)
-			regtwo := Mapper(ProgramCounter + 3)
+			toregister := Memory[ProgramCounter+1]
+			regone := Memory[ProgramCounter+2]
+			regtwo := Memory[ProgramCounter+3]
 			setRegister(uint32(toregister), getRegister(uint32(regone))-getRegister(uint32(regtwo)))
 			setRegister(0x001a, ProgramCounter+4)
 			Log("sub " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
@@ -467,9 +491,9 @@ func execute() {
 		case 0x0f:
 			// MUL
 			// mul <register> <register> <register>
-			toregister := Mapper(ProgramCounter + 1)
-			regone := Mapper(ProgramCounter + 2)
-			regtwo := Mapper(ProgramCounter + 3)
+			toregister := Memory[ProgramCounter+1]
+			regone := Memory[ProgramCounter+2]
+			regtwo := Memory[ProgramCounter+3]
 			setRegister(uint32(toregister), getRegister(uint32(regone))*getRegister(uint32(regtwo)))
 			setRegister(0x001a, ProgramCounter+4)
 			Log("mul " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
@@ -477,9 +501,9 @@ func execute() {
 		case 0x10:
 			// DIV
 			// div <register> <register> <register>
-			toregister := Mapper(ProgramCounter + 1)
-			regone := Mapper(ProgramCounter + 2)
-			regtwo := Mapper(ProgramCounter + 3)
+			toregister := Memory[ProgramCounter+1]
+			regone := Memory[ProgramCounter+2]
+			regtwo := Memory[ProgramCounter+3]
 			setRegister(uint32(toregister), getRegister(uint32(regone))/getRegister(uint32(regtwo)))
 			setRegister(0x001a, ProgramCounter+4)
 			Log("div " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
@@ -487,9 +511,9 @@ func execute() {
 		case 0x11:
 			// IGT
 			// igt <register> <register> <register>
-			toregister := Mapper(ProgramCounter + 1)
-			regone := Mapper(ProgramCounter + 2)
-			regtwo := Mapper(ProgramCounter + 3)
+			toregister := Memory[ProgramCounter+1]
+			regone := Memory[ProgramCounter+2]
+			regtwo := Memory[ProgramCounter+3]
 			if getRegister(uint32(regone)) > getRegister(uint32(regtwo)) {
 				setRegister(uint32(toregister), uint32(1))
 			} else {
@@ -501,9 +525,9 @@ func execute() {
 		case 0x12:
 			// ILT
 			// ilt <register> <register> <register>
-			toregister := Mapper(ProgramCounter + 1)
-			regone := Mapper(ProgramCounter + 2)
-			regtwo := Mapper(ProgramCounter + 3)
+			toregister := Memory[ProgramCounter+1]
+			regone := Memory[ProgramCounter+2]
+			regtwo := Memory[ProgramCounter+3]
 			if getRegister(uint32(regone)) < getRegister(uint32(regtwo)) {
 				setRegister(uint32(toregister), uint32(1))
 			} else {
@@ -515,9 +539,9 @@ func execute() {
 		case 0x13:
 			// AND
 			// and <register> <register> <register>
-			toregister := Mapper(ProgramCounter + 1)
-			regone := Mapper(ProgramCounter + 2)
-			regtwo := Mapper(ProgramCounter + 3)
+			toregister := Memory[ProgramCounter+1]
+			regone := Memory[ProgramCounter+2]
+			regtwo := Memory[ProgramCounter+3]
 			setRegister(uint32(toregister), getRegister(uint32(regone)) & getRegister(uint32(regtwo)))	
 			setRegister(0x001a, ProgramCounter + 4)
 			Log("and " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
@@ -525,46 +549,56 @@ func execute() {
 		case 0x14:
 			// OR
 			// or <register> <register> <register>
-			toregister := Mapper(ProgramCounter + 1)
-			regone := Mapper(ProgramCounter + 2)
-			regtwo := Mapper(ProgramCounter + 3)
+			toregister := Memory[ProgramCounter+1]
+			regone := Memory[ProgramCounter+2]
+			regtwo := Memory[ProgramCounter+3]
 			setRegister(uint32(toregister), getRegister(uint32(regone)) | getRegister(uint32(regtwo)))	
 			setRegister(0x001a, ProgramCounter + 4)
 			Log("or " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
 			stall(1)
 		case 0x15:
+			// NOR
+			// nor <register> <register> <register>
+			toregister := Memory[ProgramCounter+1]
+			regone := Memory[ProgramCounter+2]
+			regtwo := Memory[ProgramCounter+3]
+			setRegister(uint32(toregister), ^(getRegister(uint32(regone)) | getRegister(uint32(regtwo))))	
+			setRegister(0x001a, ProgramCounter + 4)
+			Log("nor " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
+			stall(3)
+		case 0x16:
 			// NOT
 			// not <register> <register>
-			toregister := Mapper(ProgramCounter + 1)
-			regone := Mapper(ProgramCounter + 2)
+			toregister := Memory[ProgramCounter+1]
+			regone := Memory[ProgramCounter+2]
 			setRegister(uint32(uint32(toregister)), ^getRegister(uint32(regone)))	
 			setRegister(0x001a, ProgramCounter + 3)
 			Log("not " + getRegisterName(toregister) + ", " + getRegisterName(regone))
 			stall(1)
-		case 0x16:
+		case 0x17:
 			// XOR
 			// xor <register> <register> <register>
-			toregister := Mapper(ProgramCounter + 1)
-			regone := Mapper(ProgramCounter + 2)
-			regtwo := Mapper(ProgramCounter + 3)
+			toregister := Memory[ProgramCounter+1]
+			regone := Memory[ProgramCounter+2]
+			regtwo := Memory[ProgramCounter+3]
 			setRegister(uint32(toregister), getRegister(uint32(regone)) ^ getRegister(uint32(regtwo)))	
 			setRegister(0x001a, ProgramCounter + 4)
 			Log("xor " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
 			stall(6)
-		case 0x17:
+		case 0x18:
 			// LOD
 			// lod <addr (register)> <destination register>	
-			addr := getRegister(uint32(Mapper(ProgramCounter + 1)))
-			toregister := uint32(Mapper(ProgramCounter + 1))
+			addr := getRegister(uint32(Memory[ProgramCounter+1]))
+			toregister := uint32(Memory[ProgramCounter+2])
 			setRegister(toregister, uint32(Mapper(addr)))
 			setRegister(0x001a, ProgramCounter + 3)
-			Log("lod " + getRegisterName(uint32(Mapper(ProgramCounter + 1))) + ", " + getRegisterName(toregister) + " (" + fmt.Sprintf("0x%02x", Mapper(addr)) + ")")
+			Log("lod " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(toregister) + " (" + fmt.Sprintf("0x%02x", Mapper(addr)) + ")")
 			stall(100)
-		case 0x18:
+		case 0x19:
 			// STRF
 			// strf <addr (register)> <value (register)>	
-			addr := getRegister(uint32(Mapper(ProgramCounter + 1)))
-			value := uint32(Mapper(ProgramCounter + 2))
+			addr := getRegister(uint32(Memory[ProgramCounter+1]))
+			value := uint32(Memory[ProgramCounter+2])
 			if shared.Bits32 == false {
 				MapperWrite(addr, byte(getRegister(value) >> 8))
 				MapperWrite(addr + 1, byte(getRegister(value) & 0xFF))
@@ -575,25 +609,25 @@ func execute() {
 				MapperWrite(addr + 3, byte(getRegister(value) & 0xFF))
 			}	
 			setRegister(0x001a, ProgramCounter + 3)
-			Log("str " + getRegisterName(uint32(Mapper(ProgramCounter + 1))) + ", " + getRegisterName(value))
+			Log("str " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(value))
 			stall(100)
-		case 0x19:
+		case 0x1a:
 			// LODF
 			// lodf <addr (register)> <destination register>
-			addr := getRegister(uint32(Mapper(ProgramCounter + 1)))
-			toregister := uint32(Mapper(ProgramCounter + 2))
+			addr := getRegister(uint32(Memory[ProgramCounter+1]))
+			toregister := uint32(Memory[ProgramCounter+2])
 			if shared.Bits32 == false {
 				setRegister(toregister, uint32(uint16(Mapper(addr)) << 8 | uint16(Mapper(addr + 1))))
 			} else {
 				setRegister(toregister, uint32(Mapper(addr)) << 24 | uint32(Mapper(addr + 1)) << 16 | uint32(Mapper(addr + 2)) << 8 | uint32(Mapper(addr + 3)))
 			}
 			setRegister(0x001a, ProgramCounter + 3)
-			Log("lodf " + getRegisterName(uint32(Mapper(ProgramCounter + 1))) + ", " + getRegisterName(toregister))
+			Log("lodf " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(toregister))
 			stall(100)
-		case 0x1a:
+		case 0x1b:
 			// SET
 			// set <00 or 01>
-			mode := uint32(Mapper(ProgramCounter + 1))
+			mode := uint32(Memory[ProgramCounter + 1])
 			if mode == 0 {
 				shared.Bits32 = false
 				Log("16 bit mode")
@@ -603,28 +637,28 @@ func execute() {
 			}
 			setRegister(0x001a, ProgramCounter + 2)
 			stall(1)
-		case 0x1b:
+		case 0x1c:
 			// STR
 			// str <addr> <register>
-			addr := getRegister(uint32(Mapper(ProgramCounter + 1)))
-			value := uint32(Mapper(ProgramCounter + 2))
+			addr := getRegister(uint32(Memory[ProgramCounter + 1]))
+			value := uint32(Memory[ProgramCounter + 2])
 			MapperWrite(addr, byte(getRegister(value)))
 			setRegister(0x001a, ProgramCounter + 3)
 			stall(100)
-		case 0x1c:
+		case 0x1d:
 			// SHL
 			// shl <dest> <value> <by>
-			dest := uint32(Mapper(ProgramCounter + 1))
-			value := getRegister(uint32(Mapper(ProgramCounter + 2)))
-			by := getRegister(uint32(Mapper(ProgramCounter + 3)))
+			dest := uint32(Memory[ProgramCounter + 1])
+			value := getRegister(uint32(Memory[ProgramCounter + 2]))
+			by := getRegister(uint32(Memory[ProgramCounter + 3]))
 			setRegister(dest, uint32(value) << uint32(by))
 			stall(95)
-		case 0x1d:
+		case 0x1e:
 			// SHR
 			// shr <dest> <value> <by>
-			dest := uint32(Mapper(ProgramCounter + 1))
-			value := getRegister(uint32(Mapper(ProgramCounter + 2)))
-			by := getRegister(uint32(Mapper(ProgramCounter + 3)))
+			dest := uint32(Memory[ProgramCounter + 1])
+			value := getRegister(uint32(Memory[ProgramCounter + 2]))
+			by := getRegister(uint32(Memory[ProgramCounter + 3]))
 			setRegister(dest, uint32(value) >> uint32(by))
 			stall(95)
 		default:
@@ -976,7 +1010,7 @@ func main() {
 		go network.NetController()
 		go audio.AudioController()
 		go rtc.RTCController()
-		go pit.PITController()
+		// go pit.PITController()
 		copy(Memory[0x6FFF0000:], []byte{ // IDT setup
 			0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
