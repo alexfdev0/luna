@@ -109,6 +109,8 @@ func isRegister(word string) byte {
 		return 0x1b
 	case "irv":
 		return 0x1c
+	case "ic":
+		return 0x1e
 	default:
 		return 0xff
 	}

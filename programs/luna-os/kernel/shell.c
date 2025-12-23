@@ -7,7 +7,7 @@ top:
     if (strcmp("reboot", TEMPBUF)) {
         puts32("Rebooting...", 255, 0);
         // play_sound(SHUTDOWN_SOUND, 207748, 1);
-        sleep(500);
+        // sleep(500);
         asm ("mov r1, 0");
         asm ("int 0xf");  
     }
@@ -64,7 +64,7 @@ top:
     if (strcmp("shutdown", TEMPBUF)) {
         puts32("Shutting down...\n", 255, 0);
         // play_sound(SHUTDOWN_SOUND, 207748, 1);
-        sleep(500);
+        // sleep(500);
         asm ("int 0x11");
     }
 
@@ -92,10 +92,10 @@ top:
         asm ("jmp 0x7001A644");
     }
 
-    if (strcmp("hell", TEMPBUF)) {
-        asm ("set 16");
+    if (strcmp("clear", TEMPBUF)) {
+        render_buf(GBUF_EMPTY);
         goto top;
-    }
+    } 
 
     puts32("'", 255, 0);
     puts32(TEMPBUF, 255, 0);

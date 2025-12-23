@@ -119,7 +119,7 @@ check_vol_ret:
     ret
 
 num_sectors: 
-    .word 0x024F
+    .word 0x02CC
 
 msg_loading:
     .asciz "Loading...\n\n"

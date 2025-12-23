@@ -28,6 +28,7 @@ var MemoryMouse *[8]byte
 var MemoryKeyboard *[1]byte
 var MemoryNetwork *[4122]byte
 var MemoryRTC *[6]byte
+var MemoryPIT *[8]byte
 
 func Mapper(address uint32) byte {
 	switch {
@@ -41,6 +42,8 @@ func Mapper(address uint32) byte {
 		return (*MemoryMouse)[address - 0x7000FA0A]
 	case address >= 0x7000FA12 && address <= 0x7000FA12:
 		return (*MemoryKeyboard)[address - 0x7000FA12]
+	case address >= 0x7000FA13 && address <= 0x7000FA1A:
+		return (*MemoryPIT)[address - 0x7000FA13]
 	case address >= 0x7001A644 && address <= 0x7001B65D:
 		return (*MemoryNetwork)[address - 0x7001A644]
 	case address >= 0x7001B65E && address <= 0x7001B663:
@@ -61,6 +64,8 @@ func MapperWrite(address uint32, content byte) {
 		(*MemoryMouse)[address - 0x7000FA0A] = content
 	case address >= 0x7000FA12 && address <= 0x7000FA12:
 		(*MemoryKeyboard)[address - 0x7000FA12] = content
+	case address >= 0x7000FA13 && address <= 0x7000FA1A:
+		(*MemoryPIT)[address - 0x7000FA13] = content
 	case address >= 0x7001A644 && address <= 0x7001B65C:
 		(*MemoryNetwork)[address - 0x7001A644] = content
 	case address >= 0x7001B65E && address <= 0x7001B663:
@@ -87,6 +92,14 @@ func GetRegister(address uint32) uint32 {
 		}
 	}
 	return 0x0000
+}
+
+func RaiseInterrupt(code uint32)  {
+	code--
+	if code >= 32 {
+		return
+	}
+	SetRegister(0x001e, GetRegister(0x001e) | (1 << code))
 }
 
 var Bits32 bool = false

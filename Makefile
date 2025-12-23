@@ -6,26 +6,10 @@
 #
 # The Makefile should only be used for building legacy Luna L1 software OR to build the MacOS installer
 #
-
-LUAC=env luac
-LUA=env lua
 SRC=./
 
-all: bin/luna-l2 bin/las bin/l2ld bin/lcc bin/lcc1 
-legacy: luna-l1
+all: bin/luna-l2 bin/las bin/l2ld bin/lcc bin/lcc1
 .PHONY: clean install
-
-luna-l1:
-	sudo mkdir -p /usr/local/bin/lvm
-	sudo $(LUAC) -o /usr/local/bin/lvm/luna-l1 $(SRC)/l1/luna_l1.lua
-	sudo printf '#!/bin/sh\n $(LUA) /usr/local/bin/lvm/luna-l1 "$$@"' > /usr/local/bin/luna-l1
-	sudo $(LUAC) -o /usr/local/bin/lvm/lcc-l1 $(SRC)/l1/lcc.lua
-	sudo printf '#!/bin/sh\n $(LUA) /usr/local/bin/lvm/lcc-l1 "$$@"' > /usr/local/bin/lcc-l1
-	sudo $(LUAC) -o /usr/local/bin/lvm/lasm-l1 $(SRC)/l1/lasm.lua
-	sudo printf '#!/bin/sh\n $(LUA) /usr/local/bin/lvm/lasm-l1 "$$@"' > /usr/local/bin/lasm-l1	
-	sudo chmod +x /usr/local/bin/luna-l1
-	sudo chmod +x /usr/local/bin/lcc-l1
-	sudo chmod +x /usr/local/bin/lasm-l1
 
 bin/luna-l2: $(SRC)/l2/*
 	cd l2 && go build -o ../bin/luna-l2 ./luna_l2.go	
@@ -77,10 +61,6 @@ windows-installer:
 	cd Windows && wixl -v msi.xml -o "Luna L2.msi"	
 
 clean:
-	rm -rf /usr/local/bin/lvm
-	rm -f /usr/local/bin/luna-l1
-	rm -f /usr/local/bin/lasm-l1
-	rm -f /usr/local/bin/lcc-l1
 	rm -f /usr/local/bin/luna-l2
 	rm -f /usr/local/bin/las
 	rm -f /usr/local/bin/lcc1

@@ -19,23 +19,21 @@
 .global serve_await_connection
 .global serve_connection_close
 .global render
-.global sleep
 .global screen_fill
 .global render_buf
 .global save_graphics_buf
 .global GBUF
 .global mouse_move
 .global key_click
+.global GBUF_EMPTY
+.global wait_for_key
 
 readin:
     pop e11
     pop e1
     pop e9
     pop r4
-
-    mov r1, 0x6FFF0019
-    mov r2, 1
-    // str r1, r2 // ENABLE KEYBOARD INTERRUPT
+    push e11 
 
     mov r12, r4
 
@@ -62,9 +60,28 @@ readin_rdy:
 
     mov e10, pc
     nop
-
-    int 6
-    mov r1, e12
+    
+    push r1
+    push r2
+    mov r1, 0x6FFF0019
+    mov r2, 1
+    str r1, r2 // ENABLE KEYBOARD INTERRUPT
+    pop r2
+    pop r1
+ 
+readin_rd:
+    // AWAIT KEYBOARD INT
+    mov e7, readin_ai
+    hlt
+    jmp readin_rd
+readin_ai:
+    push r1
+    push r2
+    mov r1, 0x6FFF0019
+    mov r2, 0
+    str r1, r2 // DISABLE KEYBOARD INTERRUPT
+    pop r2
+    pop r1
 
     cmp r8, r1, r7
     jnz r8, readin_bksp
@@ -125,9 +142,10 @@ readin_bksp:
 readin_done:
     mov r1, 0x6FFF0019
     mov r2, 0
-    // str r1, r2 // DISABLE KEYBOARD INTERRUPT
+    str r1, r2 // DISABLE KEYBOARD INTERRUPT
 
     str r4, r3
+    pop e11
     ret
 
 strcmp:
@@ -533,14 +551,6 @@ render:
     jnz r2, e10
     ret
 
-sleep:
-    pop e11
-    pop r1
-
-    int 2
-
-    ret
-
 screen_fill:
     pop e11
     pop r2
@@ -661,11 +671,32 @@ mouse_move:
     popa
     jmp irv
 
+wait_for_key:
+    pop e11
+    
+    mov e7, wfk_ret
+
+    mov r1, 0x6FFF0019
+    mov r2, 1
+    str r1, r2 // ENABLE KEYBOARD INTERRUPT
+wfk_rd:
+    hlt
+    jmp wfk_rd
+wfk_ret:
+    mov r1, 0x6FFF0019
+    mov r2, 0
+    str r1, r2 // DISABLE KEYBOARD INTERRUPT
+    ret
+
 key_click:
+    push r2
+
     mov r2, 0x7000FA12
     lod r2, r1
-    jmp e7
-    
+
+    pop r2
+
+    jmp e7 
     
 TEMPBUF:
     .pad 256
@@ -681,4 +712,7 @@ NETBUF:
     .pad 2048
 
 GBUF:
+    .pad 64000
+
+GBUF_EMPTY:
     .pad 64000

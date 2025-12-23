@@ -70,7 +70,7 @@ list_volumes:
     mov e10, pc
 
     lodf r4, r5 
-    jz r5, list_volumes_ret
+    jz r5, list_volumes_ret 
 
     push r4
     push r6

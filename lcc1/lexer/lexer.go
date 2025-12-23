@@ -311,7 +311,6 @@ func Preprocessor(text string, filename string, just_split bool) string {
 		return Preprocessor(out_text, filename, false)
 	}
 
-	fmt.Println(out_text)
 	return out_text 
 }
 

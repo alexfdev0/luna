@@ -8,8 +8,6 @@ import (
 	"fmt"
 )
 
-var TypeOut bool = false
-var KeyTrap bool = false
 var KeyInterruptCode uint32 = 0x5
 
 const (
@@ -100,102 +98,47 @@ func WriteSector(drive int, sector int) {
 }
 
 func IntHandler(code uint32) {
-	if code == 0x01 {
-		// BIOS print to screen
-		// start address in R1
-		// Foreground in R2
-		// Background in R3
+	switch code {
+	case 0x01:
 		char := shared.GetRegister(0x0001)
 		WriteChar(string(rune(char)), uint8(shared.GetRegister(0x0002)), uint8(shared.GetRegister(0x0003)))
-	} else if code == 0x02 {
-		// BIOS sleep
-		// seconds in R1
-		timeToSleep := shared.GetRegister(0x0001)
-		time.Sleep(time.Duration(timeToSleep) * time.Millisecond)
-	} else if code == 0x03 {
-		// BIOS write to VRAM
-		// address in R1, word in R2
-		address := shared.GetRegister(0x0001)
-		word := shared.GetRegister(0x0002)
-		if shared.Bits32 == false {
-			video.MemoryVideo[video.Clamp(address, 0, 63999)] = byte(uint16(word) >> 8)
-			video.MemoryVideo[video.Clamp(address + 1, 0, 63999)] = byte(uint16(word) & 0xFF)
-		} else {
-			video.MemoryVideo[video.Clamp(address, 0, 63999)] = byte(uint32(word) >> 24)
-			video.MemoryVideo[video.Clamp(address + 1, 0, 63999)] = byte(uint32(word) >> 16)
-			video.MemoryVideo[video.Clamp(address + 2, 0, 63999)] = byte(uint32(word) >> 8)
-			video.MemoryVideo[video.Clamp(address + 3, 0, 63999)] = byte(uint32(word) & 0xFF)
-		}
-	} else if code == 0x4 {
-		// BIOS configure input mode
-		// Mode 1: no type output
-		// Mode 2: type output
-		// In R1
-		if shared.GetRegister(0x0001) == 1 {
-			TypeOut = true
-		} else {
-			TypeOut = false
-		}
-	} else if code == 0x5 {
-		// BIOS key event	
-		if TypeOut == true {
-			WriteChar(string(rune(shared.GetRegister(0x001b))), uint8(255), uint8(0))	
-		}
-		if KeyTrap == true {
-			KeyTrap = false
-			shared.SetRegister(0x0001, shared.GetRegister(0x001b))
-		}
-	} else if code == 0x6 {
-		// BIOS wait for key
-		// Return in R1 via interrupt 5
-		KeyTrap = true
-		for {
-			if KeyTrap == true {
-				time.Sleep(time.Duration(15) * time.Millisecond)
-			} else {
-				break
-			}
-		}
-	} else if code == 0x7 {
+	case 0x02:
+		// Programmable interval timer reserved
+	case 0x03:
+		// Unmapped
+	case 0x04:
+		// Unmapped
+	case 0x05:
+		// Keyboard reserved
+	case 0x06:
+		// Unmapped
+	case 0x07:
 		WriteLine("Illegal instruction 0x" + fmt.Sprintf("%08x", shared.GetRegister(0x0001)) + " at location 0x" + fmt.Sprintf("%08x", shared.GetRegister(0x001a)), 255, 0)
-		return
-	} else if code == 0x8 {
-		// BIOS write to ARAM
-		// address in R1, word in R2
-		address := shared.GetRegister(0x0001)
-		word := shared.GetRegister(0x0002)
-		if shared.Bits32 == false {
-			audio.MemoryAudio[video.Clamp(address, 0, MEMCAP)] = byte(uint16(word) >> 8)
-			audio.MemoryAudio[video.Clamp(address + 1, 0, MEMCAP)] = byte(uint16(word) & 0xFF)
-		} else {
-			audio.MemoryAudio[video.Clamp(address, 0, MEMCAP)] = byte(uint32(word) >> 24)
-			audio.MemoryAudio[video.Clamp(address + 1, 0, MEMCAP)] = byte(uint32(word) >> 16)
-			audio.MemoryAudio[video.Clamp(address + 2, 0, MEMCAP)] = byte(uint32(word) >> 8)
-			audio.MemoryAudio[video.Clamp(address + 3, 0, MEMCAP)] = byte(uint32(word) & 0xFF)
-		}	
-	} else if code == 0x9 {
-		audio.Play()	
-	} else if code == 0xa {
+	case 0x08:
+		// Unmapped
+	case 0x09:
+		// Unmapped
+	case 0x0A:
 		if shared.Bits32 == false {
 			shared.SetRegister(0x0001, 0xffff)
 		} else {
 			shared.SetRegister(0x0001, MEMSIZE)
-		}
-	} else if code == 0xb {
+		}	
+	case 0x0B:
 		sector := shared.GetRegister(0x0001)
 		drive := shared.GetRegister(0x0002)
 		LoadSector(int(drive), int(sector), false)
-	} else if code == 0xc {
+	case 0x0C:
 		video.CursorX = int(shared.GetRegister(0x0001))
 		video.CursorY = int(shared.GetRegister(0x0002))
-	} else if code == 0xd {	
+	case 0x0D:
 		sector := shared.GetRegister(0x0001)
 		drive := shared.GetRegister(0x0002)
 		WriteSector(int(drive), int(sector))
-	} else if code == 0xe {
+	case 0x0E:
 		shared.SetRegister(0x0001, uint32(video.CursorX))
 		shared.SetRegister(0x0002, uint32(video.CursorY))
-	} else if code == 0xf {
+	case 0x0F:
 		shared.BootDrive = int(shared.GetRegister(0x0001))
 		for i, _ := range (*shared.Registers) {
 			(*shared.Registers)[i].Value = uint32(0)
@@ -205,9 +148,11 @@ func IntHandler(code uint32) {
 		video.MemoryVideo = [64000]byte {}
 		video.CursorX = 0
 		video.CursorY = 0
-	} else if code == 0x10 {
+	case 0x10:
 		shared.SetRegister(0x0001, uint32(shared.DriveNumber))
-	}
+	case 0x11:
+		// Shut down machine
+	}	
 }
 
 func Splash() {
@@ -226,6 +171,7 @@ func CheckArgs() bool {
 }
 
 func IntWrapper(code uint32, next uint32) {
+	// shared.SetRegister(0x001e, code)
 	var mem_location uint32 = 0x6FFF0000 + uint32(((code - 1) * 6))	
 	loc := uint32(shared.Memory[mem_location + 2]) << 24 | uint32(shared.Memory[mem_location + 3]) << 16 | uint32(shared.Memory[mem_location + 4]) << 8 | uint32(shared.Memory[mem_location + 5])
 	
