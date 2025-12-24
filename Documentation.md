@@ -16,9 +16,9 @@ R0-R12: general purpose registers, all can be written to and read from<br>
 E0-E12: extra registers, also general purpose. The standard calling convention uses registers E0-E6<br>
 SP: stack pointer<br>
 PC: program counter/instruction pointer<br>
-IRV: interrupt return address storage
-IR: interrupt register
-B: bank register.
+IRV: interrupt return address storage<br>
+IR: interrupt register<br>
+B: bank register.<br>
 
 ## Instructions
 The Luna L2 has 29 unique instructions that allow the CPU to interact with registers, memory, and the BIOS<br><br>
