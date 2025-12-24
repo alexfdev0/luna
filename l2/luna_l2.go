@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strconv"
 	"bufio"
-	"math/rand"
 	"runtime"	
 
 	"luna_l2/bios"		
@@ -55,7 +54,7 @@ var Registers = []shared.Register {
 	{0x001a, "PC", 0},
 	{0x001c, "IRV", 0},
 	{0x001e, "IR", 0},
-	{0x001f, "B", 0}
+	{0x001f, "B", 0},
 }
 
 var Memory [0x70000000]byte
@@ -112,73 +111,8 @@ func getRegisterName[T uint32 | byte](address T) string {
 	// 0 - 15: VRAM 
 	// 16: Audio RAM + Mouse RAM + Keyboard RAM + PIT RAM
 	// 17: Network RAM + RTC RAM
-
-func Mapper(address uint32) byte {
-	if shared.Bits32 == true {
-		switch {
-		case address >= 0x00000000 && address <= MEMCAP:
-			return Memory[address]
-		case address >= 0x70000000 && address <= 0x7000F9FF:
-			return video.MemoryVideo[address - MEMSIZE]
-		case address >= 0x7000FA00 && address <= 0x7000FA09:
-			return audio.MemoryAudio[address - 0x7000FA00]
-		case address >= 0x7000FA0A && address <= 0x7000FA11:
-			return keyboard.MemoryMouse[address - 0x7000FA0A]
-		case address >= 0x7000FA12 && address <= 0x7000FA12:
-			return keyboard.MemoryKeyboard[address - 0x7000FA12]
-		case address >= 0x7000FA13 && address <= 0x7000FA1A:
-			return pit.MemoryPIT[address - 0x7000FA13]
-		case address >= 0x7001A644 && address <= 0x7001B65D:
-			return network.MemoryNetwork[address - 0x7001A644]
-		case address >= 0x7001B65E && address <= 0x7001B663:
-			return rtc.MemoryRTC[address - 0x7001B65E]
-		}
-	} else {
-		switch {
-		case address >= 0x0000 && address <= 0xEFFF:
-			return Memory[address]
-		case address >= 0xF000 && address <= 0xF009:
-			return audio.MemoryAudio[address - 0xF000]
-		case address >= 0xFA0A && address <= 0xFA11:
-			return keyboard.MemoryMouse[address - 0xFA0A]
-		}
-	}
-	return byte(rand.Intn(0xFF - 0x00) + 0x00)
-}
-
-func MapperWrite(address uint32, content byte) {
-	if shared.Bits32 == true {
-		switch {
-		case address >= 0x00000000 && address <= MEMCAP:
-			Memory[address] = content
-		case address >= 0x70000000 && address <= 0x7000F9FF:
-			video.MemoryVideo[address - MEMSIZE] = content
-		case address >= 0x7000FA00 && address <= 0x7000FA09:
-			audio.MemoryAudio[address - 0x7000FA00] = content
-		case address >= 0x7000FA0A && address <= 0x7000FA11:
-			keyboard.MemoryMouse[address - 0x7000FA0A] = content
-		case address >= 0x7000FA12 && address <= 0x7000FA12:
-			keyboard.MemoryKeyboard[address - 0x7000FA12] = content
-		case address >= 0x7000FA13 && address <= 0x7000FA1A:
-			pit.MemoryPIT[address - 0x7000FA13] = content
-		case address >= 0x7001A644 && address <= 0x7001B65C:
-			network.MemoryNetwork[address - 0x7001A644] = content
-		case address >= 0x7001B65E && address <= 0x7001B663:
-			rtc.MemoryRTC[address - 0x7001B65E] = content
-		}
-	} else {
-		
-	}
-}
-
-func MapperIndex(address uint32) uint32 {
-	if address < MEMSIZE {
-		return address
-	} else {
-		return MEMCAP
-	}
-	return 0x00000000	
-}
+// Size formula
+	// end = start + size - 1
 
 // Meta-code
 var LogOn bool = false
@@ -206,7 +140,7 @@ func stall(cycles int64) {
 func execute() {
 	for {
 		ProgramCounter := getRegister(0x001a)
-		op := Mapper(ProgramCounter)
+		op := shared.Mapper(ProgramCounter)
 
 		// Handle interrupts	
 		var IntHandled bool
@@ -243,8 +177,8 @@ func execute() {
 			}
 		case 0x01:
 			// MOV
-			mode := Mapper(ProgramCounter + 1)
-			dst := Mapper(ProgramCounter + 2)
+			mode := shared.Mapper(ProgramCounter + 1)
+			dst := shared.Mapper(ProgramCounter + 2)
 
 			if mode == 0x01 {
 				var imm uint32 = 0
@@ -375,10 +309,10 @@ func execute() {
 
 			if mode == 0x01 {	
 				if shared.Bits32 == false {
-					loc = uint32(uint16(Mapper(ProgramCounter + 3)) << 8 | uint16(Mapper(ProgramCounter + 4)))
+					loc = uint32(uint16(shared.Mapper(ProgramCounter + 3)) << 8 | uint16(shared.Mapper(ProgramCounter + 4)))
 					not = ProgramCounter + 5
 				} else {
-					loc = uint32(Mapper(ProgramCounter + 3)) << 24 | uint32(Mapper(ProgramCounter + 4))	<< 16 | uint32(Mapper(ProgramCounter + 5)) << 8 | uint32(Mapper(ProgramCounter + 6))
+					loc = uint32(shared.Mapper(ProgramCounter + 3)) << 24 | uint32(shared.Mapper(ProgramCounter + 4)) << 16 | uint32(shared.Mapper(ProgramCounter + 5)) << 8 | uint32(shared.Mapper(ProgramCounter + 6))
 					not = ProgramCounter + 7
 				}	
 				Log("jz " + getRegisterName(checkRegister) + ", " + fmt.Sprintf("0x%08x", loc))
@@ -419,43 +353,43 @@ func execute() {
 			if mode == 0x1 {	
 				var next uint32 = 0
 				if shared.Bits32 == false {
-					value = uint32(uint16(Mapper(ProgramCounter + 2)) << 8 | uint16(Mapper(ProgramCounter + 3)))
+					value = uint32(uint16(shared.Mapper(ProgramCounter + 2)) << 8 | uint16(shared.Mapper(ProgramCounter + 3)))
 					next = ProgramCounter + 4
 				} else {
-					value = uint32(Mapper(ProgramCounter + 2)) << 24 | uint32(Mapper(ProgramCounter + 3)) << 16 | uint32(Mapper(ProgramCounter + 4)) << 8 | uint32(Mapper(ProgramCounter + 5))
+					value = uint32(shared.Mapper(ProgramCounter + 2)) << 24 | uint32(shared.Mapper(ProgramCounter + 3)) << 16 | uint32(shared.Mapper(ProgramCounter + 4)) << 8 | uint32(shared.Mapper(ProgramCounter + 5))
 					next = ProgramCounter + 6
 				}	
 				setRegister(0x001a, next)
 				Log("push " + fmt.Sprintf("0x%08x", value))
 			} else if mode == 0x2 {
-				value = getRegister(uint32(Mapper(ProgramCounter + 2)))
+				value = getRegister(uint32(shared.Mapper(ProgramCounter + 2)))
 				setRegister(0x001a, ProgramCounter + 3)
-				Log("push " + getRegisterName(uint32(Mapper(ProgramCounter + 2))))
+				Log("push " + getRegisterName(uint32(shared.Mapper(ProgramCounter + 2))))
 			}	
 			sp := getRegister(0x0019)
 			if shared.Bits32 == false {
 				sp = video.Clamp(sp - 2, 0, MEMCAP)
-				MapperWrite(sp, byte(value & 0xFF))
-				MapperWrite(sp + 1, byte(value >> 8))
+				shared.MapperWrite(sp, byte(value & 0xFF))
+				shared.MapperWrite(sp + 1, byte(value >> 8))
 			} else {
 				sp = video.Clamp(sp - 4, 0, MEMCAP)
-				MapperWrite(sp, byte(value & 0xFF))
-				MapperWrite(sp + 1, byte(value >> 8))
-				MapperWrite(sp + 2, byte(value >> 16))
-				MapperWrite(sp + 3, byte(value >> 24))
+				shared.MapperWrite(sp, byte(value & 0xFF))
+				shared.MapperWrite(sp + 1, byte(value >> 8))
+				shared.MapperWrite(sp + 2, byte(value >> 16))
+				shared.MapperWrite(sp + 3, byte(value >> 24))
 			}	
 			setRegister(0x0019, uint32(sp))	
 			stall(2)
 		case 0x0c:
 			// POP
 			// pop <register>	
-			register := Mapper(ProgramCounter + 1)
+			register := shared.Mapper(ProgramCounter + 1)
 			sp := getRegister(0x0019)
 			var value uint32
 			if shared.Bits32 == false {
-				value = uint32(uint16(Mapper(sp)) | uint16(Mapper(sp + 1)) << 8) 
+				value = uint32(uint16(shared.Mapper(sp)) | uint16(shared.Mapper(sp + 1)) << 8) 
 			} else {	
-				value = uint32(Mapper(sp)) | uint32(Mapper(sp + 1)) << 8 | uint32(Mapper(sp + 2)) << 16 | uint32(Mapper(sp + 3)) << 24
+				value = uint32(shared.Mapper(sp)) | uint32(shared.Mapper(sp + 1)) << 8 | uint32(shared.Mapper(sp + 2)) << 16 | uint32(shared.Mapper(sp + 3)) << 24
 			}
 			Log("value: " + fmt.Sprintf("0x%08x", value))
 			setRegister(uint32(register), uint32(value))
@@ -557,16 +491,6 @@ func execute() {
 			Log("or " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
 			stall(1)
 		case 0x15:
-			// NOR
-			// nor <register> <register> <register>
-			toregister := Memory[ProgramCounter+1]
-			regone := Memory[ProgramCounter+2]
-			regtwo := Memory[ProgramCounter+3]
-			setRegister(uint32(toregister), ^(getRegister(uint32(regone)) | getRegister(uint32(regtwo))))	
-			setRegister(0x001a, ProgramCounter + 4)
-			Log("nor " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
-			stall(3)
-		case 0x16:
 			// NOT
 			// not <register> <register>
 			toregister := Memory[ProgramCounter+1]
@@ -575,7 +499,7 @@ func execute() {
 			setRegister(0x001a, ProgramCounter + 3)
 			Log("not " + getRegisterName(toregister) + ", " + getRegisterName(regone))
 			stall(1)
-		case 0x17:
+		case 0x16:
 			// XOR
 			// xor <register> <register> <register>
 			toregister := Memory[ProgramCounter+1]
@@ -585,46 +509,46 @@ func execute() {
 			setRegister(0x001a, ProgramCounter + 4)
 			Log("xor " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
 			stall(6)
-		case 0x18:
+		case 0x17:
 			// LOD
 			// lod <addr (register)> <destination register>	
 			addr := getRegister(uint32(Memory[ProgramCounter+1]))
 			toregister := uint32(Memory[ProgramCounter+2])
-			setRegister(toregister, uint32(Mapper(addr)))
+			setRegister(toregister, uint32(shared.Mapper(addr)))
 			setRegister(0x001a, ProgramCounter + 3)
-			Log("lod " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(toregister) + " (" + fmt.Sprintf("0x%02x", Mapper(addr)) + ")")
+			Log("lod " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(toregister) + " (" + fmt.Sprintf("0x%02x", shared.Mapper(addr)) + ")")
 			stall(100)
-		case 0x19:
+		case 0x18:
 			// STRF
 			// strf <addr (register)> <value (register)>	
 			addr := getRegister(uint32(Memory[ProgramCounter+1]))
 			value := uint32(Memory[ProgramCounter+2])
 			if shared.Bits32 == false {
-				MapperWrite(addr, byte(getRegister(value) >> 8))
-				MapperWrite(addr + 1, byte(getRegister(value) & 0xFF))
+				shared.MapperWrite(addr, byte(getRegister(value) >> 8))
+				shared.MapperWrite(addr + 1, byte(getRegister(value) & 0xFF))
 			} else {
-				MapperWrite(addr, byte(getRegister(value) >> 24))
-				MapperWrite(addr + 1, byte(getRegister(value) >> 16))
-				MapperWrite(addr + 2, byte(getRegister(value) >> 8))
-				MapperWrite(addr + 3, byte(getRegister(value) & 0xFF))
+				shared.MapperWrite(addr, byte(getRegister(value) >> 24))
+				shared.MapperWrite(addr + 1, byte(getRegister(value) >> 16))
+				shared.MapperWrite(addr + 2, byte(getRegister(value) >> 8))
+				shared.MapperWrite(addr + 3, byte(getRegister(value) & 0xFF))
 			}	
 			setRegister(0x001a, ProgramCounter + 3)
 			Log("str " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(value))
 			stall(100)
-		case 0x1a:
+		case 0x19:
 			// LODF
 			// lodf <addr (register)> <destination register>
 			addr := getRegister(uint32(Memory[ProgramCounter+1]))
 			toregister := uint32(Memory[ProgramCounter+2])
 			if shared.Bits32 == false {
-				setRegister(toregister, uint32(uint16(Mapper(addr)) << 8 | uint16(Mapper(addr + 1))))
+				setRegister(toregister, uint32(uint16(shared.Mapper(addr)) << 8 | uint16(shared.Mapper(addr + 1))))
 			} else {
-				setRegister(toregister, uint32(Mapper(addr)) << 24 | uint32(Mapper(addr + 1)) << 16 | uint32(Mapper(addr + 2)) << 8 | uint32(Mapper(addr + 3)))
+				setRegister(toregister, uint32(shared.Mapper(addr)) << 24 | uint32(shared.Mapper(addr + 1)) << 16 | uint32(shared.Mapper(addr + 2)) << 8 | uint32(shared.Mapper(addr + 3)))
 			}
 			setRegister(0x001a, ProgramCounter + 3)
 			Log("lodf " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(toregister))
 			stall(100)
-		case 0x1b:
+		case 0x1a:
 			// SET
 			// set <00 or 01>
 			mode := uint32(Memory[ProgramCounter + 1])
@@ -637,15 +561,15 @@ func execute() {
 			}
 			setRegister(0x001a, ProgramCounter + 2)
 			stall(1)
-		case 0x1c:
+		case 0x1b:
 			// STR
 			// str <addr> <register>
 			addr := getRegister(uint32(Memory[ProgramCounter + 1]))
 			value := uint32(Memory[ProgramCounter + 2])
-			MapperWrite(addr, byte(getRegister(value)))
+			shared.MapperWrite(addr, byte(getRegister(value)))
 			setRegister(0x001a, ProgramCounter + 3)
 			stall(100)
-		case 0x1d:
+		case 0x1c:
 			// SHL
 			// shl <dest> <value> <by>
 			dest := uint32(Memory[ProgramCounter + 1])
@@ -653,7 +577,7 @@ func execute() {
 			by := getRegister(uint32(Memory[ProgramCounter + 3]))
 			setRegister(dest, uint32(value) << uint32(by))
 			stall(95)
-		case 0x1e:
+		case 0x1d:
 			// SHR
 			// shr <dest> <value> <by>
 			dest := uint32(Memory[ProgramCounter + 1])
@@ -698,7 +622,7 @@ func UpdateFramebuffer() {
 	i := 0
 	for y := 0; y < 200; y++ {
 		for x := 0; x < 320; x++ {
-			img.Set(x, y, video.Palette[Mapper(0x70000000 + uint32(i))])
+			img.Set(x, y, video.Palette[video.MemoryVideo[i]])
 			i++
 		}
 	}
@@ -711,6 +635,20 @@ func ToggleGrab(window *glfw.Window, Grab bool) {
 	} else {
 		window.SetTitle("Luna L2")
 		window.SetInputMode(glfw.CursorMode, glfw.CursorNormal)
+	}
+}
+
+var FS bool
+func ToggleFullscreen(window *glfw.Window) {
+	if FS == false {
+		window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
+   			gl.Viewport(0, 0, int32(width), int32(height))
+		})
+		window.SetMonitor(glfw.GetPrimaryMonitor(), 0, 0, 640, 400, 60)
+		FS = true
+	} else {
+		window.SetMonitor(nil, 960, 540, 640, 400, 0)
+		FS = false
 	}
 }
 
@@ -785,7 +723,11 @@ func InitializeWindow() {
 					Grab = false
 					return
 				}	
-			} 
+			}
+			if ctrl && alt && key == glfw.KeyF {
+				ToggleFullscreen(window)
+				return
+			}
 
 			var char string
 			switch key {

@@ -111,6 +111,8 @@ func isRegister(word string) byte {
 		return 0x1c
 	case "ic":
 		return 0x1e
+	case "b":
+		return 0x1f
 	default:
 		return 0xff
 	}
@@ -636,24 +638,6 @@ func assemble(text string) {
 			write([]byte{one})
 			write([]byte{two})
 			i = i + 3
-		case "nor":
-			check := isRegister(words[i+1])
-			one := isRegister(words[i+2])
-			two := isRegister(words[i+3])
-			if check == 0xff {
-				error(2, "'"+words[i+1]+"'")
-			}
-			if one == 0xff {
-				error(2, "'"+words[i+2]+"'")
-			}
-			if two == 0xff {
-				error(2, "'"+words[i+3]+"'")
-			}
-			write([]byte{0x15})
-			write([]byte{check})
-			write([]byte{one})
-			write([]byte{two})
-			i = i + 3
 		case "not":
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
@@ -663,7 +647,7 @@ func assemble(text string) {
 			if one == 0xff {
 				error(2, "'"+words[i+2]+"'")
 			}
-			write([]byte{0x16})
+			write([]byte{0x15})
 			write([]byte{check})
 			write([]byte{one})
 			i = i + 2
@@ -680,7 +664,7 @@ func assemble(text string) {
 			if two == 0xff {
 				error(2, "'"+words[i+3]+"'")
 			}
-			write([]byte{0x17})
+			write([]byte{0x16})
 			write([]byte{check})
 			write([]byte{one})
 			write([]byte{two})
@@ -694,7 +678,7 @@ func assemble(text string) {
 			if one == 0xff {
 				error(2, "'"+words[i+2]+"'")
 			}
-			write([]byte{0x18})
+			write([]byte{0x17})
 			write([]byte{check})
 			write([]byte{one})
 			i = i + 2
@@ -707,7 +691,7 @@ func assemble(text string) {
 			if one == 0xff {
 				error(2, "'"+words[i+2]+"'")
 			}
-			write([]byte{0x19})
+			write([]byte{0x18})
 			write([]byte{check})
 			write([]byte{one})
 			i = i + 2
@@ -720,7 +704,7 @@ func assemble(text string) {
 			if one == 0xff {
 				error(2, "'"+words[i+2]+"'")
 			}
-			write([]byte{0x1a})
+			write([]byte{0x19})
 			write([]byte{check})
 			write([]byte{one})
 			i = i + 2
@@ -729,9 +713,9 @@ func assemble(text string) {
 
 			switch mode {
 			case "16":
-				write([]byte{0x1b, 0x00})	
+				write([]byte{0x1a, 0x00})	
 			case "32":
-				write([]byte{0x1b, 0x01})	
+				write([]byte{0x1a, 0x01})	
 			}
 			i++
 		case "str":
@@ -743,7 +727,7 @@ func assemble(text string) {
 			if one == 0xff {
 				error(2, "'"+words[i+2]+"'")
 			}
-			write([]byte{0x1c})
+			write([]byte{0x1b})
 			write([]byte{check})
 			write([]byte{one})
 			i = i + 2
@@ -760,7 +744,7 @@ func assemble(text string) {
 			if two == 0xff {
 				error(2, "'"+words[i+3]+"'")
 			}
-			write([]byte{0x1d})
+			write([]byte{0x1c})
 			write([]byte{check})
 			write([]byte{one})
 			write([]byte{two})
@@ -778,7 +762,7 @@ func assemble(text string) {
 			if two == 0xff {
 				error(2, "'"+words[i+3]+"'")
 			}
-			write([]byte{0x1e})
+			write([]byte{0x1d})
 			write([]byte{check})
 			write([]byte{one})
 			write([]byte{two})

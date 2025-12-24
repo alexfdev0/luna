@@ -16,7 +16,7 @@ void kernel_panic() __attribute__((noreturn)) {
     play_sound(CRASH_SOUND, 164352, 0);
     screen_fill(0xA0A0A0A0);
     puts32("System error\n\nYour PC ran into an error and needs to\nbe restarted.\n\nPress any key to reboot.\n", 255, 0xA0);
-    asm ("int 0x6");
+    wait_for_key();
     asm ("int 0x10");
     asm ("int 0xf");
 }

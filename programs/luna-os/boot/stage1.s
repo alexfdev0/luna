@@ -5,7 +5,7 @@ jmp _start
 
 _start:
     // Setup stack
-    mov sp, 0xffff 
+    mov sp, 0xEFFF 
 
     // Load next sector
     int 0x10

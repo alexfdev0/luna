@@ -67,8 +67,7 @@ readin_rdy:
     mov r2, 1
     str r1, r2 // ENABLE KEYBOARD INTERRUPT
     pop r2
-    pop r1
- 
+    pop r1 
 readin_rd:
     // AWAIT KEYBOARD INT
     mov e7, readin_ai
@@ -555,21 +554,22 @@ screen_fill:
     pop e11
     pop r2
 
-    mov r1, 0x0
-    mov r4, 0
-    mov r3, 64000
+    mov r1, 0x70000000 // Current addr
+    mov r4, 0 // total
+    mov r3, 64000 // pixels constant
 
     mov e10, pc
-    int 3
 
-    inc r4
-    inc r4
-    inc r4
-    inc r4
+    strf r1, r2
+
     inc r1
     inc r1
     inc r1
     inc r1
+    inc r4
+    inc r4
+    inc r4
+    inc r4
 
     igt r5, r4, r3
     jz r5, e10
@@ -577,8 +577,8 @@ screen_fill:
     mov r1, 0
     mov r2, 0
     int 0xc
-
-    ret
+    
+    ret 
 
 render_buf:
     pop e11

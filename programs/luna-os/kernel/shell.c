@@ -82,7 +82,7 @@ top:
     if (strcmp("bc", TEMPBUF)) {
         save_graphics_buf();
         render_buf(BAYACHAO_IMG);
-        asm ("int 0x6");
+        wait_for_key();
         render_buf(GBUF);
 
         goto top;

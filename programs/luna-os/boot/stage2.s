@@ -6,6 +6,11 @@ PARTITION_TABLE:
     .pad 20 
 
 _stage2:
+    // 0xFA -> 4f  50  51 52 53 54
+    mov r1, 0xFA53
+    mov r2, key_inp
+    strf r1, r2  // SET KEY CLICK ADDR
+    
     push 0x0F0F
     call screen_draw
 
@@ -25,13 +30,36 @@ _stage2:
 
     call list_volumes
 
+    int 0x0e
+    push r1
+    push r2
+
+    mov r1, 0
+    mov r2, 23
+    int 0x0c
+
     push msg_opts
     push 255
     push 0x0f
     call write
+
+    pop r1
+    pop r2
+    int 0x0c
 VOL_INP:
     // Tell user to select prompt
-    int 6 
+    mov e7, vinp_ai
+
+    mov r1, 0xFA50
+    mov r2, 1
+    str r1, r2 // ENABLE KEY INP
+
+    hlt
+    jmp VOL_INP
+vinp_ai:
+    mov r1, 0xFA50
+    mov r2, 0
+    str r1, r2 // DISABLE KEY INP
 
     mov e1, 0x0a
     cmp e2, e1, e12
@@ -151,28 +179,44 @@ write:
 
 screen_draw:
     pop e11
-    pop r2
+    pop r2 // Color
 
-    mov r1, 0x0
-    mov r4, 0
-    mov r3, 64000
+    mov b, 0 // current VRAM bank
+    mov r1, 0xFE00 // Pointer
+    mov r3, 0 // Total
+    mov r4, 0xFFFF
+    mov r6, 64000
 
     mov e10, pc
-    int 3
+    
+    str r1, r2
 
-    inc r4
-    inc r4
     inc r1
-    inc r1
+    inc r3
 
-    igt r5, r4, r3
+    cmp r5, r1, r4
     jz r5, e10
 
+    str r1, r2
+    inc r3
+
+    cmp r7, r3, r6
+    jnz r7, sd_ret
+    
+    inc b
+    mov r1, 0xFE00
+    jmp e10
+sd_ret:
     mov r1, 0
     mov r2, 0
     int 0xc
 
     ret
+
+key_inp:
+    mov r1, 0xFA12
+    lod r1, e12
+    jmp e7
 
 REBOOT:
     int 0x10 
