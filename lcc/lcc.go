@@ -131,7 +131,7 @@ func main() {
 		default:
 			stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39munknown file type in '" + file + "'\033[0m")
 		}
-	}
+	}	
 
 	if noassemble == true {
 		os.Exit(0)

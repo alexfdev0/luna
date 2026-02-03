@@ -1,0 +1,8 @@
+#!/bin/bash
+
+mkdir -p /etc/paths.d
+echo "/Applications/Luna L2.app/Contents/MacOS" > /etc/paths.d/luna-l2
+chmod 644 /etc/paths.d/lunal2
+rm -rf /Applications/"Luna L2.app"
+mv /usr/local/bin/"Luna L2" /Applications/"Luna L2.app" 
+exit 0

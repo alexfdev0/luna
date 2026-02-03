@@ -89,7 +89,7 @@ top:
     }
 
     if (strcmp("testfault", TEMPBUF)) {
-        asm ("jmp 0x7001A644");
+        asm ("int 0x07");
     }
 
     if (strcmp("clear", TEMPBUF)) {

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+mkdir -p /usr/local/bin/
+
+exit 0

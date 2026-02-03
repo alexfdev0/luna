@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product
+      Id="*"
+      Name="Luna L2"
+      Language="1033"
+      Version="1.0.0.0"
+      Manufacturer="alexfdev0"
+      UpgradeCode="89cffe92-3418-429d-b14e-3374a663f319"> 
+
+    <!-- Required 64-bit installer settings -->
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64" />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+
+      <!-- Program Files (64-bit) -->
+      <Directory Id="ProgramFiles64Folder">
+
+        <!-- Luna L2 install directory -->
+        <Directory Id="INSTALLFOLDER" Name="Luna L2">
+          
+          <!-- Component that installs your EXE -->
+          <Component Id="LunaExeComponent" Guid="ca84310e-1542-41bc-bbdc-6401b3149080">
+            <File Id="l2" Source="luna-l2.exe" />
+          </Component>
+	  <Component Id="LCCComponent" Guid="d645f9c7-c719-46fc-9425-ea92281bf884">
+            <File Id="lcc" Source="lcc.exe" />
+          </Component>
+          <Component Id="LASComponent" Guid="f3e903e1-49b6-4c6c-b5d6-d018a8077a1e">
+            <File Id="las" Source="las.exe" />
+          </Component>
+          <Component Id="LCC1Component" Guid="1a734389-9e0b-4d89-b4f4-74fdc4a89eb0">
+            <File Id="lcc1" Source="lcc1.exe" />
+          </Component>
+          <Component Id="L2LDComponent" Guid="c6d55e15-8cd3-4cea-8e95-4df8aae16151">
+            <File Id="l2ld" Source="l2ld.exe" />
+          </Component>
+          <Component Id="LunaPath" Guid="c2e6e121-f55e-4579-a289-8296cf3e87a3">
+              <CreateFolder />
+              <Environment Id="AddToPath"
+                 Name="PATH"
+                 Value="[INSTALLFOLDER]"
+                 Permanent="no"
+                 Part="last"
+                 Action="set"
+                 System="yes" />
+          </Component>
+
+        </Directory>
+
+      </Directory>
+
+    </Directory>
+
+    <Feature Id="MainFeature" Title="Luna L2 Feature" Level="1">
+      <ComponentRef Id="LunaExeComponent" />
+      <ComponentRef Id="LCCComponent" />
+      <ComponentRef Id="LASComponent" />
+      <ComponentRef Id="LCC1Component" />
+      <ComponentRef Id="L2LDComponent" />
+      <ComponentRef Id="LunaPath"/>
+    </Feature>
+
+  </Product>
+</Wix>

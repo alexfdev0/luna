@@ -10,4 +10,4 @@ all:
 	- printf '\033[32mSectors to load: 0x%X\033[0m\n' $$(( $$(stat -c%s kernel.bin) / 512 + 1 ))
 	rm kernel.bin
 	# rm stage1.bin
-	# rm stage2.bin
+	rm stage2.bin

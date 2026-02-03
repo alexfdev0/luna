@@ -13,12 +13,12 @@ var MemoryPIT [8]byte
 
 
 func PITController() {
-	copy(MemoryPIT[:], []byte{ 0x00, 0x12, 0x34, 0xE8, 0x00, 0x12, 0x34, 0xE8, })
+	copy(MemoryPIT[:], []byte{ 0x00, 0x00, 0x03, 0xE8, 0x00, 0x00, 0x03, 0xE8, })
 	for {
 		current :=
-			uint32(MemoryPIT[4])<<24 |
-			uint32(MemoryPIT[5])<<16 |
-			uint32(MemoryPIT[6])<<8 |
+			uint32(MemoryPIT[4]) << 24 |
+			uint32(MemoryPIT[5]) << 16 |
+			uint32(MemoryPIT[6]) << 8 |
 			uint32(MemoryPIT[7])
 
 		if current == 0 {
@@ -35,7 +35,7 @@ func PITController() {
 			MemoryPIT[7] = byte(current)
 		}
 
-		time.Sleep(time.Second / 1193192)
+		time.Sleep(time.Millisecond)
 	}
 }
 

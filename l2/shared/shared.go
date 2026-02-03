@@ -2,6 +2,7 @@ package shared
 
 import (
 	"math/rand"
+	"luna_l2/video"
 )
 /* 
 shared.go:
@@ -71,7 +72,7 @@ func Mapper(address uint32) byte {
 			return (*Memory)[0x6FFF0000 + (address - 0xFA37)]
 		case address >= 0xFE00 && address <= 0xFFFF:
 			if GetRegister(0x001F) <= 124 {
-				return (*MemoryVideo)[(GetRegister(0x001f) * 0x200) + (address - 0xFE00)]
+				return (*MemoryVideo)[video.Clamp((GetRegister(0x001f) * 0x200) + (address - 0xFE00), 0, 63999)]
 			}
 		}
 	}

@@ -952,7 +952,7 @@ func main() {
 		go network.NetController()
 		go audio.AudioController()
 		go rtc.RTCController()
-		// go pit.PITController()
+		go pit.PITController()
 		copy(Memory[0x6FFF0000:], []byte{ // IDT setup
 			0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
