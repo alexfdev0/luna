@@ -4,7 +4,11 @@ void user_setup() {
     puts32("Enter a password: ", 255, 0);
     readin(PASSBUF, 1, 1);
     xor_cycle(PASSBUF);
-    puts32("\n\n", 255, 0); 
+    puts32("\n\n", 255, 0);
+
+    // puts32("Enable drive encryption?\n\nY: Yes\nN: No\n");
+    // wait_for_key();
+    // handle_drive_encryption();
     return;
 }
 
@@ -14,7 +18,7 @@ void setup() {
     pause(); 
 
     puts32("Detecting your drive...\n", 255, 0);
-    // lufs_create_file("NOTEPAD SYS     ", 256); // Create notepad file
+    lufs_create_file("NOTEPAD SYS     ", 256); // Create notepad file
     if (getdrive()) {
         puts32("Setup has detected you are running Setup on a USB device.\n\n", 255, 0);
         user_setup();

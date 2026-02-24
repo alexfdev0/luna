@@ -11,13 +11,6 @@
 .global setup_copy
 .global checkpass
 .global save_buffer
-.global send
-.global NETBUF
-.global serve
-.global serve_write
-.global serve_read
-.global serve_await_connection
-.global serve_connection_close
 .global render
 .global screen_fill
 .global render_buf
@@ -227,7 +220,11 @@ puts32:
 xor_cycle:
     pop e11
     pop r2
-    mov r3, 0xFC // key
+
+    mov r3, PASS_KEY_ENCRYPT
+    lod r3, r3
+    jz r3, xor_cycle_gen
+xor_cycle_rdy:
     mov r4, 0
 
     mov e10, pc
@@ -236,15 +233,34 @@ xor_cycle:
     lod r2, r1
 
     cmp r5, r4, r1
-    jnz r5, _GLOBL_RET
+    jnz r5, xor_ret
 
     xor r1, r1, r3
     str r2, r1
 
     inc r2
     jmp e10
+xor_cycle_gen:
+    mov r11, PASS_KEY_ENCRYPT
+    mov r12, 0x90000000
+    lod r12, r3
+    str r11, r3
 
-_GLOBL_RET:
+    push e11
+    push r1
+    push r3
+    push r4
+
+    push PASS_KEY_ENCRYPT
+    call save_buffer
+
+    pop r4
+    pop r3
+    pop r1
+    pop e11
+
+    jmp xor_cycle_rdy
+xor_ret:
     ret
     
 getdrive:
@@ -285,7 +301,6 @@ checkpass:
 
 save_buffer:
     pop e11
-    pop r2
     pop r1
 
     mov r3, 512
@@ -294,242 +309,6 @@ save_buffer:
     mov r1, r4
    
     int 0x0d
-
-    ret
-
-send:
-    pop e11
-    pop e7 // TIMEOUT
-    pop r4 // PORT
-    pop r3 // IP 
-    pop r9 // BUFFER
-
-    mov r7, 0x00FF
-    mov r8, 0x0100
-    mov r11, 0
-
-    // move TCP flag to NIC
-    mov r1, 0
-    mov r2, 0x7001A645
-    str r2, r1
-
-    // move IP addr to nic
-    mov r2, 0x7001A646
-    strf r2, r3
-
-    // move port
-    // r6 high
-    // r5 low
-    
-    div r6, r4, r8
-    and r5, r4, r7
-
-    mov r2, 0x7001A64a
-    str r2, r6
-
-    mov r2, 0x7001A64b
-    str r2, r5
-
-    // Move timeout
-    div e8, e7, r8 // upper
-    and e9, e7, r7 // lower
-
-    mov r2, 0x7001A64c
-    str r2, e8
-
-    mov r2, 0x7001A64d
-    str r2, e9
-
-    // Move message
-    mov r10, 0x7001A64e
-
-    mov e10, pc
-    nop
-
-    lod r9, r1
-    str r10, r1
-    
-    cmp r12, r11, r1
-    jnz r12, send_send
-
-    inc r9
-    inc r10
-    jmp e10
-send_send:
-    // SEND FLAG
-    mov r1, 0x01
-    mov r2, 0x7001A644
-    str r2, r1
-
-    mov r1, e7
-    int 2
-
-    // Copy response back
-
-    mov r4, 0x7001ae47 // Start addr
-    mov r5, NETBUF // Netbuf ptr
-
-    mov r6, 0x7001B64C // Stop addr
-
-    mov r3, 0
-
-    mov e10, pc
-    nop
-
-    lod r4, r1
-    str r5, r1
-
-    inc r4
-    inc r5
-    
-    igt r7, r4, r6
-    jz r7, e10
-
-    str r5, r3
- 
-    ret
-
-serve:
-    pop e11
-    pop r4 // PORT
-
-    // Move port
-    mov r5, 0x00FF
-    mov r6, 0x0100
-    div r8, r4, r6
-    and r7, r4, r5
-
-    mov r2, 0x7001A64a
-    str r2, r8
-
-    mov r2, 0x7001A64b
-    str r2, r7
-
-    // move TCP flag to NIC
-    mov r1, 1
-    mov r2, 0x7001A645
-    str r2, r1
-
-    // Listen
-    mov r1, 0x01
-    mov r2, 0x7001A644
-    str r2, r1
-
-    ret
-
-serve_await_connection:
-    pop e11
-    pop r1 // TIMEOUT
-
-    mov r2, 0x7001A648
-
-    mov e10, pc
-    nop 
-
-    lod r2, r4
-    jnz r4, serve_await_connection_accept
-     
-    int 2
-    jmp e10
-serve_await_connection_accept: 
-    mov r1, 0x01
-    mov r2, 0x7001A646
-    str r2, r1
-    ret
-
-serve_write:
-    pop e11
-    pop r9 
-    
-    // Copy messaege
-    mov r10, 0x7001A64e
-    mov r11, 0
-
-    mov e10, pc
-    nop
-
-    lod r9, r1
-    str r10, r1
-    
-    cmp r12, r11, r1
-    jnz r12, serve_write_ready
-
-    inc r9
-    inc r10
-    jmp e10
-serve_write_ready:
-    // Tell NIC we are ready to write
-    mov r1, 0x02
-    mov r2, 0x7001a649
-    str r2, r1
-
-    mov r1, 0x01
-    mov r2, 0x7001a646
-    str r2, r1
-
-    // Polling
-    mov r1, 500
-    mov r2, 0x7001A647
-    mov e10, pc
-    nop
-    lod r2, r3
-    int 2
-    jz r3, e10
-
-    ret
-
-serve_read:
-    mov r4, 0x7001ae47 // Start addr
-    mov r5, NETBUF // Netbuf ptr
-
-    mov r6, 0x7001B64C // Stop addr
-
-    mov r1, 500
-    int 2
-    
-    // COMMAND NIC TO READ 
-    mov r1, 0x01
-    mov r2, 0x7001a649
-    str r2, r1
-
-    mov r1, 0x01
-    mov r2, 0x7001a646
-    str r2, r1
-
-    // Polling
-    mov r1, 500
-    mov r2, 0x7001A647
-    mov e10, pc
-    nop
-    lod r2, r3
-    int 2
-    jz r3, e10 
-
-    mov e10, pc
-    nop
-
-    lod r4, r1
-    str r5, r1
-
-    inc r4
-    inc r5
-    
-    igt r7, r4, r6
-    jz r7, e10
- 
-    ret
-
-serve_connection_close:
-    pop e11
-    
-    // Tell NIC to close connection
-    mov r1, 0x00
-    mov r2, 0x7001a649
-    str r2, r1
-
-    mov r1, 0x01
-    mov r2, 0x7001a646
-    str r2, r1
 
     ret
 
@@ -643,34 +422,6 @@ save_graphics_buf:
 
     ret
 
-mouse_move:
-    pusha
-
-    call save_graphics_buf
-   
-    mov r1, 0x7000FA0A
-    lodf r1, r2 // X
-
-    mov r1, 0x7000FA0E
-    lodf r1, r3 // Y
-
-    mov r4, 320
-
-    mul r5, r3, r4
-    add r5, r5, r2 // Turn from 320x200 space to 64KB space
-
-    mov r6, GBUF
-    add r6, r6, r5 // Get absolute addr
-
-    mov r7, 0xA0
-    str r6, r7
-
-    push GBUF
-    call render_buf 
-
-    popa
-    jmp irv
-
 wait_for_key:
     pop e11
     
@@ -696,7 +447,10 @@ key_click:
 
     pop r2
 
-    jmp e7 
+    jmp e7
+
+PASS_KEY_ENCRYPT:
+    .pad 1
     
 TEMPBUF:
     .pad 256
@@ -707,9 +461,6 @@ PROMPTBUF:
 
 PASSBUF:
     .pad 32
-
-NETBUF:
-    .pad 2048
 
 GBUF:
     .pad 64000

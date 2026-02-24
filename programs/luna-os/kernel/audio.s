@@ -41,4 +41,4 @@ play_sound_block:
     ret
 
 CRASH_SOUND:
-    .embed kernel/audio/crash.raw
+    .embed "kernel/audio/crash.raw"

@@ -51,33 +51,14 @@ top:
             puts32("Password is incorrect.", 255, 0); 
         puts32("\n", 255, 0);
         goto top;
-    }
-
-    if (strcmp("imget", TEMPBUF)) {
-        send("IMG_GET", 0x7F000001, 580, 500);
-        render(NETBUF);
-        
-        puts32("\n", 255, 0);
-        goto top;
-    }
+    } 
 
     if (strcmp("shutdown", TEMPBUF)) {
         puts32("Shutting down...\n", 255, 0);
         // play_sound(SHUTDOWN_SOUND, 207748, 1);
         // sleep(500);
         asm ("int 0x11");
-    }
-
-    if (strcmp("ws", TEMPBUF)) {
-        puts32("Listening on port 3000", 255, 0);
-        serve(3000);
-        await:
-        serve_await_connection(500);
-        serve_read();
-        serve_write("HTTP/1.1\r\nContent-Type: text/html\r\nServer: FurNet\r\n\r\n<!DOCTYPE html>\r\n<html>\r\n<body>\r\n<h1>Hello world!</h1>\r\n</body>\r\n</html>\r\n\r\n");
-        serve_connection_close();
-        goto await;
-    }
+    } 
 
     if (strcmp("bc", TEMPBUF)) {
         save_graphics_buf();

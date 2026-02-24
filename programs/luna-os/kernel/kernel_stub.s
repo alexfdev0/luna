@@ -29,10 +29,6 @@ mov r1, 0x6FFF0067
 mov r2, 1
 // str r1, r2 MOUSE
 
-mov r1, 0x6FFF0068
-mov r2, mouse_move
-strf r1, r2
-
 mov r1, 0x6FFF001A
 mov r2, key_click
 strf r1, r2

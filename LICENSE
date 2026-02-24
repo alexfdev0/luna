@@ -1,5 +1,5 @@
 alexfdev0 General Purpose License
-=========================================
+=================================
 
 Permission Grant
 ================
@@ -30,6 +30,12 @@ Conditions
     Alexander Flax or any user of the Work, alleging that the Work or a derivative infringes 
     such claim. Any party initiating or participating in such a claim shall have all rights 
     under this license automatically terminated.
+
+4. Share-Alike
+   Any modification or derivative work of the Work must be distributed
+   under the terms of the alexfdev0 General Purpose License, without
+   additional restrictions. The source code of any derivative work must
+   be made available to any recipient upon request.
 
 Disclaimer
 ==========
