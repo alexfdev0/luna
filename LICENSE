@@ -15,8 +15,11 @@ Conditions
     The Work, and any modifications or derivative works, may not be sold, licensed,
     or otherwise used for commercial purposes without the express written permission
     of Alexander Flax.
-    “Commercial use” means use intended for or directed toward commercial advantage 
-    or monetary compensation.
+    "Commercial use" refers specifically to the sale, sublicensing, or 
+    direct monetization of the Work itself. Use of the Work as a tool 
+    to develop, compile, or build other software does not constitute 
+    commercial use, regardless of whether that software is sold or 
+    otherwise monetized.
 
 2. Attribution
     Any redistribution or modification must clearly state that it is based on
