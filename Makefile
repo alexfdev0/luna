@@ -58,7 +58,10 @@ windows-installer:
 	cd las && GOOS=windows GOARCH=amd64 go build -o ../Windows/las.exe las.go
 	cd lcc1 && GOOS=windows GOARCH=amd64 go build -o ../Windows/lcc1.exe lcc1.go
 	cd l2ld && GOOS=windows GOARCH=amd64 go build -o ../Windows/l2ld.exe l2ld.go
-	cd Windows && wixl -v msi.xml -o "Luna L2.msi"	
+	cd Windows && wixl -v msi.xml -o "Luna L2.msi"
+
+install:
+	sudo cp bin/* /usr/local/bin/
 
 clean:
 	rm -f /usr/local/bin/luna-l2

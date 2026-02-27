@@ -675,14 +675,19 @@ func InitializeWindow() {
 	}
 	window.MakeContextCurrent()
 
-	err = gl.Init();
+	window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
+    	gl.Viewport(0, 0, int32(width), int32(height))
+	})
+
+	err = gl.Init()
 	if err != nil {
 		fmt.Println("luna-l2: could not initialize window: ", err)
 		os.Exit(1)
-	}	
+	}
 
-	gl.Viewport(0, 0, 640, 400)
-	gl.ClearColor(0, 0, 0, 1)
+	fbWidth, fbHeight := window.GetFramebufferSize()
+	gl.Viewport(0, 0, int32(fbWidth), int32(fbHeight))
+	gl.ClearColor(0, 0, 0, 1)	
 
 	program := video.CreateProgram()
 	gl.UseProgram(program)

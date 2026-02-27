@@ -61,8 +61,9 @@ wait_key_and_reboot:
     push 0
     call write
 
-    int 6
-    jmp 0
+    call wait_key
+    int 0x10
+    int 0xf
 
 missing_error:
     push msg_missing_os
@@ -90,33 +91,50 @@ write:
 
 check_vol:
     pop e11
-    push e11
 
-    mov r5, 492
-    mov r7, 0
-    mov r8, 0
-    mov r9, 20
-    
+    mov r1, 492 // addr of partition table
+    mov r3, 512
+
     mov e10, pc
     nop
 
-    lodf r5, r6
+    lod r1, r2
+    jnz r2, check_vol_ret
 
-    inc r7
-    inc r7
-    inc r8
-    inc r8
+    inc r1
+    inc r1
 
-    cmp r10, r8, r9
-    jnz r10, check_vol_ret
-
-    jz r6, e10
-    inc r7
-    jmp e10    
+    igt r4, r1, r3
+    jz r4, e10
+    jmp missing_error
 check_vol_ret:
-    mov e6, r7
-    pop e11
     ret
+
+wait_key:
+    pop e11
+
+    mov e7, wk_after
+
+    mov r1, 0xFA53
+    mov r2, key_inp
+    strf r1, r2  // SET KEY CLICK ADDR
+
+    mov r1, 0xFA50
+    mov r2, 1
+    str r1, r2 // ENABLE KEY INP
+wk_wait:
+    hlt
+    jmp wk_wait
+wk_after:
+    mov r1, 0xFA50
+    mov r2, 0
+    str r1, r2 // DISABLE KEY INP
+    ret
+
+key_inp:
+    mov r1, 0xFA12
+    lod r1, e12
+    jmp e7 
 
 num_sectors: 
     .word 0x02CC
@@ -128,4 +146,4 @@ msg_press_any_key:
     .asciz "Press any key to reboot...\n"
 
 msg_missing_os:
-    .asciz "Missing operating system...\n"
+    .asciz "Missing operating system\n"
