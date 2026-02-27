@@ -17,6 +17,7 @@ A simple, lightweight RISC CPU architecture.<br><br>
 - Clone the repository using `git clone` or download it as a ZIP and then unzip it<br>
 - Open the directory<br>
 - Run the `build_windows.bat` file to build the Luna L2 emulator and toolchain<br>
+- (Note: if you get a build constraints error, run `go env -w "CGO_ENABLED=1"`)<br>
 - Install the applications into your PATH variable<br>
 - Run `luna-l2 <disk image>` to run an application<br>
 
