@@ -3,8 +3,8 @@ A simple, lightweight RISC CPU architecture.<br><br>
 
 # Requirements<br>
 - Windows, MacOS, Linux, or FreeBSD<br>
-- Lua (only if you want to run the legacy Luna L1 virtual machine and tools)<br>
-- Go <if you are compiling manually><br><br>
+- Go<br>
+- GCC (if you are on Windows; see [this page](https://www.mingw-w64.org/) to install GCC.)
 
 # Manual Installation (MacOS, Linux, FreeBSD)<br>
 - Clone the repository using `git clone`<br>
