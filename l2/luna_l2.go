@@ -782,8 +782,8 @@ func InitializeWindow() {
 			xpos = 0
 		}
 
-		if ypos > 320 {
-			ypos = 320
+		if ypos > 200 {
+			ypos = 200
 		} else if ypos < 0 {
 			ypos = 0
 		}
@@ -855,8 +855,8 @@ func InitializeWindow() {
 			next = time.Now()
 		}
 
-		window.SwapBuffers()
 		glfw.PollEvents()
+		window.SwapBuffers()
 	}
 }
 
