@@ -944,7 +944,7 @@ func assemble(text string) {
 			L := byte(num & 0xFF)
 			write([]byte{H, L})
 			i++
-		case ".double":
+		case ".dword":
 			word := words[i + 1]
 			num, err := strconv.ParseInt(word, 0, 64)
 			if err != nil {
@@ -994,7 +994,7 @@ func assemble(text string) {
 			write([]byte("L_GLOBL_" + label))
 			write([]byte{0x00})
 			i++
-		case ".db":
+		case ".byte":
 			for j := i + 1; j < len(words); j++ {
 				if words[j] != "\n" {
 					num, err := strconv.ParseUint(strings.ReplaceAll(words[j], ",", ""), 0, 8)
@@ -1049,7 +1049,7 @@ func main() {
 
 		switch arg {
 		case "-v":
-			fmt.Println("Luna Compiler Collection version 3.0")
+			fmt.Println("Luna Compiler Collection version 3.1")
 			fmt.Println("Target: luna-l2")
 			os.Exit(0)
 		case "-o":

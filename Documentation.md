@@ -88,7 +88,7 @@ There are some directives in LAS that do not correspond to any instruction on L2
 `.ascii <string>`: defines a sequence of ASCII bytes, wrapped in quotation marks<br>
 `.asciz <string>`: defines a sequence of ASCII bytes, wrapped in quotation marks (null terminated)<br>
 `.word <number>`: defines a 2-byte constant<br>
-`.double <number>`: defines a 4-byte constant<br>
+`.dword <number>`: defines a 4-byte constant<br>
 `.ptr <number or label>`: defines a number with the width of the current mode; memory locations can be used with this.<br>
 `.global <label>`: exposes a symbol to other object files.<br>
 `.bits <16/32>` changes the mode of the assembler to the specified mode (does not change CPU; use `SET`)<br>
@@ -96,7 +96,7 @@ There are some directives in LAS that do not correspond to any instruction on L2
 `.org <location>`: tells the linker to calculate all offsets with respect to the origin.<br>
 `.fill <number>`: Tells the linker to fill the resulting binary until it reaches the size specified.<br>
 `.pad <number>`: inserts the specified number of null bytes at that location.<br>
-`.db <bytes, seperated by a comma>`: inserts the specified bytes at that location until a newline.<br>
+`.byte <bytes, seperated by a comma>`: inserts the specified bytes at that location until a newline.<br>
 # Examples
 `mov r1, 5` (destination: r1, source: 5)<br>
 `pop r1` (destination: r1)<br>

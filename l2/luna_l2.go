@@ -667,6 +667,7 @@ func InitializeWindow() {
 	glfw.WindowHint(glfw.ContextVersionMinor, 2)
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
 	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
+	glfw.WindowHint(glfw.ScaleToMonitor, glfw.True)
 
 	window, err := glfw.CreateWindow(640, 400, "Luna L2", nil, nil)
 	if err != nil {
