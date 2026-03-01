@@ -27,27 +27,27 @@ bin/l2ld: $(SRC)/l2ld/*
 	cd l2ld && go build -o ../bin/l2ld ./l2ld.go
 
 macos-installer:
-	sudo cp bin/luna-l2 Mac/pkgroot2/usr/local/bin/"Luna L2"/Contents/MacOS/
-	sudo cp bin/lcc Mac/pkgroot2/usr/local/bin/
-	sudo cp bin/las Mac/pkgroot2/usr/local/bin/
-	sudo cp bin/lcc1 Mac/pkgroot2/usr/local/bin/
-	sudo cp bin/l2ld Mac/pkgroot2/usr/local/bin/
-	cd l2 && CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o ../Mac/pkgroot/usr/local/bin/"Luna L2"/Contents/MacOS/luna-l2 luna_l2.go
-	cd lcc && GOOS=darwin GOARCH=arm64 go build -o ../Mac/pkgroot/usr/local/bin/lcc lcc.go
-	cd las && GOOS=darwin GOARCH=arm64 go build -o ../Mac/pkgroot/usr/local/bin/las las.go
-	cd lcc1 && GOOS=darwin GOARCH=arm64 go build -o ../Mac/pkgroot/usr/local/bin/lcc1 lcc1.go
-	cd l2ld && GOOS=darwin GOARCH=arm64 go build -o ../Mac/pkgroot/usr/local/bin/l2ld l2ld.go
+	cd l2 && CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o ../Mac/amd64/usr/local/bin/"Luna L2"/Contents/MacOS/luna-l2 luna_l2.go
+	cd lcc && GOOS=darwin GOARCH=amd64 go build -o ../Mac/amd64/usr/local/bin/lcc lcc.go
+	cd las && GOOS=darwin GOARCH=amd64 go build -o ../Mac/amd64/usr/local/bin/las las.go
+	cd lcc1 && GOOS=darwin GOARCH=amd64 go build -o ../Mac/amd64/usr/local/bin/lcc1 lcc1.go
+	cd l2ld && GOOS=darwin GOARCH=amd64 go build -o ../Mac/amd64/usr/local/bin/l2ld l2ld.go
+	cd l2 && CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o ../Mac/arm64/usr/local/bin/"Luna L2"/Contents/MacOS/luna-l2 luna_l2.go
+	cd lcc && GOOS=darwin GOARCH=arm64 go build -o ../Mac/arm64/usr/local/bin/lcc lcc.go
+	cd las && GOOS=darwin GOARCH=arm64 go build -o ../Mac/arm64/usr/local/bin/las las.go
+	cd lcc1 && GOOS=darwin GOARCH=arm64 go build -o ../Mac/arm64/usr/local/bin/lcc1 lcc1.go
+	cd l2ld && GOOS=darwin GOARCH=arm64 go build -o ../Mac/arm64/usr/local/bin/l2ld l2ld.go
 	pkgbuild \
-		--root Mac/pkgroot2 \
+		--root Mac/amd64 \
 		--install-location / \
-		--identifier com.alexfdev0.lunal2.x86 \
+		--identifier com.alexfdev0.lunal2.amd64 \
 		--version 1.0 \
 		--scripts Mac/scripts \
-		build/"Luna L2 (x86_64).pkg"
+		build/"Luna L2 (amd64).pkg"
 	pkgbuild \
-		--root Mac/pkgroot \
+		--root Mac/arm64 \
 		--install-location / \
-		--identifier com.alexfdev0.lunal2.arm \
+		--identifier com.alexfdev0.lunal2.arm64 \
 		--version 1.0 \
 		--scripts Mac/scripts \
 		build/"Luna L2 (arm64).pkg"
@@ -58,7 +58,7 @@ windows-installer:
 	cd las && GOOS=windows GOARCH=amd64 go build -o ../Windows/las.exe las.go
 	cd lcc1 && GOOS=windows GOARCH=amd64 go build -o ../Windows/lcc1.exe lcc1.go
 	cd l2ld && GOOS=windows GOARCH=amd64 go build -o ../Windows/l2ld.exe l2ld.go
-	cd Windows && wixl -v msi.xml -o "Luna L2.msi"
+	cd Windows && wixl -v msi.xml -o "../build/Luna L2.msi"
 
 install:
 	sudo cp bin/* /usr/local/bin/
