@@ -41,6 +41,8 @@ const (
 	TokRAngle
 	TokAmpersand
 	TokExclamation
+	TokLBracket
+	TokRBracket
 )
 
 type Token struct {
@@ -145,6 +147,10 @@ func Lex(code string, filename string) []Token {
 			tokens = append(tokens, Token{Type: TokExclamation, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "//" {
 
+		} else if content == "[" {
+			tokens = append(tokens, Token{Type: TokLBracket, Value: content, Line: s.Pos().Line, File: filename})
+		} else if content == "]" {
+			tokens = append(tokens, Token{Type: TokRBracket, Value: content, Line: s.Pos().Line, File: filename})
 		} else {
 			tokens = append(tokens, Token{Type: TokIdent, Value: content, Line: s.Pos().Line, File: filename})
 		} 

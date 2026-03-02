@@ -31,7 +31,6 @@ _start:
 
     // Check partition table
     call check_vol
-    jz e6, missing_error
 
     jmp 512 
 

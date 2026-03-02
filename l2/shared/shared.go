@@ -76,7 +76,7 @@ func Mapper(address uint32) byte {
 			}
 		}
 	}
-	return byte(rand.Intn(0xFF - 0x00) + 0x00)
+	return byte(rand.Intn(0xFF))
 }
 
 func MapperWrite(address uint32, content byte) {

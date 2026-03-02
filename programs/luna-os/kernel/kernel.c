@@ -14,7 +14,6 @@ asm (".bits 32");
     #error "LunaOS must be compiled with LCC (other compilers are not supported.)"
 #endif
 
-
 void _cstart() __attribute__((noreturn)) { 
     puts32("LunaOS\n", 255, 0);
     puts32("Copyright (c) 2025 Alexander Flax\n\n", 255, 0); 

@@ -59,7 +59,7 @@ Luna L2 has several instructions necessary for operation and/or communicating to
 
 1. Print character to the screen (char in R1, foreground in R2, background in R3)<br>
 2. Reserved for the programmable interval timer<br>
-3. Unmapped<br>
+3.Unmapped<br>
 4. Unmapped<br>
 5. Reserved for the keyboard<br>
 6. Unmapped<br>
@@ -75,6 +75,30 @@ Luna L2 has several instructions necessary for operation and/or communicating to
 16. Drive query (returns in R1)<br>
 17. Shut down machine<br><br>
 
+## Memory Map
+The standard Luna L2 memory map is as follows:<br>
+# 16-bit mode
+0x0000 - 0xEFFF: GP RAM<br>
+0xF000 - 0xF009: Audio controller registers<br>
+0xFA0A - 0xFA11: Mouse registers<br>
+0xFA12: Keyboard register<br>
+0xFA13 - 0xFA1A: PIT registers<br>
+0xFA1B - 0xFA30: Network controller registers<br>
+0xFA31 - 0xFA36: RTC registers<br>
+0xFA37 - 0xFC36: IDT
+0xFE00 - 0xFFFF (switch to higher/lower using B register): VRAM<br><br>
+
+# 32-bit mode
+0x00000000 - 0x6EFFFFFF: GP RAM<br>
+0x6FFF0000 - 0x6FFFFFFF: IDT<br>
+0x70000000 - 0x7000F9FF: VRAM<br>
+0x7000FA00 - 0x7000FA09: Audio controller registers<br>
+0x7000FA0A - 0x7000FA11: Mouse registers<br>
+0x7000FA12: Keyboard register<br>
+0x7000FA13 - 0x7000FA1A: PIT registers<br>
+0x7001A644 - 0x7001A659: Network controller registers<br>
+0x7001B65E - 0x7001B663: RTC registers<br><br>
+
 ## Assembly
 The L2 architecture has a custom assembler (`las`) to convert programs from assembly language (.asm, .s, .S) to machine code (.o) that can then be linked and then run on L2.<br>
 # Syntax specifications
@@ -84,7 +108,7 @@ You can use a label name followed by a colon to make a label, which gets turned 
 # Custom directives
 There are some directives in LAS that do not correspond to any instruction on L2. They are as follows:<br>
 `call <label>`: calculates the return address, pushes it onto the stack, and jumps to the label specified (`call mylabel`)<br>
-`ret`: jumps to the value in register `re1`<br>
+`ret`: jumps to the value in register `e11`<br>
 `.ascii <string>`: defines a sequence of ASCII bytes, wrapped in quotation marks<br>
 `.asciz <string>`: defines a sequence of ASCII bytes, wrapped in quotation marks (null terminated)<br>
 `.word <number>`: defines a 2-byte constant<br>
