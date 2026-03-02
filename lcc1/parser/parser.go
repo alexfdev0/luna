@@ -877,7 +877,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 							if variable.ArgNum > 0 {
 								// Array
 								expect(lexer.TokLBracket)
-								offset := expect(lexer.TokNumber)
+								// offset := expect(lexer.TokNumber)
 								
 							}
 							expect(lexer.TokEqual)

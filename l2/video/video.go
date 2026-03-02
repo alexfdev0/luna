@@ -163,6 +163,8 @@ func CreateProgram() uint32 {
     program := gl.CreateProgram()
     gl.AttachShader(program, vs)
     gl.AttachShader(program, fs)
+	gl.BindAttribLocation(program, 0, gl.Str("inPos\x00"))
+	gl.BindAttribLocation(program, 1, gl.Str("inUV\x00"))
     gl.LinkProgram(program)
 
     var status int32
