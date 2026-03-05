@@ -732,8 +732,6 @@ func Parse(tokens []lexer.Token, Scope int) {
 											num_real, _ := strconv.ParseInt(num, 0, 64)
 											j++
 											switch variable.Type {
-											case NUMBER8, STRING:
-												num_real += 1
 											case NUMBER16:
 												num_real *= 2
 											case NUMBER32:
@@ -919,8 +917,6 @@ func Parse(tokens []lexer.Token, Scope int) {
 								}
 								expect(lexer.TokRBracket)
 								switch variable.Type {
-								case NUMBER8, STRING:
-									offset_real += 1
 								case NUMBER16:
 									offset_real *= 2
 								case NUMBER32:
