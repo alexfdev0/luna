@@ -1136,11 +1136,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	success := execute("l2ld " + strings.Join(object_files, " ") + " -o " + output_filename)
-	if success != true {
-		cleanupFiles(object_files)
-		fmt.Println("\033[1;39mlcc: \033[1;31merror: \033[1;39mlinker command failed.\033[0m")
-		os.Exit(1)
-	}
+	execute("lcc " + strings.Join(object_files, " ") + " -o " + output_filename)	
 	cleanupFiles(object_files)
 }

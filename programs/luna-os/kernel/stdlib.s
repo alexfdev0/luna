@@ -280,7 +280,9 @@ setup_copy:
 
     mov e10, pc
     nop
-
+    
+    int 0x10
+    mov r2, r1
     int 0x0d
     inc r1
 

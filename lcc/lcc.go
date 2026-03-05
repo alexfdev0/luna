@@ -65,6 +65,8 @@ func main() {
 
 	var nolink bool = false
 	var noassemble bool = false
+	var hl_error bool = false
+	var asm_error bool = false
 	var input_files = []string {}
 	var cleanup = []string {}
 	var output_file string = ""
@@ -117,21 +119,26 @@ func main() {
 		name, _ := splitFile(file)
 
 		switch ext {
-		case ".c", ".h":
+		case ".c", ".h", ".cxx", ".hxx", ".cpp", ".hpp":
 			success := execute("lcc1 -S " + file + " -o " + name + ".s " + strings.Join(cc1args, " "), false)
 			if success != true {
+				hl_error = true
 				continue
 			}
 			assembly_files = append(assembly_files, name + ".s")
 			cleanup = append(cleanup, name + ".s")
 		case ".asm", ".s", ".S":
 			assembly_files = append(assembly_files, file)	
-		case ".o":
+		case ".o", ".obj":
 			object_files = append(object_files, file)
 		default:
 			stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39munknown file type in '" + file + "'\033[0m")
 		}
 	}	
+
+	if hl_error == true {
+		os.Exit(1)
+	}
 
 	if noassemble == true {
 		os.Exit(0)
@@ -144,13 +151,19 @@ func main() {
 		success := execute("las -c " + file + " -o " + name + ".o", false)
 
 		if success != true {
-			os.Exit(1)
+			asm_error = true
+			continue
 		}
 
 		object_files = append(object_files, name + ".o")
 		if nolink == false {
 			cleanup = append(cleanup, name + ".o")
 		}	
+	}
+
+	if asm_error == true {
+		cleanupFiles(cleanup)
+		os.Exit(1)
 	}
 
 	if nolink == true {

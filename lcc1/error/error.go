@@ -38,6 +38,7 @@ var errors = []string {
 	"cannot take the address of an rvalue of type",
 	"duplicate",
 	"unterminated conditional directive",
+	"array index",
 }
 
 var Warnings int = 0
@@ -85,6 +86,8 @@ func Stargaze(Tokens *[]lexer.Token, where int) {
 	text = strings.ReplaceAll(text, "* ", "*")
 	text = strings.ReplaceAll(text, "\033[34mchar\033[0m *", "\033[34mchar\033[0m*")
 	text = strings.ReplaceAll(text, "\033[34mint\033[0m *", "\033[34mint\033[0m*")
+	text = strings.ReplaceAll(text, " [ ", "[")
+	text = strings.ReplaceAll(text, " ] ", "] ")
 
 	fmt.Printf("    %d | %s\n", line, text)
 }
@@ -106,7 +109,7 @@ func Error(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
 	fmt.Fprintln(os.Stderr, "\033[1;39m" + label + " \033[1;31merror: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
 	Stargaze(tokens, find(token, tokens))
 	Errors = Errors + 1
-	os.Exit(1)
+	// os.Exit(1)
 }
 
 func ErrorNoGaze(errno int, args string, token lexer.Token) {
@@ -116,7 +119,7 @@ func ErrorNoGaze(errno int, args string, token lexer.Token) {
 	}
 	fmt.Fprintln(os.Stderr, "\033[1;39m" + label + " \033[1;31merror: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
 	Errors = Errors + 1
-	os.Exit(1)
+	// os.Exit(1)
 }
 
 func Warning(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
@@ -139,4 +142,29 @@ func Note(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
 	}
 	fmt.Println("\033[1;39m" + label + " \033[1;36mnote: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
 	Stargaze(tokens, find(token, tokens))
+}
+
+func Summary() {
+	if Errors < 1 && Warnings < 1 {
+		return
+	}
+
+	str := ""
+	if Errors > 0 {
+		str = str + fmt.Sprintf("%d error", Errors)
+	}	
+	if Errors > 1 {
+		str = str + "s"
+	}
+	if Warnings > 0 && Errors > 0 {
+		str = str + " and "
+	}
+	if Warnings > 0 {
+		str = str + fmt.Sprintf("%d warning", Warnings)
+	}
+	if Warnings > 1 {
+		str = str + "s"
+	}
+	str = str + " generated."
+	fmt.Println(str)
 }

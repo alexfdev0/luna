@@ -88,10 +88,15 @@ func main() {
 		code := lexer.Preprocessor(string(data), file, false)
 		tokens := lexer.Lex(code, file)
 		parser.Parse(tokens, 1)
-		name, _ := splitFile(file)
-		assembly_files = append(assembly_files, name + ".s")
-		os.WriteFile(name + ".s", []byte(".text\n" + parser.Code1 + "\n" + parser.Code2), 0644)
+
+		if error.Errors < 1 {
+			name, _ := splitFile(file)
+			assembly_files = append(assembly_files, name + ".s")
+			os.WriteFile(name + ".s", []byte(".text\n" + parser.Code1 + "\n" + parser.Code2), 0644)
+		}
 	}	
+
+	error.Summary()
 
 	if error.Errors > 0 {
 		os.Exit(1)

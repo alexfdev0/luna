@@ -533,7 +533,7 @@ func execute() {
 				shared.MapperWrite(addr + 3, byte(getRegister(value) & 0xFF))
 			}	
 			setRegister(0x001a, ProgramCounter + 3)
-			Log("str " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(value))
+			Log("strf " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(value))
 			stall(100)
 		case 0x19:
 			// LODF
@@ -600,6 +600,10 @@ func execute() {
 		}
 
 		if Debug == true {
+			for i := 0; i < len(Registers); i++ {
+				Register := Registers[i]
+				fmt.Println(Register.Name + ": " + fmt.Sprintf("0x%8x", Register.Value))
+			}
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
 		}
 	}
