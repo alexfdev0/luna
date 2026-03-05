@@ -17,18 +17,6 @@ mov r1, 0x6FFF0026
 mov r2, kernel_panic
 strf r1, r2
 
-mov r1, 0x6FFF0025
-mov r2, 1
-str r1, r2
-
-mov r1, 0x6FFF0026
-mov r2, kernel_panic
-strf r1, r2
-
-mov r1, 0x6FFF0067
-mov r2, 1
-// str r1, r2 MOUSE
-
 mov r1, 0x6FFF001A
 mov r2, key_click
 strf r1, r2

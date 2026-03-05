@@ -5,7 +5,10 @@ jmp _start
 
 _start:
     // Setup stack
-    mov sp, 0xEFFF 
+    mov sp, 0xEFFF
+
+    // Check partition table
+    call check_vol
 
     // Load next sector
     int 0x10
@@ -27,10 +30,7 @@ _start:
     mov r4, num_sectors
     lodf r4, r4
     push r4
-    call load_sectors
-
-    // Check partition table
-    call check_vol
+    call load_sectors 
 
     jmp 512 
 
