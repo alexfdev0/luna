@@ -116,6 +116,158 @@ func CreateScope(Parent int) int {
 	return IDCounter - 1
 }
 
+func ParseExpy(tokens []lexer.Token, i int, Scope int, register string) int {
+	expect := func(toktype lexer.TokenType) string {
+		var value string
+		if i >= len(tokens) {
+			if toktype != lexer.TokSemi {
+				error.Error(1, "'<EOF>'", tokens[i - 1], &tokens)
+			} else {
+				error.Error(18, "", tokens[i - 1], &tokens)
+			}
+		}
+		if tokens[i].Type == toktype {
+			value = tokens[i].Value
+			i++
+		} else {
+			if toktype != lexer.TokSemi {
+				error.Error(1, "'" + tokens[i].Value + "'", tokens[i], &tokens)
+			} else {
+				error.Error(18, "", tokens[i - 1], &tokens)
+			}
+		}
+		return value
+	}	
+	peek := func(lookahead int) lexer.Token {
+		if i + lookahead < len(tokens) && i + lookahead >= 0 {
+			return tokens[i + lookahead]
+		}
+		return lexer.Token{Type: lexer.TokEOF, Value: ""}
+	}
+	deref := 0
+
+	// Expect output in R4
+	EXPY_TOP:
+	switch peek(0).Type {
+	case lexer.TokStar:
+		expect(lexer.TokStar)
+		deref++
+		goto EXPY_TOP
+	case lexer.TokAmpersand:
+		expect(lexer.TokAmpersand)
+		deref--
+		if deref <= -2 {
+			error.Error(27, "'int'", peek(-1), &tokens)
+		}
+		goto EXPY_TOP
+	case lexer.TokIdent:
+		derefed := false
+		label := expect(lexer.TokIdent)
+		var variable Variable_Static
+
+		if label[0] == '"' {
+			goto STRING
+		}
+
+		variable = LookupVariable(label, true, Scope, peek(-1), &tokens)
+		Write("mov r1, " + variable.Real, true)
+		for _ = deref; deref > 0; deref-- {
+			derefed = true
+			switch variable.Type {
+			case NUMBER8, STRING:
+				Write("lod r1, r2", true)
+			case NUMBER16, NUMBER32:
+				Write("lodf r1, r2", true)
+			}
+		}
+		if derefed == false {
+			Write("mov " + register + ", r1", true)
+		} else {
+			Write("mov " + register + ", r2", true)
+		}
+		goto CONTINUE
+		STRING:
+		_label := fmt.Sprintf("var_%d", IDCounter)
+		WritePre(_label + ":", false)
+		WritePre(".asciz \"" + label + "\"", true)
+		Write("mov " + register + ", " + _label, true)
+		IDCounter++	
+	case lexer.TokNumber:
+		// Parse expressions
+		// Load it up into r4
+		exit := false
+		num1 := expect(lexer.TokNumber)
+		var num2 string = "" 
+		var op string = ""
+		OP_TRY:
+
+		switch peek(0).Type {
+		case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
+			exit = false
+		default:
+			exit = true
+		}
+		if exit == true {
+			goto CHECK_FOR_PTR
+		}
+
+		op = expect(peek(0).Type)
+		num2 = expect(lexer.TokNumber)
+		switch op {
+		case "+":
+			Write("mov r5, " + num1, true)
+			Write("mov r6, " + num2, true)
+			Write("add " + register + ", r5, r6", true)
+		case "-":
+			Write("mov r5, " + num1, true)
+			Write("mov r6, " + num2, true)
+			Write("sub " + register + ", r5, r6", true)
+		case "*":
+			Write("mov r5, " + num1, true)
+			Write("mov r6, " + num2, true)
+			Write("mul " + register + ", r5, r6", true)
+		case "/":
+			Write("mov r5, " + num1, true)
+			Write("mov r6, " + num2, true)
+			Write("div " + register + ", r5, r6", true)
+		}
+		switch peek(0).Type {
+		case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
+			goto OP_TRY
+		}
+		goto CONTINUE
+
+		CHECK_FOR_PTR:
+		if deref < 0 {
+			error.Error(31, "'&' operand", peek(-1), &tokens)
+		}
+		derefed := false
+		Write("mov r1, " + num1, true)
+		for _ = deref; deref > 0; deref-- {
+			derefed = true
+			Write("lod r1, r2", true)
+		}
+		if derefed == false {
+			Write("mov " + register + ", r1", true)
+		} else {
+			Write("mov " + register + ", r2", true)
+		}
+	}
+	CONTINUE:
+	if peek(0).Type != lexer.TokEqual {
+		// expect(lexer.TokSemi)
+		// ^^^^^^^^^^^^^^^^^^^^^
+		// Don't add till we replace level 1 with this instead
+		return i
+	}
+	expect(lexer.TokEqual)
+
+	i = ParseExpy(tokens, i, Scope, "r5")
+	
+	
+	return i
+}
+
 func LookupVariable(Name string, Enforce bool, Scope int, Token lexer.Token, Tokens *[]lexer.Token) Variable_Static {
 	for {
 		for _, variable := range Variables {
@@ -583,8 +735,8 @@ func Parse(tokens []lexer.Token, Scope int) {
 				switch _type {
 				case "void":
 					error.Error(7, "'void'", _typetoken, &tokens)
-				case "int":	
-					_, end := ParseExpression(tokens, i, Scope)
+				case "int":
+					end := ParseExpy(tokens, i, Scope, "r4")	
 					var val any	
 
 					if ptr == true {
@@ -596,7 +748,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 
 						// Move result to variable
 						Write("mov r7, " + rn, true)
-						Write("strf r7, r6", true)
+						Write("strf r7, r4", true)
 					} else {
 						rn := "var_" + fmt.Sprintf("%d", IDCounter)
 						IDCounter++
@@ -608,7 +760,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 						Write("mov r7, " + rn, true)
 						Write("strf r7, r6", true)
 					}
-					i = end + 1
+					i = end
 				case "char":
 					str, end := StringParse(tokens, i)	
 					if ptr == true {
@@ -935,24 +1087,24 @@ func Parse(tokens []lexer.Token, Scope int) {
 									if variable.Type != NUMBER16 && variable.Type != NUMBER32 {
 										error.Error(5, "'" + peek(0).Value + "'", peek(0), &tokens)
 									}
-									_, end := ParseExpression(tokens, i, Scope)
+									end := ParseExpy(tokens, i, Scope, "r4")
 									
 									if already_loaded == false {
 										Write("mov r1, " + name, true)
 									}
 
-									Write("mov r2, r6", true)
+									Write("mov r2, r4", true)
 									if variable.Type == NUMBER8 && variable.Type == STRING {	
 										Write("str r1, r2", true)
 									} else {	
 										Write("strf r1, r2", true)
 									}
-									i = end + 1
+									i = end
 								} else {
 									if variable.Pointer == false {
 										error.Error(26, "", _ntok, &tokens)
 									}
-									_, end := ParseExpression(tokens, i, Scope)
+									end := ParseExpy(tokens, i, Scope, "r4")
 									
 									if already_loaded == false {
 										Write("mov r1, " + variable.Real, true)
@@ -966,7 +1118,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 										Write("lodf r1, r1", true)
 										Write("strf r1, r2", true)
 									}	
-									i = end + 1
+									i = end
 								}
 							case lexer.TokIdent, lexer.TokAmpersand:
 								addr := false

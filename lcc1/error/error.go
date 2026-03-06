@@ -39,6 +39,7 @@ var errors = []string {
 	"duplicate",
 	"unterminated conditional directive",
 	"array index",
+	"lvalue required as unary",
 }
 
 var Warnings int = 0
