@@ -116,6 +116,15 @@ func CreateScope(Parent int) int {
 	return IDCounter - 1
 }
 
+func ParseExpyL1(tokens []lexer.Token, i int, Scope int) {
+	for {
+		if i >= len(tokens) {
+			break
+		}
+		i = ParseExpy(tokens, i, Scope, "r4")
+	}
+}
+
 func ParseExpy(tokens []lexer.Token, i int, Scope int, register string) int {
 	expect := func(toktype lexer.TokenType) string {
 		var value string
@@ -144,11 +153,14 @@ func ParseExpy(tokens []lexer.Token, i int, Scope int, register string) int {
 		}
 		return lexer.Token{Type: lexer.TokEOF, Value: ""}
 	}
-	deref := 0
 
+	deref := 0
+	EQU_VT := NULL
 	// Expect output in R4
 	EXPY_TOP:
 	switch peek(0).Type {
+	default:
+		expect(lexer.TokEOF)
 	case lexer.TokStar:
 		expect(lexer.TokStar)
 		deref++
@@ -170,6 +182,7 @@ func ParseExpy(tokens []lexer.Token, i int, Scope int, register string) int {
 		}
 
 		variable = LookupVariable(label, true, Scope, peek(-1), &tokens)
+		EQU_VT = variable.Type
 		Write("mov r1, " + variable.Real, true)
 		for _ = deref; deref > 0; deref-- {
 			derefed = true
@@ -254,17 +267,26 @@ func ParseExpy(tokens []lexer.Token, i int, Scope int, register string) int {
 		}
 	}
 	CONTINUE:
+	
 	if peek(0).Type != lexer.TokEqual {
+		// fmt.Println("PEEK 0:", peek(0).Value)
+		// fmt.Println("PEEK -1:", peek(-1).Value)	
 		// expect(lexer.TokSemi)
-		// ^^^^^^^^^^^^^^^^^^^^^
-		// Don't add till we replace level 1 with this instead
 		return i
 	}
 	expect(lexer.TokEqual)
 
 	i = ParseExpy(tokens, i, Scope, "r5")
-	
-	
+
+	switch EQU_VT {
+	case NUMBER8, STRING:
+		Write("str " + register + ", r5", true)
+	case NUMBER16, NUMBER32:
+		Write("strf " + register + ", r5", true)
+	}
+
+	expect(lexer.TokSemi)
+
 	return i
 }
 
@@ -721,7 +743,9 @@ func Parse(tokens []lexer.Token, Scope int) {
 					if name != "_start" && noreturn == false {
 						Write("push e11", true)
 					}
-					Parse(Children, fscope)
+	
+					ParseExpyL1(Children, 0, fscope)
+
 					if name != "_start" && noreturn == false {
 						Write("pop e11", true)
 						Write("ret", true)
