@@ -54,9 +54,9 @@ func write(content byte) {
 	Buffer = append(Buffer, content)	
 }
 
-func checkBinding(name string) binding {
+func checkBinding(name string, file string) binding {
 	for i := range bindings {
-		if bindings[i].Name == name {
+		if bindings[i].Name == name && ((bindings[i].File == file && bindings[i].Global == false) || bindings[i].Global == true) {
 			return bindings[i] 
 		}
 	}
@@ -138,7 +138,7 @@ func Filter(data []byte, filename string) {
 			}
 			name := string(data[i + 3:j])
 			j++
-			binding := checkBinding(name)	
+			binding := checkBinding(name, filename)	
 			OK := false
 			if binding.Global == false {	
 				if filename == binding.File {	
@@ -242,7 +242,6 @@ func main() {
 	var input_files []string
 	var output_filename string = ""
 	var auto bool = false
-	var exportFile string = "linker.lnk"
 
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -258,9 +257,6 @@ func main() {
 			i++
 		case "-a":
 			auto = true
-		case "-e":
-			exportFile = os.Args[i + 1]
-			i++
 		default:
 			input_files = append(input_files, arg)
 		}
@@ -300,28 +296,7 @@ func main() {
 			}
 			error(3, "\n  \"" + ub.Name + "\", referenced from\n    " + ub.File)
 		}
-	}
-
-	if len(Exports) > 0 {
-		text := ""
-
-		for i := 0; i < len(Exports); i++ {
-			binding := checkBinding(Exports[i].Name)
-
-			if binding.Name == "nil" {
-				print("ERROR: " + Exports[i].Name + " NOT FOUND\n")
-			}
-			var loc uint32 = 0
-			if len(binding.Location) == 2 {
-				loc = uint32(uint16(binding.Location[0]) << 8 | uint16(binding.Location[1]))
-			} else {
-				loc = uint32(binding.Location[0]) << 24 | uint32(binding.Location[1]) << 16 | uint32(binding.Location[2]) << 8 | uint32(binding.Location[3])
-			}
-			text = text + Exports[i].Name + " " + fmt.Sprintf("%d", loc) + "\n"
-		}
-
-		os.WriteFile(exportFile, []byte(text), 0644)
-	}
+	}	
 
 	if FillSize > 0 {	
 		if len(buffer) > FillSize {

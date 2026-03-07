@@ -1,5 +1,14 @@
-int a = 100;
+extern void print(char* string);
+int a = 1;
+int b = 1;
 
-int main() {
-    a = &&a;
+
+void _start() {
+    asm ("mov sp, 0xefff");
+    if (a == b) {
+        print("hi\n");
+    } else {
+        print("no\n");
+    }
+    asm ("hlt");
 }

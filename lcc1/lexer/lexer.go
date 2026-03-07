@@ -10,6 +10,9 @@ import (
 	"path/filepath"
 )
 
+var Bits int = 16
+var Warnings = 0
+
 type TokenType int
 
 const (
@@ -44,6 +47,8 @@ const (
 	TokLBracket
 	TokRBracket
 	TokTypedef
+	TokEquality
+	TokInequality
 )
 
 type Token struct {
@@ -125,7 +130,12 @@ func Lex(code string, filename string) []Token {
 				tokens = append(tokens, Token{Type: TokSlash, Value: content, Line: s.Pos().Line, File: filename})
 			}	
 		} else if content == "=" {
-			tokens = append(tokens, Token{Type: TokEqual, Value: content, Line: s.Pos().Line, File: filename})
+			if s.Peek() == '=' {
+				s.Next()
+				tokens = append(tokens, Token{Type: TokEquality, Value: "==", Line: s.Pos().Line, File: filename})
+			} else {
+				tokens = append(tokens, Token{Type: TokEqual, Value: content, Line: s.Pos().Line, File: filename})
+			}
 		} else if content == "," {
 			tokens = append(tokens, Token{Type: TokComma, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == ":" {
@@ -145,7 +155,12 @@ func Lex(code string, filename string) []Token {
 		} else if content == "&" {
 			tokens = append(tokens, Token{Type: TokAmpersand, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "!" {
-			tokens = append(tokens, Token{Type: TokExclamation, Value: content, Line: s.Pos().Line, File: filename})
+			if s.Peek() == '=' {
+				s.Next()
+				tokens = append(tokens, Token{Type: TokInequality, Value: "!=", Line: s.Pos().Line, File: filename})
+			} else {
+				tokens = append(tokens, Token{Type: TokExclamation, Value: content, Line: s.Pos().Line, File: filename})
+			}
 		} else if content == "//" {
 
 		} else if content == "[" {
@@ -226,10 +241,10 @@ func Preprocessor(text string, filename string, just_split bool) string {
 			}
 
 			defines[alias] = actual
-		case "#ifdef":
+		case "#ifdef", "#ifndef":
 			alias := tokens[i + 1].Value
 			i += 2
-			if _, ok := defines[alias]; ok {
+			if _, ok := defines[alias]; (ok && tokens[i - 2].Value == "#ifdef") || (!ok && tokens[i - 2].Value == "#ifndef") {
 				for j := i; j < len(tokens); j++ {
 					if tokens[j].Value != "#else" && tokens[j].Value != "#endif" {
 						again = true
@@ -270,8 +285,12 @@ func Preprocessor(text string, filename string, just_split bool) string {
 			}
 		case "#error":
 			i++
-			fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + "\033[0m \033[1;31merror:\033[0m \033[1;39m" + tokens[i].Value + "\033[0m")
+			fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + ":\033[0m \033[1;31merror:\033[0m \033[1;39m" + tokens[i].Value + "\033[0m")
 			os.Exit(1)
+		case "#warning":
+			i++
+			Warnings++
+			fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + ":\033[0m \033[1;35mwarning:\033[0m \033[1;39m" + tokens[i].Value + "\033[0m")	
 		case "#include":
 			base := filepath.Dir(filename)
 			i++
@@ -285,13 +304,28 @@ func Preprocessor(text string, filename string, just_split bool) string {
 
 			contents, err := os.ReadFile(path)
 			if err != nil {
-				fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + ":\033[0m \033[1;31merror:\033[0m \033[1;39mno such file or directory '" + path + "'\033[0m")
+				fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + ":\033[0m \033[1;31mfatal error:\033[0m \033[1;39mno such file or directory '" + path + "'\033[0m")
 				os.Exit(1)
 			}
 			i++
 			ntokens := tokenize(string(contents)) 
 			for j := 0; j < len(ntokens); j++ {
 				out = append(out, ntokens[j])
+			}
+		case "#pragma":
+			i++
+			switch tokens[i].Value {
+			case "bits":
+				i++
+				switch tokens[i].Value {
+				case "16":
+					Bits = 16
+				case "32":
+					Bits = 32
+				default:
+					fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + ":\033[0m \033[1;35mwarning:\033[0m \033[1;39minvalid number for '#pragma bits'\033[0m")
+					Warnings++	
+				}
 			}
 		default:
 			token := tokens[i]

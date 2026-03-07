@@ -40,6 +40,7 @@ var errors = []string {
 	"unterminated conditional directive",
 	"array index",
 	"lvalue required as unary",
+	"missing terminating",
 }
 
 var Warnings int = 0
@@ -110,6 +111,9 @@ func Error(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
 	fmt.Fprintln(os.Stderr, "\033[1;39m" + label + " \033[1;31merror: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
 	Stargaze(tokens, find(token, tokens))
 	Errors = Errors + 1
+	if Errors >= 10 {
+		os.Exit(1)
+	}
 	// os.Exit(1)
 }
 
@@ -146,26 +150,27 @@ func Note(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
 }
 
 func Summary() {
+	Warnings += lexer.Warnings
 	if Errors < 1 && Warnings < 1 {
 		return
 	}
 
-	str := ""
-	if Errors > 0 {
-		str = str + fmt.Sprintf("%d error", Errors)
-	}	
-	if Errors > 1 {
-		str = str + "s"
-	}
-	if Warnings > 0 && Errors > 0 {
-		str = str + " and "
-	}
+	str := ""	
 	if Warnings > 0 {
 		str = str + fmt.Sprintf("%d warning", Warnings)
 	}
 	if Warnings > 1 {
 		str = str + "s"
 	}
+	if Warnings > 0 && Errors > 0 {
+		str = str + " and "
+	}
+	if Errors > 0 {
+		str = str + fmt.Sprintf("%d error", Errors)
+	}	
+	if Errors > 1 {
+		str = str + "s"
+	}	
 	str = str + " generated."
 	fmt.Println(str)
 }

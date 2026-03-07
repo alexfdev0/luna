@@ -1,3 +1,9 @@
+#pragma bits 32
+#include "stdlib.h"
+#include "lufs.h"
+
+extern void pause();
+
 void user_setup() {
     puts32("Setup will now initialize the user that will use this machine.\n\n", 255, 0);
     puts32("Username: root\n", 255, 0);
@@ -19,7 +25,7 @@ void setup() {
 
     puts32("Detecting your drive...\n", 255, 0);
     lufs_create_file("NOTEPAD SYS     ", 256); // Create notepad file
-    if (getdrive()) {
+    if (getdrive() == 1) {
         puts32("Setup has detected you are running Setup on a USB device.\n\n", 255, 0);
         user_setup();
 

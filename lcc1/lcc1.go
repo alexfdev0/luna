@@ -57,7 +57,7 @@ func main() {
 			output_file = os.Args[i + 1]
 			i++
 		case "-v":
-			fmt.Println("Luna Compiler Collection version 3.2")
+			fmt.Println("Luna Compiler Collection version 4.0")
 			fmt.Println("Target: luna-l2")
 			os.Exit(0)
 		case "-S":
@@ -92,8 +92,22 @@ func main() {
 		if error.Errors < 1 {
 			name, _ := splitFile(file)
 			assembly_files = append(assembly_files, name + ".s")
-			os.WriteFile(name + ".s", []byte(".text\n" + parser.Code1 + "\n" + parser.Code2), 0644)
+			dir := ""
+
+			switch lexer.Bits {
+			case 16:
+				dir = ".bits 16"
+			case 32:
+				dir = ".bits 32"
+			default:
+				dir = ".bits 16"
+			}
+			os.WriteFile(name + ".s", []byte(dir + "\n" + parser.Code1 + "\n" + parser.Code2), 0644)
 		}
+
+		// Reset and clean up for the next file
+		error.Errors = 0
+		error.Warnings = 0
 	}	
 
 	error.Summary()

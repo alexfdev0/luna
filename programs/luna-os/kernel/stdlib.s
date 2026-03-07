@@ -277,7 +277,6 @@ setup_copy:
 
     mov r1, 0
     mov r2, 0
-
     mov e10, pc
     nop
     
@@ -287,7 +286,7 @@ setup_copy:
     inc r1
 
     igt r4, r1, r3
-    jz r4, e10
+    jz r4, e10    
 
     ret
 

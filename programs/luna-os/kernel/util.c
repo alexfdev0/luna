@@ -1,3 +1,7 @@
+#pragma bits 32
+#include "stdlib.h"
+#include "audio.h"
+
 void pause() {
     puts32("Press any key to continue...\n\n", 255, 0);
     wait_for_key();
