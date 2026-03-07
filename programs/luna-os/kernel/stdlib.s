@@ -273,19 +273,18 @@ getdrive:
 
 setup_copy:
     pop e11
-    pop r3
+    pop r2 // drive number
+    pop r5 // max sectors
+
 
     mov r1, 0
-    mov r2, 0
     mov e10, pc
     nop
     
-    int 0x10
-    mov r2, r1
     int 0x0d
     inc r1
 
-    igt r4, r1, r3
+    igt r4, r1, r5
     jz r4, e10    
 
     ret

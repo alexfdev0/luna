@@ -248,8 +248,8 @@ func main() {
 
 		switch arg {
 		case "-v":
-			fmt.Println("@(#)PROGRAM:l2ld PROJECT:l2ld-2.1")
-			fmt.Println("BUILD 11:17 Oct 20 2025")
+			fmt.Println("@(#)PROGRAM:l2ld PROJECT:l2ld-2.2")
+			fmt.Println("BUILD 09:48 Mar 7 2026")
 			fmt.Println("configured to support archs: luna-l2")	
 			os.Exit(0)
 		case "-o":

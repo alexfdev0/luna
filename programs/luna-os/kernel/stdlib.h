@@ -2,7 +2,7 @@ extern void readin(char* buffer, int clrdone, int blind);
 extern void writeout(int sector, int drive);
 extern void xor_cycle(char* buffer);
 extern void puts32(char* str, int fg, int bg);
-extern void setup_copy(int sectors);
+extern void setup_copy(int sectors, int drive);
 extern void save_buffer(char* buffer, int drive);
 extern void render(char* buffer);
 extern void sleep(int ms);
