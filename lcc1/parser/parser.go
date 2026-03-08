@@ -460,7 +460,11 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 				Write("mov r2, r1", true)
 			}
 		case NUMBER16, NUMBER32:
-			Write("lodf r1, r2", true)
+			if variable.Pointer == false {
+				Write("lodf r1, r2", true)
+			} else {
+				Write("mov r2, r1", true)
+			}
 		case NULL:
 			if variable.Pointer == true {
 				Write("mov r2, r1", true)

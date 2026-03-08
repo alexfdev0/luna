@@ -2,7 +2,7 @@ CC=lcc
 all:
 	$(CC) boot/stage1.s -o stage1.bin
 	$(CC) boot/stage2.s -o stage2.bin
-	$(CC) kernel/kernel_stub.s kernel/kernel.c kernel/setup.c kernel/shell.c kernel/util.c kernel/stdlib.s kernel/audio.s kernel/lufs.s kernel/bayachao.s -o kernel.bin
+	$(CC) kernel/kernel_stub.s kernel/util.c kernel/kernel.c kernel/setup.c kernel/shell.c kernel/stdlib.s kernel/audio.s kernel/lufs.s kernel/bayachao.s -o kernel.bin
 	dd if=stage1.bin of=os.img bs=512
 	dd if=stage2.bin of=os.img bs=1 seek=492 conv=notrunc
 	dd if=kernel.bin of=os.img bs=512 seek=3 conv=notrunc
