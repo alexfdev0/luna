@@ -71,6 +71,8 @@ func main() {
 	var cleanup = []string {}
 	var output_file string = ""
 	var cc1args []string
+	var lasargs []string
+	var l2ld_opt string = "-a"
 
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -91,6 +93,9 @@ func main() {
 			noassemble = true
 		case "-Werror":
 			cc1args = append(cc1args, "-Werror")
+			lasargs = append(lasargs, "-Werror")
+		case "-nostdlib":
+			l2ld_opt = ""	
 		default:
 			input_files = append(input_files, arg)
 		}
@@ -148,7 +153,7 @@ func main() {
 
 	for _, file := range assembly_files {
 		name, _ := splitFile(file)		
-		success := execute("las -c " + file + " -o " + name + ".o", false)
+		success := execute("las -c " + file + " -o " + name + ".o" + strings.Join(lasargs, " "), false)
 
 		if success != true {
 			asm_error = true
@@ -173,7 +178,7 @@ func main() {
 	
 	// Third pass: link all assembly files to final executable
 
-	success := execute("l2ld -a " + strings.Join(object_files, " ") + " -o " + output_file, false)
+	success := execute("l2ld " + l2ld_opt + " " + strings.Join(object_files, " ") + " -o " + output_file, false)
 	if success != true {
 		cleanupFiles(cleanup)
 		stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39mlinker command failed.\033[0m")

@@ -133,6 +133,8 @@ var errors = []string{
 	"expected number",
 	"unknown pragma directive",
 }
+
+var Upgrade bool
 var Errors int
 var Warnings int
 
@@ -150,6 +152,10 @@ func error(errno int, args string) {
 }
 
 func warning(errno int, args string) {
+	if Upgrade == true {
+		error(errno, args)
+		return
+	}
 	label := ""
 
 	if current_filename != "" {
@@ -1056,7 +1062,9 @@ func main() {
 			output_filename = os.Args[i + 1]
 			i++
 		case "-c":
-			nolink = true	
+			nolink = true
+		case "-Werror":
+			Upgrade = true
 		default:
 			input_files = append(input_files, arg)
 		}

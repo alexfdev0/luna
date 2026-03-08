@@ -604,8 +604,8 @@ func execute() {
 				Register := Registers[i]
 				fmt.Println(Register.Name + ": " + fmt.Sprintf("0x%8x", Register.Value))
 			}
-			bufio.NewReader(os.Stdin).ReadBytes('\n')
-		}
+			bufio.NewReader(os.Stdin).ReadBytes('\n')	
+		}	
 	}
 }
 

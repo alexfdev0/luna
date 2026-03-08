@@ -221,6 +221,8 @@ xor_cycle:
     pop e11
     pop r2
 
+    ret // see if this fixes it
+
     mov r3, PASS_KEY_ENCRYPT
     lod r3, r3
     jz r3, xor_cycle_gen
@@ -300,14 +302,14 @@ checkpass:
     ret
 
 save_buffer:
-    pop e11
+    pop e11 
     pop r1
 
     mov r3, 512
     div r4, r1, r3
-
     mov r1, r4
-   
+
+    mov r2, 0 // Drive 0
     int 0x0d
 
     ret

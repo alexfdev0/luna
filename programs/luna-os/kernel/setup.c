@@ -37,7 +37,7 @@ void setup() {
         puts32("done.\n\n", 255, 0);
 
         puts32("Setup will now restart this machine to complete the setup process.\n", 255, 0);
-        asm ("int 0x6");
+        pause(); 
         asm ("mov r1, 0");
         asm ("int 0xf");
     } else {

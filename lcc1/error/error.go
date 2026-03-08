@@ -18,7 +18,7 @@ var errors = []string {
 	"variable has incomplete type",
 	"comparison between pointer and non-pointer",
 	"too many arguments passed to function (max 6)",
-	"unnecessary arguments passed to _start function",
+	"unnecessary arguments passed to _start function", // 10
 	"unknown attribute",
 	"cannot combine with previous",
 	"duplicate",
@@ -28,7 +28,7 @@ var errors = []string {
 	"unknown pragma directive",
 	"expected ';' after expression",
 	"call to undeclared function",
-	"too few arguments to function call,",
+	"too few arguments to function call,", // 20
 	"too many arguments to function call,",
 	"",
 	"return type of",
@@ -38,9 +38,10 @@ var errors = []string {
 	"cannot take the address of an rvalue of type",
 	"duplicate",
 	"unterminated conditional directive",
-	"array index",
+	"array index", // 30
 	"lvalue required as unary",
 	"missing terminating",
+	"cannot assign to variable",
 }
 
 var Warnings int = 0
@@ -108,12 +109,14 @@ func Error(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
 	if token.Line != 0 {
 		label = token.File + ":" + fmt.Sprintf("%d", token.Line) + ":"
 	}
-	fmt.Fprintln(os.Stderr, "\033[1;39m" + label + " \033[1;31merror: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
+
+	addtl := " "
+	if errno == 22 {
+		addtl = ""
+	} 
+	fmt.Fprintln(os.Stderr, "\033[1;39m" + label + " \033[1;31merror: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
 	Stargaze(tokens, find(token, tokens))
-	Errors = Errors + 1
-	if Errors >= 10 {
-		os.Exit(1)
-	}
+	Errors = Errors + 1	
 	// os.Exit(1)
 }
 
@@ -122,7 +125,11 @@ func ErrorNoGaze(errno int, args string, token lexer.Token) {
 	if token.Line != 0 {
 		label = token.File + ":" + fmt.Sprintf("%d", token.Line) + ":"
 	}
-	fmt.Fprintln(os.Stderr, "\033[1;39m" + label + " \033[1;31merror: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
+	addtl := " "
+	if errno == 22 {
+		addtl = ""
+	}
+	fmt.Fprintln(os.Stderr, "\033[1;39m" + label + " \033[1;31merror: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
 	Errors = Errors + 1
 	// os.Exit(1)
 }
@@ -136,7 +143,11 @@ func Warning(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
 	if token.Line != 0 {
 		label = token.File + ":" + fmt.Sprintf("%d", token.Line) + ":"
 	}
-	fmt.Println("\033[1;39m" + label + " \033[1;35mwarning: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
+	addtl := " "
+	if errno == 22 {
+		addtl = ""
+	}
+	fmt.Println("\033[1;39m" + label + " \033[1;35mwarning: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
 	Stargaze(tokens, find(token, tokens))
 	Warnings = Warnings + 1
 }
@@ -145,7 +156,11 @@ func Note(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
 	if token.Line != 0 {
 		label = token.File + ":" + fmt.Sprintf("%d", token.Line) + ":"
 	}
-	fmt.Println("\033[1;39m" + label + " \033[1;36mnote: \033[1;39m" + errors[errno] + " " + args + "\033[0m")
+	addtl := " "
+	if errno == 22 {
+		addtl = ""
+	}
+	fmt.Println("\033[1;39m" + label + " \033[1;36mnote: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
 	Stargaze(tokens, find(token, tokens))
 }
 

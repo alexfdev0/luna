@@ -1,8 +1,8 @@
 package audio
 
 import (
-	"github.com/faiface/beep"
-	"github.com/faiface/beep/speaker"
+	"github.com/gopxl/beep"
+	"github.com/gopxl/beep/speaker"
 	"time"
 	"luna_l2/shared"
 )
@@ -38,15 +38,16 @@ func (s *PCMStreamer) Stream(samples [][2]float64) (n int, ok bool) {
 
 func (s *PCMStreamer) Err() error { return nil }
 func Play() {	
-	streamer := &PCMStreamer{}	
-	speaker.Play(beep.Seq(streamer, beep.Callback(func() {
+	streamer := &PCMStreamer{}
+	actual_audio := beep.Resample(4, 44100, 48000, streamer)
+	speaker.Play(beep.Seq(actual_audio, beep.Callback(func() {
 		MemoryAudio[9] = 1
 	})))	
 }
 
 func AudioController() {
-	format := beep.Format{SampleRate: 44100, NumChannels: 2, Precision: 1}
-	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second / 10))
+	format := beep.Format{SampleRate: 48000, NumChannels: 2, Precision: 1}
+	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second / 2))
 	for {
 		if MemoryAudio[0] == 1 {
 			MemoryAudio[0] = 0

@@ -106,11 +106,11 @@ func main() {
 		}
 
 		// Reset and clean up for the next file
+		error.Summary()
+
 		error.Errors = 0
 		error.Warnings = 0
 	}	
-
-	error.Summary()
 
 	if error.Errors > 0 {
 		os.Exit(1)
