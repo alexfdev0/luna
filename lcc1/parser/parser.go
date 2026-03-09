@@ -475,25 +475,30 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		EQU_VT = variable.Type
 		EQU_VAR = variable
 		Write("mov r1, " + variable.Real, true)
-		switch variable.Type {
-		case NUMBER8:
-			Write("lod r1, r2", true)
-		case STRING:
-			if variable.Pointer == false {
+
+		if deref >= 0 {
+			switch variable.Type {
+			case NUMBER8:
 				Write("lod r1, r2", true)
-			} else {
-				Write("mov r2, r1", true)
+			case STRING:
+				if variable.Pointer == false {
+					Write("lod r1, r2", true)
+				} else {
+					Write("mov r2, r1", true)
+				}
+			case NUMBER16, NUMBER32:
+				if variable.Pointer == false {
+					Write("lodf r1, r2", true)
+				} else {
+					Write("mov r2, r1", true)
+				}
+			case NULL:
+				if variable.Pointer == true {
+					Write("mov r2, r1", true)
+				}
 			}
-		case NUMBER16, NUMBER32:
-			if variable.Pointer == false {
-				Write("lodf r1, r2", true)
-			} else {
-				Write("mov r2, r1", true)
-			}
-		case NULL:
-			if variable.Pointer == true {
-				Write("mov r2, r1", true)
-			}
+		} else {
+			Write("mov r2, r1", true)
 		}
 
 		for deref > 0 {

@@ -1,10 +1,15 @@
 #pragma bits 16
 extern void print(char* string);
-int a = 512;
-int b = sizeof(a);
+
+char a = "A";
+char b = "L";
+char c = "E";
+char d = "X";
+int e;
 
 void _start() {
-    print(*a);
+    asm ("mov sp, 0xEFFF");
+    print(&a);
 halt:
     goto halt;
 }
