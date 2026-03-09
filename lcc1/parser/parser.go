@@ -173,6 +173,31 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			// expect(lexer.TokSemi)
 			// TODO: make quotes check here
 			Write(strings.ReplaceAll(asmval, "\"", ""), true)
+		case "sizeof":
+			val := 0
+			_label := expect(lexer.TokIdent)
+			expect(lexer.TokRParen)
+			Variable := LookupVariable(_label, true, Scope, peek(-2), &tokens)
+			switch Variable.Type {
+			case NUMBER8:
+				val = 1
+			case STRING:
+				if Variable.Pointer == true {
+					switch lexer.Bits {
+					case 16:
+						val = 2
+					case 32:
+						val = 4
+					}
+				} else {
+					val = 1
+				}
+			case NUMBER16:
+				val = 2
+			case NUMBER32:
+				val = 4
+			}
+			Write("mov " + register + ", " + fmt.Sprintf("%d", val), true)
 		default:
 			Function_Variable := LookupVariable(label, false, Scope, peek(-2), &tokens)
 			if Function_Variable.Name == "__ZERO" {
@@ -688,6 +713,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 			constant := false
 			extern := false
 			static := false
+			signed := false
 			bits := BitPref	
 			for {	
 				if peek(0).Value == "asm" || peek(0).Value == "__asm__" {
@@ -733,10 +759,21 @@ func Parse(tokens []lexer.Token, Scope int) {
 						long = true
 						bits = 32
 					case "unsigned":
+						if signed == true {
+							error.Error(12, "'signed' declaration specifier", peek(-1), &tokens)
+						}
 						if unsigned == true {
 							error.Error(28, "'unsigned'", peek(-1), &tokens)
 						}
 						unsigned = true
+					case "signed":
+						if unsigned == true {
+							error.Error(12, "'unsigned' declaration specifier", peek(-1), &tokens)	
+						}
+						if signed == true {
+							error.Error(28, "'signed'", peek(-1), &tokens)
+						}
+						signed = true
 					case "const":
 						if constant == true {
 							error.Error(28, "'const'", peek(-1), &tokens)
@@ -992,7 +1029,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 						Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: val, Pointer: false, Real: rn, Scope: Scope, Const: constant})
 						// Move result to variable
 						Write("mov r7, " + rn, true)
-						Write("strf r7, r6", true)
+						Write("strf r7, r4", true)
 					}
 					i = end
 				case "char":
@@ -1003,11 +1040,15 @@ func Parse(tokens []lexer.Token, Scope int) {
 						Variables = append(Variables, Variable_Static{Name: name, Type: STRING, Value: str, Pointer: true, Real: rn, Scope: Scope, Const: constant})
 						WritePre(rn + ":", false)
 						WritePre(".asciz \"" + str + "\"", true)
-					} else {
+					} else {	
 						if len(str) > 1 {
 							error.Error(5, "'char' with an expression of type 'char*'", tokens[i], &tokens)
 						}
-						Variables = append(Variables, Variable_Static{Name: name, Type: STRING, Value: str, Pointer: false, Scope: Scope, Const: constant})
+						rn := "var_" + fmt.Sprintf("%d", IDCounter)
+						IDCounter++
+						WritePre(rn + ":", false)
+						WritePre(".byte " + fmt.Sprintf("0x%02x", str[0]), true)
+						Variables = append(Variables, Variable_Static{Name: name, Type: STRING, Value: str, Pointer: false, Scope: Scope, Const: constant, Real: rn})
 					}
 					i = end + 1
 				}
