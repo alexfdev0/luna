@@ -1,4 +1,5 @@
 .bits 32
+
 .global readin
 .global strcmp
 .global puts32
@@ -20,6 +21,10 @@
 .global key_click
 .global GBUF_EMPTY
 .global wait_for_key
+.global modulo
+.global itoa
+.global malloc
+.global free
 
 readin:
     pop e11
@@ -451,6 +456,77 @@ key_click:
 
     jmp e7
 
+modulo:
+    pop e11
+    pop r2      // Divisor
+    pop r1      // Dividend
+    div r3, r1, r2
+    mul r4, r3, r2
+    sub e6, r1, r4 
+    ret
+
+itoa:
+    pop e11
+    pop r2 // Mem location
+    pop r1
+
+    mov e7, 11
+    add r2, r2, e7      
+    mov r8, 0
+    str r2, r8         
+    mov r4, 10
+
+    mov e10, pc         
+
+    push r1
+    push r2
+    push r4
+    push r1             
+    push r4             
+    call modulo
+    pop r4
+    pop r2
+    pop r1              
+
+    mov r5, e6          
+    div r1, r1, r4      
+
+    mov e7, 48
+    add r5, r5, e7      
+    dec r2
+    str r2, r5          
+
+    mov r8, 0
+    cmp r9, r1, r8
+    jnz r9, e10
+
+    mov e6, r2          
+    ret
+
+malloc:
+    pop e11
+    pop r1 // Size
+
+    mov r2, MEM_PTR
+    lodf r2, r3
+    mov e6, r3
+    sub r3, r3, r1
+    strf r2, r3
+
+    ret
+
+free:
+    pop e11
+    pop r1 // Size
+
+    mov r2, MEM_PTR
+    lodf r2, r3
+    add r3, r3, r1
+    strf r2, r3
+
+    ret
+
+
 PASS_KEY_ENCRYPT:
     .pad 1
     
@@ -469,3 +545,6 @@ GBUF:
 
 GBUF_EMPTY:
     .pad 64000
+
+MEM_PTR:
+    .dword 0x50505050
