@@ -1,20 +1,13 @@
 #pragma bits 16
-extern void print(char* string);
+extern void print(char* s);
 
-int a = 101;
-int b = 100;
-
-int retone() {
-    return 1;
-}
+char* string = "Hello world!";
+int a = 1;
 
 void _start() {
+    a = 2 * 2;
     asm ("mov sp, 0xEFFF");
-    if (retone()) {
-        print("yes");
-    } else {
-        print("no");
-    }
+    print(string);
 halt:
-    goto halt; 
+    goto halt;
 }

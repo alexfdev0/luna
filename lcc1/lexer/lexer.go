@@ -76,7 +76,7 @@ func Lex(code string, filename string) []Token {
 		content := s.TokenText()
 		if content == "int" || content == "void" || content == "char" {
 			tokens = append(tokens, Token{Type: TokType, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "volatile" || content == "signed" || content == "unsigned" || content == "long" || content == "short" || content == "static" || content == "const" || content == "extern" {
+		} else if content == "volatile" || content == "unsigned" || content == "long" || content == "short" || content == "static" || content == "const" || content == "extern" {
 			tokens = append(tokens, Token{Type: TokQualifier, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "return" {
 			tokens = append(tokens, Token{Type: TokReturn, Value: content, Line: s.Pos().Line, File: filename})

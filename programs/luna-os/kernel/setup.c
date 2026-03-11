@@ -8,7 +8,7 @@ void user_setup() {
     puts32("Setup will now initialize the user that will use this machine.\n\n", 255, 0);
     puts32("Username: root\n", 255, 0);
     puts32("Enter a password: ", 255, 0);
-    readin(PASSBUF, 1, 1);
+    readin(&PASSBUF, 1, 1);
     xor_cycle(PASSBUF);
     puts32("\n\n", 255, 0);
 

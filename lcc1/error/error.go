@@ -5,6 +5,7 @@ import (
 	"os"
 	"lcc1/lexer"
 	"strings"
+	"regexp"
 )
 
 var errors = []string {
@@ -42,6 +43,9 @@ var errors = []string {
 	"lvalue required as unary",
 	"missing terminating",
 	"cannot assign to variable",
+	"attribute",
+	"initializer element is not a compile-time constant",
+	"implicit conversion from",
 }
 
 var Warnings int = 0
@@ -58,8 +62,17 @@ func Clamp(num int, mini int, maxi int) int {
 	return num
 }
 
-func Stargaze(Tokens *[]lexer.Token, where int) {
-	line := (*Tokens)[where].Line	
+func Stargaze(Tokens *[]lexer.Token, where int, errno int, kind int) {
+	// Kinds:
+	// 1: error
+	// 2: warning
+	// 3: note
+
+	line := (*Tokens)[where].Line
+
+	if kind != 3 {
+		(*Tokens)[where].Value = "\033[1;31m" + (*Tokens)[where].Value + "\033[0m"
+	}
 
 	start := where
 	for start > 0 && (*Tokens)[start - 1].Line == line {
@@ -92,7 +105,14 @@ func Stargaze(Tokens *[]lexer.Token, where int) {
 	text = strings.ReplaceAll(text, " [ ", "[")
 	text = strings.ReplaceAll(text, " ] ", "] ")
 
+
 	fmt.Printf("    %d | %s\n", line, text)
+	if errno == 18 {
+		var ansiRe = regexp.MustCompile(`\033\[[0-9;]*m`)
+		visibleLen := len(ansiRe.ReplaceAllString(text, ""))
+		fmt.Printf("     " + strings.Repeat(" ", len(string(line))) + "| " + strings.Repeat(" ", visibleLen) + "\033[1;32m^\033[0m\n")
+		fmt.Printf("      | " + strings.Repeat(" ", visibleLen) + "\033[1;32m;\033[0m\n")
+	} 
 }
 
 func find(token lexer.Token, tokens *[]lexer.Token) int {
@@ -115,7 +135,7 @@ func Error(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
 		addtl = ""
 	} 
 	fmt.Fprintln(os.Stderr, "\033[1;39m" + label + " \033[1;31merror: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
-	Stargaze(tokens, find(token, tokens))
+	Stargaze(tokens, find(token, tokens), errno, 1)
 	Errors = Errors + 1	
 	// os.Exit(1)
 }
@@ -148,7 +168,7 @@ func Warning(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
 		addtl = ""
 	}
 	fmt.Println("\033[1;39m" + label + " \033[1;35mwarning: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
-	Stargaze(tokens, find(token, tokens))
+	Stargaze(tokens, find(token, tokens), errno, 2)
 	Warnings = Warnings + 1
 }
 func Note(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {	
@@ -161,7 +181,7 @@ func Note(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
 		addtl = ""
 	}
 	fmt.Println("\033[1;39m" + label + " \033[1;36mnote: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
-	Stargaze(tokens, find(token, tokens))
+	Stargaze(tokens, find(token, tokens), errno, 3)
 }
 
 func Summary() {

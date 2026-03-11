@@ -8,12 +8,12 @@
 extern void setup();
 extern void shell();
 
-void _cstart() __attribute__((noreturn)) { 
+void _cstart() __attribute__((noreturn)) {
     puts32("LunaOS\n", 255, 0);
     puts32("Copyright (c) 2025 Alexander Flax\n\n", 255, 0);
     puts32(malloc(200), 255, 0); 
  
-    if (checkpass() == 0) { 
+    if (&PASSBUF == 0x00) { 
         setup(); 
     }
 enterpass:
