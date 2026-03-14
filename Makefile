@@ -52,6 +52,13 @@ macos-installer:
 		--scripts Mac/scripts \
 		build/"Luna L2 (arm64).pkg"
 
+mac_qmake:
+	cd l2 && CGO_ENABLED=1 GOOS=darwin go build -o /Applications/"Luna L2.app"/Contents/MacOS/luna-l2 luna_l2.go
+	cd lcc && GOOS=darwin go build -o /usr/local/bin/lcc lcc.go
+	cd las && GOOS=darwin go build -o /usr/local/bin/las las.go
+	cd lcc1 && GOOS=darwin go build -o /usr/local/bin/lcc1 lcc1.go
+	cd l2ld && GOOS=darwin go build -o /usr/local/bin/l2ld l2ld.go	
+
 windows-installer:
 	cd l2 && CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -ldflags="-H windowsgui" -o ../Windows/luna-l2.exe luna_l2.go
 	cd lcc && GOOS=windows GOARCH=amd64 go build -o ../Windows/lcc.exe lcc.go

@@ -20,5 +20,3 @@ extern char* itoa(int num, int location);
 extern void* TEMPBUF;
 extern void* PROMPTBUF;
 extern void* PASSBUF;
-extern void* GBUF;
-extern void* GBUF_EMPTY;

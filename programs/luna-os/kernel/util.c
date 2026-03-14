@@ -10,9 +10,8 @@ void pause() {
 
 void serve_close() {
     puts32("Server closed.\n", 255, 0);
-    asm ("mov r1, 0x7001a644");
-    asm ("mov r2, 0");
-    asm ("str r1, r2");
+    short short int* NETWORK_COMMAND = 0x7001A644;
+    *NETWORK_COMMAND = 0x00;
     return;
 }
 
@@ -23,4 +22,11 @@ void kernel_panic() __attribute__((noreturn)) {
     wait_for_key();
     asm ("int 0x10");
     asm ("int 0xf");
+}
+
+void video_set_cursor(int x, int y) {
+    // Arguments in e0, e1
+    asm ("mov r1, e0");
+    asm ("mov r2, e1");
+    asm ("int 0x0c");
 }

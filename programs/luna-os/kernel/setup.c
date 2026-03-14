@@ -1,16 +1,20 @@
 #pragma bits 32
 #include "stdlib.h"
 #include "lufs.h"
-
-extern void pause();
+#include "util.h"
 
 void user_setup() {
     puts32("Setup will now initialize the user that will use this machine.\n\n", 255, 0);
     puts32("Username: root\n", 255, 0);
     puts32("Enter a password: ", 255, 0);
-    readin(&PASSBUF, 1, 1);
+    readin(PASSBUF, 1, 1);
     xor_cycle(PASSBUF);
     puts32("\n\n", 255, 0);
+
+    short short int* BS_COMPAT_FLAG = 0x204;
+    if (*BS_COMPAT_FLAG == 0x9A) {
+        puts32("You have a compatible boot menu!\n", 255, 0);
+    }
 
     // puts32("Enable drive encryption?\n\nY: Yes\nN: No\n");
     // wait_for_key();
@@ -33,7 +37,7 @@ void setup() {
         pause();
         
         puts32("Setup is copying files to the hard disk... ", 255, 0);
-        setup_copy(0x2CC, 0);
+        setup_copy(0x1D2, 0);
         puts32("done.\n\n", 255, 0);
 
         puts32("Setup will now restart this machine to complete the setup process.\n", 255, 0);

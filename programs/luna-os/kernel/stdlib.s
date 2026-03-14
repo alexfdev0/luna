@@ -16,10 +16,8 @@
 .global screen_fill
 .global render_buf
 .global save_graphics_buf
-.global GBUF
 .global mouse_move
 .global key_click
-.global GBUF_EMPTY
 .global wait_for_key
 .global modulo
 .global itoa
@@ -400,7 +398,7 @@ render_buf:
 save_graphics_buf:
     pop e11
 
-    mov r1, GBUF
+    mov r1, 0x30303030
     mov r2, 0x70000000
     mov r3, 0
     mov r4, 64000
@@ -539,12 +537,6 @@ PROMPTBUF:
 
 PASSBUF:
     .pad 32
-
-GBUF:
-    .pad 64000
-
-GBUF_EMPTY:
-    .pad 64000
 
 MEM_PTR:
     .dword 0x50505050

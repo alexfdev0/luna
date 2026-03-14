@@ -3,7 +3,14 @@
 .org 492
 
 PARTITION_TABLE:
-    .pad 20 
+    .pad 20
+
+jmp _stage2
+
+_BS_FIELDS_:
+    // starting at field 0x204
+    // LUNAOS BIOS COMPAT FLAG
+    .byte 0x9A
 
 _stage2:
     // 0xFA -> 4f  50  51 52 53 54

@@ -2,6 +2,7 @@
 #include "bayachao.h"
 #include "stdlib.h"
 #include "lufs.h"
+#include "util.h"
 
 void shell() {
 top:
@@ -68,7 +69,7 @@ top:
         save_graphics_buf();
         render_buf(BAYACHAO_IMG);
         wait_for_key();
-        render_buf(GBUF);
+        render_buf(0x30303030);
 
         goto top;
     }
@@ -78,9 +79,16 @@ top:
     }
 
     if (strcmp("clear", TEMPBUF) == 1) {
-        render_buf(GBUF_EMPTY);
+        render_buf(0x40404040);
+        video_set_cursor(0, 0);
         goto top;
-    } 
+    }
+
+    if (strcmp("logout", TEMPBUF) == 1) {
+        render_buf(0x30303030);
+        video_set_cursor(0, 0);
+        goto enterpass;
+    }
 
     puts32("'", 255, 0);
     puts32(TEMPBUF, 255, 0);
