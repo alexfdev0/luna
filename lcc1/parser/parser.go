@@ -40,6 +40,7 @@ type Variable_Static struct {
 	Const bool
 	Extern bool
 	ArgNum int
+	Register bool
 }
 
 type FunctionDecl struct {
@@ -58,7 +59,47 @@ type Define struct {
 	To string
 }
 
-var Variables = []Variable_Static {}
+type UnpackOrder struct {
+	Register string
+	Label string
+	Type int
+	Pointer bool
+}
+
+var Variables = []Variable_Static {
+	Variable_Static{Name: "_r0", Real: "r0", Register: true},
+	Variable_Static{Name: "_r1", Real: "r1", Register: true},
+	Variable_Static{Name: "_r2", Real: "r2", Register: true},
+	Variable_Static{Name: "_r3", Real: "r3", Register: true},
+	Variable_Static{Name: "_r4", Real: "r4", Register: true},
+	Variable_Static{Name: "_r5", Real: "r5", Register: true},
+	Variable_Static{Name: "_r6", Real: "r6", Register: true},
+	Variable_Static{Name: "_r7", Real: "r7", Register: true},
+	Variable_Static{Name: "_r8", Real: "r8", Register: true},
+	Variable_Static{Name: "_r9", Real: "r9", Register: true},
+	Variable_Static{Name: "_r10", Real: "r10", Register: true},
+	Variable_Static{Name: "_r11", Real: "r11", Register: true},
+	Variable_Static{Name: "_r12", Real: "r12", Register: true},
+	Variable_Static{Name: "_e0", Real: "e0", Register: true},
+	Variable_Static{Name: "_e1", Real: "e1", Register: true},
+	Variable_Static{Name: "_e2", Real: "e2", Register: true},
+	Variable_Static{Name: "_e3", Real: "e3", Register: true},
+	Variable_Static{Name: "_e4", Real: "e4", Register: true},
+	Variable_Static{Name: "_e5", Real: "e5", Register: true},
+	Variable_Static{Name: "_e6", Real: "e6", Register: true},
+	Variable_Static{Name: "_e7", Real: "e7", Register: true},
+	Variable_Static{Name: "_e8", Real: "e8", Register: true},
+	Variable_Static{Name: "_e9", Real: "e9", Register: true},
+	Variable_Static{Name: "_e10", Real: "e10", Register: true},
+	Variable_Static{Name: "_e11", Real: "e11", Register: true},
+	Variable_Static{Name: "_e12", Real: "e12", Register: true},
+	Variable_Static{Name: "_sp", Real: "sp", Register: true},
+	Variable_Static{Name: "_pc", Real: "pc", Register: true},
+	Variable_Static{Name: "_irv", Real: "irv", Register: true},
+	Variable_Static{Name: "_ir", Real: "ir", Register: true},
+	Variable_Static{Name: "_b", Real: "b", Register: true},	
+}
+
 var FunctionDecls = []FunctionDecl {}
 var Defines = []Define {}
 
@@ -308,7 +349,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 		return __label
 	}
-	_IDENT_INTENT := func(pointer bool, _type int, deref int) string {
+	_IDENT_INTENT := func(pointer bool, _type int, deref int, register bool) string {
 		if peek(0).Type == lexer.TokEqual {
 			// Write intent (NEVER give one free dereference)
 			Write("mov r2, r1", true)
@@ -316,14 +357,22 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		} else {
 			// Read intent (ALWAYS give one free dereference)
 			if deref >= 0 {
-				switch _type {
-				case NUMBER8, STRING, NULL:
-					Write("lod r1, r2", true)
-				case NUMBER16, NUMBER32:
-					Write("lodf r1, r2", true) 	
+				if register == false {
+					switch _type {
+					case NUMBER8, STRING, NULL:
+						Write("lod r1, r2", true)
+					case NUMBER16, NUMBER32:
+						Write("lodf r1, r2", true) 	
+					}
+				} else {
+					Write("mov r2, r1", true)
 				}
 			} else {
-				Write("mov r2, r1", true)
+				if register == false {
+					Write("mov r2, r1", true)
+				} else {
+					error.Error(37, "", peek(-1), &tokens)
+				}
 			}
 		}
 		return "read"
@@ -529,7 +578,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		if label[0] == '"' {
 			LTL := IDENT_STRING(label)
 			Write("mov r1, " + LTL, true)
-			_IDENT_INTENT(true, NUMBER16, 0)
+			_IDENT_INTENT(true, NUMBER16, 0, false)
 			Write("mov " + register + ", r2", true)
 			goto CONTINUE
 		}
@@ -551,7 +600,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		EQU_VAR = variable
 		Write("mov r1, " + variable.Real, true)
 
-		Intent := _IDENT_INTENT(variable.Pointer, variable.Type, deref)
+		Intent := _IDENT_INTENT(variable.Pointer, variable.Type, deref, variable.Register)
 
 		x_deref := deref
 		derefs := 0
@@ -668,13 +717,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			error.Note(22, "'" + EQU_VAR.Name + "' declared here", token, stream)
 		}
 
-		fmt.Println(EQU_VAR.Name)
-		if EQU_VAR.Pointer == false || (EQU_VAR.Pointer == true && deref < 1) {
-			if EQU_VAR.Pointer == true {
-				fmt.Println("Pointer, deref:", deref)
-			} else {
-				fmt.Println("No pointer")
-			}
+		if EQU_VAR.Pointer == false || (EQU_VAR.Pointer == true && deref < 1) {	
 			switch EQU_VT {
 			case NUMBER8, STRING, NULL:
 				Write("str " + register + ", r5", true)
@@ -682,7 +725,6 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 				Write("strf " + register + ", r5", true)
 			}
 		} else {
-			fmt.Println("Pointer", EQU_VAR.Type2)
 			switch EQU_VAR.Type2 {
 			case NUMBER8, STRING, NULL:
 				Write("str " + register + ", r5", true)
@@ -926,6 +968,86 @@ func Parse(tokens []lexer.Token, Scope int) {
 		}
 		return _RETURNS
 	}
+
+	_PARSE_TYPE := func() (int, bool) {
+		ptr := false
+		long := false
+		short := false
+		shortshort := false
+		unsigned := false
+		constant := false
+		bits := BitPref
+
+		for {
+			if peek(0).Type == lexer.TokQualifier {	
+				qual := expect(lexer.TokQualifier)	
+				switch qual {
+				case "short":
+					if long == true {
+						error.Error(12, "'long' declaration specifier", peek(-1), &tokens)
+					}
+					if short == true && shortshort == true {
+						error.Warning(13, "'short' declaration specifier", peek(-1), &tokens)
+					} else if short == true && shortshort == false {
+						shortshort = true
+						bits = 8
+					} else {
+						short = true
+						bits = 16
+					}
+				case "long":
+					if short == true {
+						error.Error(12, "'short' declaration specifier", peek(-1), &tokens)
+					}
+					if long == true {
+						error.Warning(13, "'long' declaration specifier", peek(-1), &tokens)
+					}
+					long = true
+					bits = 32
+				case "unsigned":
+					if unsigned == true {
+						error.Error(28, "'unsigned'", peek(-1), &tokens)
+					}
+					unsigned = true
+				case "const":
+					if constant == true {
+						error.Error(28, "'const'", peek(-1), &tokens)
+					}
+					constant = true
+				}
+			} else {
+				_type := expect(lexer.TokType)
+				var rtype int
+				switch _type {
+				case "int":
+					switch bits {
+					case 8:
+						rtype = NUMBER8
+					case 16:
+						rtype = NUMBER16
+					case 32:
+						rtype = NUMBER32
+					default:
+						rtype = NUMBER16
+					}
+				case "char":
+					if long == true || short == true || unsigned == true {
+						error.Error(14, "for type 'char'", peek(-2), &tokens)
+					}
+					rtype = STRING
+				}
+
+				if peek(0).Type == lexer.TokStar {
+					ptr = true
+					i++
+				}
+
+				return rtype, ptr
+				break
+			}
+		}
+		return NUMBER16, false
+	}
 	
 	for {
 		if i >= len(tokens) {
@@ -1055,6 +1177,8 @@ func Parse(tokens []lexer.Token, Scope int) {
 			FunctionDecls = append(FunctionDecls, FunctionDecl{Name: name, Token: peek(-1), Set: tokens})	
 
 			var attrs []string
+			var UnpackOrders []UnpackOrder
+
 			allow_nonconst := L1_ALLOW_NONCONST
 
 			switch peek(0).Type {
@@ -1070,14 +1194,14 @@ func Parse(tokens []lexer.Token, Scope int) {
 				register := 0
 				nargs := 0
 				switch peek(0).Type {
-				case lexer.TokType:
+				case lexer.TokType, lexer.TokQualifier:
 					if name == "_start" {
 						error.Warning(10, "", peek(0), &tokens)
 					}
 					register = 0
 					expComma := false
 					for j := i; j < len(tokens); j++ {
-						if peek(0).Type == lexer.TokRParen {
+						if peek(0).Type == lexer.TokRParen {	
 							expect(lexer.TokRParen)
 							break
 						}
@@ -1085,14 +1209,38 @@ func Parse(tokens []lexer.Token, Scope int) {
 							if register >= 6 {
 								error.Error(9, "", peek(0), &tokens)	
 							}
-							ptr := false
-							expect(lexer.TokType)
-							if peek(0).Type == lexer.TokStar {
-								ptr = true
-								expect(lexer.TokStar)
-							}	
-							__name := expect(lexer.TokIdent)	
-							Variables = append(Variables, Variable_Static{Name: __name, Type: rtype, Value: nil, Scope: fscope, Real: fmt.Sprintf("e%d", register), Pointer: ptr})
+
+							__arg_reg := fmt.Sprintf("e%d", register)
+							__rn := fmt.Sprintf("var_%d", IDCounter)
+							IDCounter++
+							__rtype, __ptr := _PARSE_TYPE()
+							__name := expect(lexer.TokIdent)
+
+							
+							if extern == true {
+								goto ARG_DECL_DONE
+							}
+
+							UnpackOrders = append(UnpackOrders, UnpackOrder{Register: __arg_reg, Label: __rn, Type: __rtype, Pointer: __ptr})
+
+							WritePre(__rn + ":", false)
+							switch __rtype {
+							case NUMBER8:
+								WritePre(".byte 0x00", true)
+							case STRING:
+								if __ptr == false {
+									WritePre(".byte 0x00", true)
+								} else {
+									WritePre(".ptr 0x00", true)
+								}
+							case NUMBER16:
+								WritePre(".word 0x0000", true)
+							case NUMBER32:
+								WritePre(".dword 0x00000000", true)
+							}
+
+							ARG_DECL_DONE:
+							Variables = append(Variables, Variable_Static{Name: __name, Type: __rtype, Value: nil, Scope: fscope, Real: __rn, Pointer: __ptr, Register: false})
 							register++
 							nargs++
 							expComma = true
@@ -1186,6 +1334,33 @@ func Parse(tokens []lexer.Token, Scope int) {
 					}
 					if name != "_start" && noreturn == false {
 						Write("push e11", true)
+					}
+
+					for _, UnpackOrder := range UnpackOrders {
+						__rn := UnpackOrder.Label
+						__arg_reg := UnpackOrder.Register
+						__ptr := UnpackOrder.Pointer
+						__rtype := UnpackOrder.Type
+
+						switch __rtype {
+						case NUMBER8:
+							Write("mov r1, " + __rn, true)
+							Write("str r1, " + __arg_reg, true)
+						case STRING:
+							if __ptr == false {
+								Write("mov r1, " + __rn, true)
+								Write("str r1, " + __arg_reg, true)
+							} else {
+								Write("mov r1, " + __rn, true)
+								Write("strf r1, " + __arg_reg, true)
+							}
+						case NUMBER16:
+							Write("mov r1, " + __rn, true)
+							Write("strf r1, " + __arg_reg, true)
+						case NUMBER32:
+							Write("mov r1, " + __rn, true)
+							Write("strf r1, " + __arg_reg, true)
+						}	
 					}
 	
 					ParseExpyL1(Children, 0, fscope)

@@ -64,7 +64,7 @@ lufs_write_file:
     pop r1 // NAME
     push e11
     
-    mov r3, 0x61c
+    mov r3, 0x618
     lodf r3, r3 // Load the next file pointer
 lufs_write_file_top:
     mov r5, "LFSF"
@@ -72,11 +72,9 @@ lufs_write_file_top:
     cmp r6, r4, r5
     jnz r6, lufs_find_file
     inc r3
-    inc r3
-    inc r3
-    inc r3
     jmp lufs_write_file_top
 lufs_find_file:
+    .byte 0xFF
     inc r3
     inc r3
     inc r3
@@ -135,7 +133,7 @@ lufs_find_file_match:
     mov e6, 1
 
     // SAVE NEXT FILE PTR
-    mov r1, 0x61c
+    mov r1, 0x618
     lodf r1, r2
     pop r3
     add r2, r2, r3

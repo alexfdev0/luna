@@ -136,7 +136,7 @@ key_inp:
     jmp e7 
 
 num_sectors: 
-    .word 0x01D2
+    .word 0x01D4
 
 msg_loading:
     .asciz "Loading...\n\n"

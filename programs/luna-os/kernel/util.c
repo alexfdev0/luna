@@ -2,6 +2,12 @@
 #include "stdlib.h"
 #include "audio.h"
 
+void tohex(long int number, short short int capitalized) {
+    puts32("0x", 255, 0);
+    puts32(itoa(number, capitalized, malloc(11)), 255, 0);
+    puts32("\n", 255, 0);
+}
+
 void pause() {
     puts32("Press any key to continue...\n\n", 255, 0);
     wait_for_key();

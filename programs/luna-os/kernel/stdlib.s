@@ -278,21 +278,71 @@ getdrive:
 
 setup_copy:
     pop e11
-    pop r2 // drive number
-    pop r5 // max sectors
+    pop e7 // drive number (r2 = e7)
+    pop e8 // max sectors (r5 = e8)
+    push e11
 
+    // For text
+    push 15
+    call malloc
+    mov r6, e6 // r6 malloc address
 
-    mov r1, 0
-    mov e10, pc
-    nop
+    // Copying
     
+    mov e9, 0 // (r1 = e9)
+    mov e10, pc
+   
+    mov r2, e7 
     int 0x0d
-    inc r1
+    inc e9
+    
+    push e10
+    push e7
+    push e8
+    push e9
+    push r6
 
-    igt r4, r1, r5
+    push e9
+    push 1
+    push r6
+    call itoa
+    
+    pop r6
+    push r6
+    push 0xFC
+    push 0
+    call puts32 // Print first number
+
+    push setup_copy_sectors
+    push 0xFC
+    push 0
+    call puts32 // "sectors" 
+
+    push setup_copy_copied
+    push 0xFC
+    push 0
+    call puts32 // "copied"
+
+    int 0x0e
+    mov r1, 0
+    int 0x0c
+
+    pop e9
+    pop e8
+    pop e7
+    pop e10
+
+    igt r4, e9, e8
     jz r4, e10    
 
+    pop e11
     ret
+setup_copy_sectors:
+    .asciz " blocks"
+setup_copy_of:
+    .asciz " of "
+setup_copy_copied:
+    .asciz " copied"
 
 checkpass:
     pop e11
@@ -454,52 +504,56 @@ key_click:
 
     jmp e7
 
-modulo:
-    pop e11
-    pop r2      // Divisor
-    pop r1      // Dividend
-    div r3, r1, r2
-    mul r4, r3, r2
-    sub e6, r1, r4 
-    ret
+// 1 - 6 destroyed
+// 
 
 itoa:
     pop e11
-    pop r2 // Mem location
-    pop r1
+    pop r12 // Output buffer
+    pop r2 // Capitalized?
+    pop r1 // Number
 
-    mov e7, 11
-    add r2, r2, e7      
-    mov r8, 0
-    str r2, r8         
-    mov r4, 10
+    mov e12, r12
 
-    mov e10, pc         
+    jnz r2, itoa_c
+    jmp itoa_l
+itoa_c:
+    mov r3, ITOA_LETTERS_U
+    jmp itoa_after
+itoa_l:
+    mov r3, ITOA_LETTERS_L
+itoa_after:
+    mov r4, 28 // bits to shift by
+    mov r5, 0xF
+    mov r6, 0 // current number of digits done
+    mov r8, 8 // max digits
 
-    push r1
-    push r2
-    push r4
-    push r1             
-    push r4             
-    call modulo
-    pop r4
-    pop r2
-    pop r1              
+    mov e10, pc
 
-    mov r5, e6          
-    div r1, r1, r4      
+    shr r7, r1, r4
+    and r7, r7, r5
+    add e7, r3, r7
 
-    mov e7, 48
-    add r5, r5, e7      
-    dec r2
-    str r2, r5          
+    lod e7, e8
+    str r12, e8
 
-    mov r8, 0
-    cmp r9, r1, r8
-    jnz r9, e10
+    inc r6
+    inc r12
+    dec r4
+    dec r4
+    dec r4
+    dec r4
 
-    mov e6, r2          
+    cmp r9, r6, r8
+    jz r9, e10
+
+    mov e6, e12
+
     ret
+ITOA_LETTERS_U:
+    .asciz "0123456789ABCDEF"
+ITOA_LETTERS_L:
+    .asciz "0123456789abcdef"
 
 malloc:
     pop e11

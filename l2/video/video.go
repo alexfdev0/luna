@@ -61,7 +61,7 @@ func PushChar(x, y int, ch rune, fg byte, bg byte) {
 			} else {
 				color = bg
 			}
-			px := (y+row)*320 + (x+col)
+			px := (y + row) * 320 + (x+col)
 			MemoryVideo[Clamp(int(px), 0, 63999)] = color
 		}
 
@@ -72,7 +72,6 @@ func PrintChar(ch rune, fg byte, bg byte) {
 	if ch == 0x0a {
 		CursorY++
 		CursorX = 0
-		return
 	} else if ch == 0x0d {
 		CursorX = 0
 		return
@@ -80,8 +79,12 @@ func PrintChar(ch rune, fg byte, bg byte) {
 		return
 	}
 
-	if CursorY >= 200/8 {
+	if CursorY >= 200 / 8 {
 		scrollUp()	
+	}
+
+	if ch == 0x0a {
+		return
 	}
 
 	x := CursorX * 8

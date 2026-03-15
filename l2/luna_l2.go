@@ -576,6 +576,7 @@ func execute() {
 			value := getRegister(uint32(Memory[ProgramCounter + 2]))
 			by := getRegister(uint32(Memory[ProgramCounter + 3]))
 			setRegister(dest, uint32(value) << uint32(by))
+			setRegister(0x001a, ProgramCounter + 4)
 			stall(95)
 		case 0x1d:
 			// SHR
@@ -584,6 +585,7 @@ func execute() {
 			value := getRegister(uint32(Memory[ProgramCounter + 2]))
 			by := getRegister(uint32(Memory[ProgramCounter + 3]))
 			setRegister(dest, uint32(value) >> uint32(by))
+			setRegister(0x001a, ProgramCounter + 4)
 			stall(95)
 		default:
 			setRegister(0x0001, uint32(op))

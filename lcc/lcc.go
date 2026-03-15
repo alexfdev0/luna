@@ -153,7 +153,7 @@ func main() {
 
 	for _, file := range assembly_files {
 		name, _ := splitFile(file)		
-		success := execute("las -c " + file + " -o " + name + ".o" + strings.Join(lasargs, " "), false)
+		success := execute("las -c " + strings.Join(lasargs, " ") + " " + file + " -o " + name + ".o", false)
 
 		if success != true {
 			asm_error = true

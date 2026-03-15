@@ -16,7 +16,7 @@ extern int strlen(char* str);
 extern int getdrive();
 extern int malloc(int size);
 extern void free(int size);
-extern char* itoa(int num, int location);
+extern char* itoa(int num, int capitalized, char* location);
 extern void* TEMPBUF;
 extern void* PROMPTBUF;
 extern void* PASSBUF;

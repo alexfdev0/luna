@@ -16,6 +16,7 @@ void user_setup() {
         puts32("You have a compatible boot menu!\n", 255, 0);
     }
 
+    int a = 100;
     // puts32("Enable drive encryption?\n\nY: Yes\nN: No\n");
     // wait_for_key();
     // handle_drive_encryption();
@@ -37,8 +38,8 @@ void setup() {
         pause();
         
         puts32("Setup is copying files to the hard disk... ", 255, 0);
-        setup_copy(0x1D2, 0);
-        puts32("done.\n\n", 255, 0);
+        setup_copy(0x1D4, 0);
+        puts32("\nSetup has completed copying files to the hard disk.\n\n", 255, 0);
 
         puts32("Setup will now restart this machine to complete the setup process.\n", 255, 0);
         pause(); 

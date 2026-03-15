@@ -46,6 +46,7 @@ var errors = []string {
 	"attribute",
 	"initializer element is not a compile-time constant",
 	"implicit conversion from",
+	"taking the address of a function argument is not supported",
 }
 
 var Warnings int = 0
@@ -69,6 +70,8 @@ func Stargaze(Tokens *[]lexer.Token, where int, errno int, kind int) {
 	// 3: note
 
 	line := (*Tokens)[where].Line
+
+	OGTVAL := (*Tokens)[where].Value
 
 	if kind != 3 {
 		(*Tokens)[where].Value = "\033[1;31m" + (*Tokens)[where].Value + "\033[0m"
@@ -113,6 +116,10 @@ func Stargaze(Tokens *[]lexer.Token, where int, errno int, kind int) {
 		fmt.Printf("     " + strings.Repeat(" ", len(string(line))) + "| " + strings.Repeat(" ", visibleLen) + "\033[1;32m^\033[0m\n")
 		fmt.Printf("      | " + strings.Repeat(" ", visibleLen) + "\033[1;32m;\033[0m\n")
 	} 
+
+	if kind != 3 {
+		(*Tokens)[where].Value = OGTVAL
+	}
 }
 
 func find(token lexer.Token, tokens *[]lexer.Token) int {
