@@ -14,11 +14,13 @@ _start:
     int 0x10
     mov r2, r1
     mov r1, 1
+    mov r3, r1
     int 11
 
     int 0x10
     mov r2, r1
     mov r1, 2
+    mov r3, r1
     int 11
 
     // Load sectors
@@ -44,13 +46,13 @@ load_sectors:
     mov r1, 3
 
     mov e10, pc
-    nop
 
+    mov r3, r1
     int 11
     inc r1
 
-    igt r3, r1, e1
-    jz r3, e10
+    igt r4, r1, e1
+    jz r4, e10
 
     ret
 
@@ -78,7 +80,6 @@ write:
     pop r4
 
     mov e10, pc
-    nop
 
     lod r4, r1
     int 1
@@ -95,7 +96,6 @@ check_vol:
     mov r3, 512
 
     mov e10, pc
-    nop
 
     lod r1, r2
     jnz r2, check_vol_ret
@@ -136,7 +136,7 @@ key_inp:
     jmp e7 
 
 num_sectors: 
-    .word 0x01D4
+    .word 0x01D5
 
 msg_loading:
     .asciz "Loading...\n\n"

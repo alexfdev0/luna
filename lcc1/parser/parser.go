@@ -67,37 +67,37 @@ type UnpackOrder struct {
 }
 
 var Variables = []Variable_Static {
-	Variable_Static{Name: "_r0", Real: "r0", Register: true},
-	Variable_Static{Name: "_r1", Real: "r1", Register: true},
-	Variable_Static{Name: "_r2", Real: "r2", Register: true},
-	Variable_Static{Name: "_r3", Real: "r3", Register: true},
-	Variable_Static{Name: "_r4", Real: "r4", Register: true},
-	Variable_Static{Name: "_r5", Real: "r5", Register: true},
-	Variable_Static{Name: "_r6", Real: "r6", Register: true},
-	Variable_Static{Name: "_r7", Real: "r7", Register: true},
-	Variable_Static{Name: "_r8", Real: "r8", Register: true},
-	Variable_Static{Name: "_r9", Real: "r9", Register: true},
-	Variable_Static{Name: "_r10", Real: "r10", Register: true},
-	Variable_Static{Name: "_r11", Real: "r11", Register: true},
-	Variable_Static{Name: "_r12", Real: "r12", Register: true},
-	Variable_Static{Name: "_e0", Real: "e0", Register: true},
-	Variable_Static{Name: "_e1", Real: "e1", Register: true},
-	Variable_Static{Name: "_e2", Real: "e2", Register: true},
-	Variable_Static{Name: "_e3", Real: "e3", Register: true},
-	Variable_Static{Name: "_e4", Real: "e4", Register: true},
-	Variable_Static{Name: "_e5", Real: "e5", Register: true},
-	Variable_Static{Name: "_e6", Real: "e6", Register: true},
-	Variable_Static{Name: "_e7", Real: "e7", Register: true},
-	Variable_Static{Name: "_e8", Real: "e8", Register: true},
-	Variable_Static{Name: "_e9", Real: "e9", Register: true},
-	Variable_Static{Name: "_e10", Real: "e10", Register: true},
-	Variable_Static{Name: "_e11", Real: "e11", Register: true},
-	Variable_Static{Name: "_e12", Real: "e12", Register: true},
-	Variable_Static{Name: "_sp", Real: "sp", Register: true},
-	Variable_Static{Name: "_pc", Real: "pc", Register: true},
-	Variable_Static{Name: "_irv", Real: "irv", Register: true},
-	Variable_Static{Name: "_ir", Real: "ir", Register: true},
-	Variable_Static{Name: "_b", Real: "b", Register: true},	
+	Variable_Static{Name: "_r0", Real: "r0", Register: true, Scope: 1},
+	Variable_Static{Name: "_r1", Real: "r1", Register: true, Scope: 1},
+	Variable_Static{Name: "_r2", Real: "r2", Register: true, Scope: 1},
+	Variable_Static{Name: "_r3", Real: "r3", Register: true, Scope: 1},
+	Variable_Static{Name: "_r4", Real: "r4", Register: true, Scope: 1},
+	Variable_Static{Name: "_r5", Real: "r5", Register: true, Scope: 1},
+	Variable_Static{Name: "_r6", Real: "r6", Register: true, Scope: 1},
+	Variable_Static{Name: "_r7", Real: "r7", Register: true, Scope: 1},
+	Variable_Static{Name: "_r8", Real: "r8", Register: true, Scope: 1},
+	Variable_Static{Name: "_r9", Real: "r9", Register: true, Scope: 1},
+	Variable_Static{Name: "_r10", Real: "r10", Register: true, Scope: 1},
+	Variable_Static{Name: "_r11", Real: "r11", Register: true, Scope: 1},
+	Variable_Static{Name: "_r12", Real: "r12", Register: true, Scope: 1},
+	Variable_Static{Name: "_e0", Real: "e0", Register: true, Scope: 1},
+	Variable_Static{Name: "_e1", Real: "e1", Register: true, Scope: 1},
+	Variable_Static{Name: "_e2", Real: "e2", Register: true, Scope: 1},
+	Variable_Static{Name: "_e3", Real: "e3", Register: true, Scope: 1},
+	Variable_Static{Name: "_e4", Real: "e4", Register: true, Scope: 1},
+	Variable_Static{Name: "_e5", Real: "e5", Register: true, Scope: 1},
+	Variable_Static{Name: "_e6", Real: "e6", Register: true, Scope: 1},
+	Variable_Static{Name: "_e7", Real: "e7", Register: true, Scope: 1},
+	Variable_Static{Name: "_e8", Real: "e8", Register: true, Scope: 1},
+	Variable_Static{Name: "_e9", Real: "e9", Register: true, Scope: 1},
+	Variable_Static{Name: "_e10", Real: "e10", Register: true, Scope: 1},
+	Variable_Static{Name: "_e11", Real: "e11", Register: true, Scope: 1},
+	Variable_Static{Name: "_e12", Real: "e12", Register: true, Scope: 1},
+	Variable_Static{Name: "_sp", Real: "sp", Register: true, Scope: 1},
+	Variable_Static{Name: "_pc", Real: "pc", Register: true, Scope: 1},
+	Variable_Static{Name: "_irv", Real: "irv", Register: true, Scope: 1},
+	Variable_Static{Name: "_ir", Real: "ir", Register: true, Scope: 1},
+	Variable_Static{Name: "_b", Real: "b", Register: true, Scope: 1},	
 }
 
 var FunctionDecls = []FunctionDecl {}
@@ -377,6 +377,31 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		}
 		return "read"
 	}
+	_NUMBER_PARSE := func(register string) {
+		switch peek(0).Type {
+		case lexer.TokIdent, lexer.TokStar, lexer.TokAmpersand:
+			subslice := []lexer.Token {}
+			fl_exit := false
+			for {
+				if fl_exit == true {
+					break
+				}
+				switch peek(0).Type {
+				case lexer.TokStar, lexer.TokAmpersand:
+					subslice = append(subslice, peek(0))
+					i++
+				case lexer.TokIdent:
+					subslice = append(subslice, peek(0))
+					i++
+					fl_exit = true
+				}
+			}
+			ParseExpy(subslice, 0, Scope, register)
+		case lexer.TokNumber:
+			Write("mov " + register + ", " + peek(0).Value, true)
+			i++
+		}
+	}
 
 	deref := 0
 	EQU_VT := NULL
@@ -628,8 +653,11 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		// Parse expressions
 		// Load it up into r4
 		exit := false
-		num1 := expect(lexer.TokNumber)
-		var num2 string = "" 
+
+
+		_NUMBER_PARSE("r5")	
+
+		var num1 string = "r5"
 		var op string = ""
 		OP_TRY:
 
@@ -644,23 +672,16 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		}
 
 		op = expect(peek(0).Type)
-		num2 = expect(lexer.TokNumber)
+		_NUMBER_PARSE("r6")
+
 		switch op {
 		case "+":
-			Write("mov r5, " + num1, true)
-			Write("mov r6, " + num2, true)
 			Write("add " + register + ", r5, r6", true)
 		case "-":
-			Write("mov r5, " + num1, true)
-			Write("mov r6, " + num2, true)
 			Write("sub " + register + ", r5, r6", true)
 		case "*":
-			Write("mov r5, " + num1, true)
-			Write("mov r6, " + num2, true)
 			Write("mul " + register + ", r5, r6", true)
 		case "/":
-			Write("mov r5, " + num1, true)
-			Write("mov r6, " + num2, true)
 			Write("div " + register + ", r5, r6", true)
 		}
 		switch peek(0).Type {
@@ -979,6 +1000,9 @@ func Parse(tokens []lexer.Token, Scope int) {
 		bits := BitPref
 
 		for {
+			if i >= len(tokens) {
+				break
+			}
 			if peek(0).Type == lexer.TokQualifier {	
 				qual := expect(lexer.TokQualifier)	
 				switch qual {
@@ -1035,11 +1059,17 @@ func Parse(tokens []lexer.Token, Scope int) {
 						error.Error(14, "for type 'char'", peek(-2), &tokens)
 					}
 					rtype = STRING
+				case "void":
+					rtype = NULL
 				}
 
 				if peek(0).Type == lexer.TokStar {
 					ptr = true
 					i++
+				} else {
+					if rtype == NULL {
+						error.Error(7, "'void'", peek(-1), &tokens)	
+					}
 				}
 
 				return rtype, ptr
@@ -1066,8 +1096,13 @@ func Parse(tokens []lexer.Token, Scope int) {
 			constant := false
 			extern := false
 			static := false
+			breakoff := false
 			bits := BitPref	
-			for {	
+			for {
+				if i >= len(tokens) {
+					breakoff = true
+					break
+				}
 				if peek(0).Value == "asm" || peek(0).Value == "__asm__" {
 					expect(lexer.TokIdent)
 					if peek(0).Value == "volatile" {
@@ -1081,6 +1116,50 @@ func Parse(tokens []lexer.Token, Scope int) {
 					expect(lexer.TokSemi)
 					continue
 				}
+				if peek(0).Value == "__embed__" {
+					pre := false
+					static := false
+					name := ""
+
+					expect(lexer.TokIdent)
+
+
+
+					arg_parse_top:
+					switch peek(0).Value {
+					case "pre":
+						pre = true
+						i++
+						goto arg_parse_top
+					case "static":
+						static = true
+						i++
+						goto arg_parse_top
+					}	
+
+					name = expect(lexer.TokIdent)
+					// __embed__ pre SOUND_LABEL
+
+					expect(lexer.TokLParen)
+					expect(lexer.TokLParen)
+					path := expect(lexer.TokIdent)
+					expect(lexer.TokRParen)
+					expect(lexer.TokRParen)
+					expect(lexer.TokSemi)
+
+					if pre == false {
+						Write(name + ":", false)
+						Write(".embed \"" + strings.ReplaceAll(path, "\"", "") + "\"", true)
+					} else {
+						WritePre(name + ":", false)
+						WritePre(".embed \"" + strings.ReplaceAll(path, "\"", "") + "\"", true)
+					}
+					if static == false {
+						PreWrite(".global " + name, false)
+					}
+					continue
+				}
+
 				if peek(0).Type == lexer.TokTypedef {
 					expect(lexer.TokTypedef)
 					// TODO: add typedef
@@ -1134,6 +1213,9 @@ func Parse(tokens []lexer.Token, Scope int) {
 				} else {
 					break
 				}
+			}
+			if breakoff == true {
+				break
 			}
 
 			if peek(0).Type == lexer.TokIdent {
@@ -1215,7 +1297,6 @@ func Parse(tokens []lexer.Token, Scope int) {
 							IDCounter++
 							__rtype, __ptr := _PARSE_TYPE()
 							__name := expect(lexer.TokIdent)
-
 							
 							if extern == true {
 								goto ARG_DECL_DONE
@@ -1227,12 +1308,14 @@ func Parse(tokens []lexer.Token, Scope int) {
 							switch __rtype {
 							case NUMBER8:
 								WritePre(".byte 0x00", true)
-							case STRING:
+							case STRING:	
 								if __ptr == false {
 									WritePre(".byte 0x00", true)
 								} else {
 									WritePre(".ptr 0x00", true)
 								}
+							case NULL:
+								WritePre(".ptr 0x00", true)
 							case NUMBER16:
 								WritePre(".word 0x0000", true)
 							case NUMBER32:
@@ -1240,7 +1323,12 @@ func Parse(tokens []lexer.Token, Scope int) {
 							}
 
 							ARG_DECL_DONE:
-							Variables = append(Variables, Variable_Static{Name: __name, Type: __rtype, Value: nil, Scope: fscope, Real: __rn, Pointer: __ptr, Register: false})
+							if __ptr == false {
+								Variables = append(Variables, Variable_Static{Name: __name, Type: __rtype, Value: nil, Scope: fscope, Real: __rn, Pointer: __ptr})
+							} else {
+								Variables = append(Variables, Variable_Static{Name: __name, Type: NUMBER16, Type2: __rtype, Value: nil, Scope: fscope, Real: __rn, Pointer: __ptr})
+							}
+							
 							register++
 							nargs++
 							expComma = true
@@ -1354,6 +1442,9 @@ func Parse(tokens []lexer.Token, Scope int) {
 								Write("mov r1, " + __rn, true)
 								Write("strf r1, " + __arg_reg, true)
 							}
+						case NULL:
+							Write("mov r1, " + __rn, true)
+							Write("strf r1, " + __arg_reg, true)	
 						case NUMBER16:
 							Write("mov r1, " + __rn, true)
 							Write("strf r1, " + __arg_reg, true)

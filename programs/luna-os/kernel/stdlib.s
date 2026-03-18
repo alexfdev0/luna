@@ -282,17 +282,16 @@ setup_copy:
     pop e8 // max sectors (r5 = e8)
     push e11
 
-    // For text
-    push 15
-    call malloc
-    mov r6, e6 // r6 malloc address
+    // For text 
 
     // Copying
     
     mov e9, 0 // (r1 = e9)
     mov e10, pc
-   
-    mov r2, e7 
+  
+    mov r1, e9
+    mov r2, e7
+    mov r3, r1
     int 0x0d
     inc e9
     
@@ -300,15 +299,13 @@ setup_copy:
     push e7
     push e8
     push e9
-    push r6
 
     push e9
     push 1
-    push r6
+    push 0x20202020
     call itoa
     
-    pop r6
-    push r6
+    push 0x20202020
     push 0xFC
     push 0
     call puts32 // Print first number
@@ -358,11 +355,12 @@ save_buffer:
     pop e11 
     pop r1
 
-    mov r3, 512
-    div r4, r1, r3
+    mov r5, 512
+    div r4, r1, r5
     mov r1, r4
 
     mov r2, 0 // Drive 0
+    mov r3, r1
     int 0x0d
 
     ret
@@ -577,7 +575,6 @@ free:
     strf r2, r3
 
     ret
-
 
 PASS_KEY_ENCRYPT:
     .pad 1

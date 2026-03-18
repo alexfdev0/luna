@@ -213,7 +213,7 @@ func execute() {
 			setRegister(0x001a, ProgramCounter + 1)
 		case 0x03:
 			// JMP	
-			mode := Memory[ProgramCounter + 1]
+			mode := shared.Mapper(ProgramCounter + 1)
 
 			if mode == 0x01 {
 				var loc uint32 = 0
@@ -589,6 +589,7 @@ func execute() {
 			stall(95)
 		default:
 			setRegister(0x0001, uint32(op))
+			setRegister(0x0002, getRegister(0x001a))
 			Log("\033[31mIllegal instruction 0x" + fmt.Sprintf("%08x", uint32(op)) + "\033[33m")
 			now := ProgramCounter
 			bios.IntWrapper(0x7, ProgramCounter + 1)	
@@ -738,6 +739,16 @@ func InitializeWindow() {
 			}
 			if ctrl && alt && key == glfw.KeyF {
 				ToggleFullscreen(window)
+				return
+			}
+			if ctrl && alt && key == glfw.KeyD {
+				if Debug == true {
+					LogOn = false
+					Debug = false
+				} else {
+					LogOn = true
+					Debug = true
+				}
 				return
 			}
 
@@ -944,15 +955,15 @@ func main() {
 		switch shared.BootDrive {
 		case 0:
 			bios.WriteLine("Booting from hard disk...", 255, 0)
-			bios.LoadSector(0, 0, RequireDevicePresent)
+			bios.LoadSector(0, 0, RequireDevicePresent, 0)
 			shared.DriveNumber = 0
 		case 1:
 			bios.WriteLine("Booting from SD...", 255, 0)
-			bios.LoadSector(1, 0, RequireDevicePresent)
+			bios.LoadSector(1, 0, RequireDevicePresent, 0)
 			shared.DriveNumber = 1
 		case 2:
 			bios.WriteLine("Booting from DVD...", 255, 0)
-			bios.LoadSector(2, 0, RequireDevicePresent)
+			bios.LoadSector(2, 0, RequireDevicePresent, 0)
 			shared.DriveNumber = 2
 		default:
 			bios.WriteLine("No bootable device", 255, 0)

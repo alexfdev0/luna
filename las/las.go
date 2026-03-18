@@ -137,6 +137,7 @@ var errors = []string{
 var Upgrade bool
 var Errors int
 var Warnings int
+var PIE bool
 
 func error(errno int, args string) {
 	label := ""
@@ -386,16 +387,40 @@ func assemble(text string) {
 		case "hlt":
 			write([]byte{0x02})
 		case "jmp":
-			write([]byte{0x03})
+			if PIE == false || isRegister(words[i + 1]) != 0xFF {
+				write([]byte{0x03})
 
-			if isRegister(words[i+1]) == 0xff {
-				write([]byte{0x01})
-			} else {
-				write([]byte{0x02})
+				if isRegister(words[i+1]) == 0xff {
+					write([]byte{0x01})
+				} else {
+					write([]byte{0x02})
+				}
+
+				value := parse(words[i+1])
+				write(value)
+			} else {	
+				// PROCESS BASE AT LOC 0 - 3
+				assemble(`
+				push r1
+				`)
+
+				if Bits32 == true {
+					assemble(`
+					mov r0, 0
+					lodf r0, r0
+					`)
+				} else {
+					assemble(`
+					mov r0, 2
+					lodf r0, r0
+					`)
+				}
+				// Base in r0
+				assemble("mov r1, " + words[i + 1])
+				assemble("add r1, r1, r0") // Add base to r1
+				write([]byte {0x03, 0x02, 0x01})
+				assemble("pop r1")
 			}
-
-			value := parse(words[i+1])
-			write(value)
 			i = i + 1
 		case "int":
 			write([]byte{0x04})
@@ -412,22 +437,52 @@ func assemble(text string) {
 			write(value)
 			i = i + 1
 		case "jnz":
-			write([]byte{0x05})
+			if PIE == false || isRegister(words[i + 2]) != 0xFF {
+				write([]byte{0x05})
 
-			if isRegister(words[i+2]) == 0xff {
-				write([]byte{0x01})
+				if isRegister(words[i+2]) == 0xff {
+					write([]byte{0x01})
+				} else {
+					write([]byte{0x02})
+				}
+
+				register := isRegister(words[i+1])
+				if register == 0xff {
+					error(2, "'"+words[i+1]+"'")
+				}
+				write([]byte{register})
+
+				value := parse(words[i+2])
+				write(value)
 			} else {
-				write([]byte{0x02})
-			}
+				// PROCESS BASE AT LOC 0 - 3
+				assemble(`
+				push r1
+				`)
 
-			register := isRegister(words[i+1])
-			if register == 0xff {
-				error(2, "'"+words[i+1]+"'")
-			}
-			write([]byte{register})
+				if Bits32 == true {
+					assemble(`
+					mov r0, 0
+					lodf r0, r0
+					`)
+				} else {
+					assemble(`
+					mov r0, 2
+					lodf r0, r0
+					`)
+				}
+				// Base in r0
+				assemble("mov r1, " + words[i + 2])
+				assemble("add r1, r1, r0") // Add base to r1
 
-			value := parse(words[i+2])
-			write(value)
+				register := isRegister(words[i+1])
+				if register == 0xff {
+					error(2, "'"+words[i+1]+"'")
+				}
+
+				write([]byte {0x05, 0x02, register, 0x01})
+				assemble("pop r1")
+			}
 			i = i + 2
 		case "nop":
 			write([]byte{0x06})
@@ -450,22 +505,52 @@ func assemble(text string) {
 			write([]byte{two})
 			i = i + 3
 		case "jz":
-			write([]byte{0x08})
+			if PIE == false || isRegister(words[i + 2]) != 0xFF {
+				write([]byte{0x08})
 
-			if isRegister(words[i+2]) == 0xff {
-				write([]byte{0x01})
+				if isRegister(words[i+2]) == 0xff {
+					write([]byte{0x01})
+				} else {
+					write([]byte{0x02})
+				}
+
+				register := isRegister(words[i+1])
+				if register == 0xff {
+					error(2, "'"+words[i+1]+"'")
+				}
+				write([]byte{register})
+
+				value := parse(words[i+2])
+				write(value)
 			} else {
-				write([]byte{0x02})
-			}
+				// PROCESS BASE AT LOC 0 - 3
+				assemble(`
+				push r1
+				`)
 
-			register := isRegister(words[i+1])
-			if register == 0xff {
-				error(2, "'"+words[i+1]+"'")
-			}
-			write([]byte{register})
+				if Bits32 == true {
+					assemble(`
+					mov r0, 0
+					lodf r0, r0
+					`)
+				} else {
+					assemble(`
+					mov r0, 2
+					lodf r0, r0
+					`)
+				}
+				// Base in r0
+				assemble("mov r1, " + words[i + 2])
+				assemble("add r1, r1, r0") // Add base to r1
 
-			value := parse(words[i+2])
-			write(value)
+				register := isRegister(words[i+1])
+				if register == 0xff {
+					error(2, "'"+words[i+1]+"'")
+				}
+
+				write([]byte {0x08, 0x02, register, 0x01})
+				assemble("pop r1")
+			}
 			i = i + 2
 		case "inc":
 			write([]byte{0x09})
@@ -484,13 +569,53 @@ func assemble(text string) {
 			write([]byte{reg})
 			i = i + 1
 		case "push":
-			write([]byte{0x0b})
-			if isRegister(words[i+1]) == 0xff {
-				write([]byte{0x01})
+			if PIE == false || isRegister(words[i + 1]) != 0xFF {
+				write([]byte{0x0b})
+				if isRegister(words[i+1]) == 0xff {
+					write([]byte{0x01})
+				} else {
+					write([]byte{0x02})
+				}
+				write(parse(words[i+1]))
 			} else {
-				write([]byte{0x02})
+				// PROCESS BASE AT LOC 0 - 3
+				assemble(`
+				push r1	
+				`)
+
+				if Bits32 == true {
+					assemble(`
+					mov r0, 0
+					lodf r0, r0
+					`)
+				} else {
+					assemble(`
+					mov r0, 2
+					lodf r0, r0
+					`)
+				}
+				// Base in r0
+				assemble("mov r1, " + words[i + 1])
+				assemble("add r1, r1, r0") // Add base to r1
+				assemble("push r1")
+
+				if Bits32 == false {
+					assemble(`
+					inc sp
+					inc sp
+					`)
+				} else {
+					assemble(`
+					inc sp
+					inc sp
+					inc sp
+					inc sp
+					`)
+				}
+				assemble(`
+				pop r1
+				`)
 			}
-			write(parse(words[i+1]))
 			i = i + 1
 		case "pop":
 			write([]byte{0x0c})
@@ -1065,6 +1190,8 @@ func main() {
 			nolink = true
 		case "-Werror":
 			Upgrade = true
+		case "-fpie":
+			PIE = true
 		default:
 			input_files = append(input_files, arg)
 		}
@@ -1093,6 +1220,9 @@ func main() {
 		}
 		current_filename = file
 		// Assemble everything
+		if PIE == true {
+			write([]byte("L_PIE"))
+		}
 		assemble(string(data))
 		// Error checking
 		var error_str string = ""

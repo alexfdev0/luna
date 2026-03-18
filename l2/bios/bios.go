@@ -34,7 +34,7 @@ func WriteLine(str string, fg uint8, bg uint8) {
 	WriteString(str + "\n", fg, bg)
 }
 
-func LoadSector(drive int, sector int, enforce bool) {	
+func LoadSector(drive int, sector int, enforce bool, dest_sector int) {	
 	var file string
 	switch drive {
 	case 0:
@@ -61,13 +61,15 @@ func LoadSector(drive int, sector int, enforce bool) {
 	defer f.Close()
 
 	start := sector * 512
-	_, err = f.ReadAt(shared.Memory[start:start + 512], int64(start))
+	rstart := dest_sector * 512
+	fmt.Println("Will read from", file, "at", rstart, "to", start)
+	_, err = f.ReadAt(shared.Memory[start:start + 512], int64(rstart))
 	if err != nil {
 		fmt.Println("luna-l2: could not read from disk: ", err)
 	}	
 }
 
-func WriteSector(drive int, sector int) {
+func WriteSector(drive int, sector int, dsector int) {
 	var file string
 	switch drive {
 	case 0:
@@ -89,8 +91,9 @@ func WriteSector(drive int, sector int) {
 	defer f.Close()
 
 	start := sector * 512
+	_content_start := dsector * 512
 
-	_, err = f.WriteAt(shared.Memory[start:start + 512], int64(start))
+	_, err = f.WriteAt(shared.Memory[start:start + 512], int64(_content_start))
 	if err != nil {
 		fmt.Println("luna-l2: could not write to block device: ", err)
 	}
@@ -103,10 +106,25 @@ func IntHandler(code uint32) {
 		WriteChar(string(rune(char)), uint8(shared.GetRegister(0x0002)), uint8(shared.GetRegister(0x0003)))
 	case 0x02:
 		// Programmable interval timer reserved
-	case 0x03:
-		// Unmapped
+	case 0x03:	
+		// Disk inserted query
+		var _file string
+		switch shared.GetRegister(0x0001) {
+		case 0:
+			_file = shared.Filename
+		case 1:
+			_file = shared.SDFilename
+		case 2:
+			_file = shared.OpticalFilename
+		}
+
+		if _file != "" {
+			shared.SetRegister(0x0001, 1)
+		} else {
+			shared.SetRegister(0x0001, 0)
+		}
 	case 0x04:
-		// Unmapped
+		// Syscall interrupt
 	case 0x05:
 		// Keyboard reserved
 	case 0x06:
@@ -126,14 +144,16 @@ func IntHandler(code uint32) {
 	case 0x0B:
 		sector := shared.GetRegister(0x0001)
 		drive := shared.GetRegister(0x0002)
-		LoadSector(int(drive), int(sector), false)
+		rsector := shared.GetRegister(0x0003)
+		LoadSector(int(drive), int(sector), false, int(rsector))
 	case 0x0C:
 		video.CursorX = int(shared.GetRegister(0x0001))
 		video.CursorY = int(shared.GetRegister(0x0002))
 	case 0x0D:
 		sector := shared.GetRegister(0x0001)
 		drive := shared.GetRegister(0x0002)
-		WriteSector(int(drive), int(sector))
+		rsector := shared.GetRegister(0x0003)
+		WriteSector(int(drive), int(sector), int(rsector))
 	case 0x0E:
 		shared.SetRegister(0x0001, uint32(video.CursorX))
 		shared.SetRegister(0x0002, uint32(video.CursorY))

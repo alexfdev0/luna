@@ -37,6 +37,7 @@ var Exports = []export {}
 
 var FillSize int = 0
 var Org int = 0
+var PIE bool
 
 var errors = []string {
 	"no object files specified",
@@ -57,7 +58,7 @@ func write(content byte) {
 func checkBinding(name string, file string) binding {
 	for i := range bindings {
 		if bindings[i].Name == name && ((bindings[i].File == file && bindings[i].Global == false) || bindings[i].Global == true) {
-			return bindings[i] 
+			return bindings[i]
 		}
 	}
 	return binding{Name: "nil"}
@@ -201,6 +202,10 @@ func Filter(data []byte, filename string) {
 			name := string(data[i + 9:j])
 			Exports = append(Exports, export{Name: name})
 			i = j
+		} else if bytes.HasPrefix(data[i:], []byte("L_PIE")) {
+			i += 4
+			PIE = true
+			Org = 64
 		} else {
 			write(data[i])
 		}

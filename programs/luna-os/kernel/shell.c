@@ -1,8 +1,10 @@
 #pragma bits 32
+
 #include "bayachao.h"
 #include "stdlib.h"
 #include "lufs.h"
 #include "util.h"
+#include "stub.h"
 
 void shell() {
 top:
@@ -75,6 +77,8 @@ top:
     }
 
     if (strcmp("testfault", TEMPBUF) == 1) {
+        asm ("mov r1, 4");
+        asm ("mov r2, pc");
         asm ("int 0x07");
     }
 
@@ -88,6 +92,25 @@ top:
         render_buf(0x30303030);
         video_set_cursor(0, 0);
         goto enterpass;
+    }
+
+    if (strcmp("meteor", TEMPBUF) == 1) {
+        if (query_drive_inserted(2) == 0) {
+            puts32("Please insert the Meteor DVD and try again.\n", 255, 0);
+            goto top;
+        }
+        load_sector(2, 0x28, 0);
+        load_sector(2, 0x29, 1);
+        load_sector(2, 0x2a, 2);
+        load_sector(2, 0x2b, 3);
+
+        asm ("push meteor_done");
+        asm ("jmp 0x5000");
+        meteor_done:
+
+        IDT_SETUP();
+
+        goto top;
     }
 
     puts32("'", 255, 0);
