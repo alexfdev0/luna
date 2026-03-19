@@ -545,6 +545,8 @@ lexec_core:
     mov r5, r1 // Base in r5
     strf r1, r1
 
+    inc r1
+    inc r1
     inc r1 // 00
     inc r1 // 00
     inc r1 // 00
@@ -553,7 +555,21 @@ lexec_core:
     
     lodf r1, r2 // entry point
     add r2, r2, r5
+
+    mov r1, lexec_raddr
+    strf r1, e11
+
+    pusha
+    mov e14, 0x57800
+
     jmp r2
+lexec_raddr:
+    .dword 0x00000000
+lexec_done:
+    popa
+
+    mov r1, lexec_raddr
+    lodf r1, e11
 
     ret
 
@@ -567,7 +583,16 @@ sectorize:
     ret
 
 syscall_handler:
-    mov r0, 0x57800
+    pusha
+    
+    mov r2, 1
+    cmp r3, r1, r2
+    jnz r3, syscall_proc_exit
+syscall_proc_exit:
+    popa
+    jmp lexec_done
+syscall_ret:
+    popa
     jmp irv
 
 // 1 - 6 destroyed

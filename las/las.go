@@ -173,24 +173,26 @@ func warning(errno int, args string) {
 	Warnings++
 }
 
-func parse(text string) []byte {
+var PtrLabels []string
+
+func parse(text string) ([]byte, bool) {
 	// Check for number
 	if _, err := strconv.ParseInt(text, 0, 64); err == nil {
 		num, _ := strconv.ParseInt(text, 0, 64)
 		if Bits32 == false {
 			H := byte(num >> 8)
 			L := byte(num & 0xFF)
-			return []byte{H, L}
+			return []byte{H, L}, false
 		} else {
 			HH := byte(num >> 24)
 			HL := byte(num >> 16)
 			LH := byte(num >> 8)
 			LL := byte(num & 0xFF)
-			return []byte{HH, HL, LH, LL}	
+			return []byte{HH, HL, LH, LL}, false	
 		}
 	}
 	if isRegister(text) != 0xff {	
-		return []byte{byte(isRegister(text))}
+		return []byte{byte(isRegister(text))}, false
 	}
 	if string(text[0]) == "\"" {
 		if string(text[len(text)-1]) != "\"" {
@@ -225,9 +227,9 @@ func parse(text string) []byte {
 				warning(10, "")
 			}
 		}	
-		return []byte(text)
+		return []byte(text), false
 	}
-	return append([]byte("LR_"+text), 0x00)
+	return append([]byte("LR_"+text), 0x00), true
 }
 
 func formatString(text string) string {
@@ -279,6 +281,9 @@ func Lex(text string) []string {
     return tokens
 }
 
+var non_organic bool
+var PJL bool
+var clabel string
 
 func assemble(text string) {
 	words := Lex(text)
@@ -336,7 +341,7 @@ func assemble(text string) {
 			} else {
 				write(append([]byte("LD32_" + words[i]), 0x00))
 			}
-
+			clabel = words[i]
 			tocompile := words[i+1 : end]
 			if len(tocompile) > 0 {
 				assemble(strings.Join(tocompile, " "))
@@ -384,14 +389,23 @@ func assemble(text string) {
 				src := isRegister(words[i+2])
 				write([]byte{src})
 			} else {
-				value := parse(words[i+2])
+				value, label := parse(words[i+2])
+	
 				write(value)
+				if PIE == true && label == true {	
+					if non_organic == true {
+						write([]byte {0x0d, 0x20, dst, 0x21})
+					} else {
+						write([]byte {0x0d, dst, dst, 0x21})
+					}
+				}
 			}
 			i = i + 2
 		case "hlt":
 			write([]byte{0x02})
 		case "jmp":
-			if PIE == false || isRegister(words[i + 1]) != 0xFF {
+			_, label := parse(words[i + 1])
+			if PIE == false || label == false {
 				write([]byte{0x03})
 
 				if isRegister(words[i+1]) == 0xff {
@@ -400,19 +414,18 @@ func assemble(text string) {
 					write([]byte{0x02})
 				}
 
-				value := parse(words[i+1])
+				value, _ := parse(words[i+1])
 				write(value)
-			} else {	
-				// PROCESS BASE AT LOC 0 - 3
-				assemble("mov e13, " + words[i + 1])
-				assemble(`int 0x4`)
-				assemble(`add r0, r0, e13`)
-				write([]byte {0x03, 0x02, 0x00})
+			} else {
+				non_organic = true
+				assemble(`mov e13, ` + words[i + 1])
+				non_organic = false
+				assemble(`jmp e13`)
 			}
 			i = i + 1
 		case "int":
 			write([]byte{0x04})
-			value := parse(words[i+1])	
+			value, _ := parse(words[i+1])	
 			if Bits32 == false {
 				if len(value) > 2 {
 					error(3, "'" + string(value) + "'")
@@ -425,7 +438,8 @@ func assemble(text string) {
 			write(value)
 			i = i + 1
 		case "jnz":
-			if PIE == false || isRegister(words[i + 2]) != 0xFF {
+			_, label := parse(words[i + 2])
+			if PIE == false || label == false {
 				write([]byte{0x05})
 
 				if isRegister(words[i+2]) == 0xff {
@@ -440,17 +454,17 @@ func assemble(text string) {
 				}
 				write([]byte{register})
 
-				value := parse(words[i+2])
+				value, _ := parse(words[i+2])
 				write(value)
-			} else {
+			}  else {
 				register := isRegister(words[i+1])
 				if register == 0xff {
 					error(2, "'"+words[i+1]+"'")
 				}
-				assemble("mov e13, " + words[i + 1])
-				assemble(`int 0x4`)
-				assemble(`add r0, r0, e13`)
-				write([]byte {0x05, 0x02, register, 0x00})
+				non_organic = true
+				assemble(`mov e13, ` + words[i + 2])
+				non_organic = false
+				assemble(`jnz ` + words[i + 1] + `, e13`)
 			}
 			i = i + 2
 		case "nop":
@@ -474,7 +488,8 @@ func assemble(text string) {
 			write([]byte{two})
 			i = i + 3
 		case "jz":
-			if PIE == false || isRegister(words[i + 2]) != 0xFF {
+			_, label := parse(words[i + 2])
+			if PIE == false || label == false {
 				write([]byte{0x08})
 
 				if isRegister(words[i+2]) == 0xff {
@@ -489,17 +504,17 @@ func assemble(text string) {
 				}
 				write([]byte{register})
 
-				value := parse(words[i+2])
+				value, _ := parse(words[i+2])
 				write(value)
 			} else {
 				register := isRegister(words[i+1])
 				if register == 0xff {
 					error(2, "'"+words[i+1]+"'")
 				}
-				assemble("mov e13, " + words[i + 1])
-				assemble(`int 0x4`)
-				assemble(`add r0, r0, e13`)
-				write([]byte {0x08, 0x02, register, 0x00})
+				non_organic = true
+				assemble(`mov e13, ` + words[i + 2])
+				non_organic = false
+				assemble(`jz ` + words[i + 1] + `, e13`)
 			}
 			i = i + 2
 		case "inc":
@@ -519,19 +534,21 @@ func assemble(text string) {
 			write([]byte{reg})
 			i = i + 1
 		case "push":
-			if PIE == false || isRegister(words[i + 1]) != 0xFF {
+			_, label := parse(words[i + 1])
+			if PIE == false || label == false {
 				write([]byte{0x0b})
 				if isRegister(words[i+1]) == 0xff {
 					write([]byte{0x01})
 				} else {
 					write([]byte{0x02})
 				}
-				write(parse(words[i+1]))
-			} else {	
-				assemble(`int 0x4`)
-				assemble("mov e13, " + words[i + 1])
-				assemble(`add r0, e13, r0`)
-				assemble(`push r0`)
+				value, _ := parse(words[i + 1])
+				write(value)
+			} else {
+				non_organic = true
+				assemble(`mov e13, ` + words[i + 1])
+				non_organic = false
+				assemble(`push e13`)
 			}
 			i = i + 1
 		case "pop":
@@ -717,7 +734,7 @@ func assemble(text string) {
 			write([]byte{one})
 			write([]byte{two})
 			i = i + 3
-		case "lod":
+		case "lod", "lode":
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
@@ -726,11 +743,18 @@ func assemble(text string) {
 			if one == 0xff {
 				error(2, "'"+words[i+2]+"'")
 			}
-			write([]byte{0x17})
-			write([]byte{check})
-			write([]byte{one})
+			if words[i] == "lode" {
+				assemble("add e13, " + words[i + 1] + ", e14")
+				write([]byte{0x17})
+				write([]byte{0x20})
+				write([]byte{one})
+			} else {
+				write([]byte{0x17})
+				write([]byte{check})
+				write([]byte{one})
+			}
 			i = i + 2
-		case "strf":
+		case "strf", "strfe":
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
@@ -739,11 +763,18 @@ func assemble(text string) {
 			if one == 0xff {
 				error(2, "'"+words[i+2]+"'")
 			}
-			write([]byte{0x18})
-			write([]byte{check})
-			write([]byte{one})
+			if words[i] == "strfe" {
+				assemble("add e13, " + words[i + 1] + ", e14")
+				write([]byte{0x18})
+				write([]byte{0x20})
+				write([]byte{one})
+			} else {
+				write([]byte{0x18})
+				write([]byte{check})
+				write([]byte{one})
+			}
 			i = i + 2
-		case "lodf":
+		case "lodf", "lodfe":
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
@@ -752,9 +783,16 @@ func assemble(text string) {
 			if one == 0xff {
 				error(2, "'"+words[i+2]+"'")
 			}
-			write([]byte{0x19})
-			write([]byte{check})
-			write([]byte{one})
+			if words[i] == "lodfe" {
+				assemble("add e13, " + words[i + 1] + ", e14")
+				write([]byte{0x19})
+				write([]byte{0x20})
+				write([]byte{one})
+			} else {
+				write([]byte{0x19})
+				write([]byte{check})
+				write([]byte{one})
+			}
 			i = i + 2
 		case "set":
 			mode := words[i + 1]
@@ -766,7 +804,7 @@ func assemble(text string) {
 				write([]byte{0x1a, 0x01})	
 			}
 			i++
-		case "str":
+		case "str", "stre":
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
@@ -775,9 +813,16 @@ func assemble(text string) {
 			if one == 0xff {
 				error(2, "'"+words[i+2]+"'")
 			}
-			write([]byte{0x1b})
-			write([]byte{check})
-			write([]byte{one})
+			if words[i] == "stre" {
+				assemble("add e13, " + words[i + 1] + ", e14")
+				write([]byte{0x1b})
+				write([]byte{0x20})
+				write([]byte{one})
+			} else {
+				write([]byte{0x1b})
+				write([]byte{check})
+				write([]byte{one})
+			}
 			i = i + 2
 		case "shl":
 			check := isRegister(words[i+1])
@@ -820,48 +865,57 @@ func assemble(text string) {
 			if PIE == false {
 				if Bits32 == false {
 					assemble(`
-					mov e11, pc
-					mov r0, 20
-					add e11, e11, r0
-					push e11
-					jmp	` + label)
+					mov e11, pc                  
+					mov r0, 20                   
+					add e11, e11, r0             
+					push e11                     
+					jmp	` + label)             
 				} else {
 					assemble(`
 					mov e11, pc
 					mov r0, 24
 					add e11, e11, r0
 					push e11
-					jmp	` + label)
+					jmp	` + label) 
+					// 4 bytes
+					// 7 bytes
+					// 4 bytes
+					// 3 bytes
+					// 6 bytes << 14 bytes
 				}
 			} else {
 				if Bits32 == false {
 					assemble(`
-					mov e11, pc
-					mov e12, 20
-					add e11, e11, e12
-					int 0x4
-					add e11, e11, r0
-					push e11
-					jmp	` + label)
+					mov e11, pc                  
+					mov r0, 20                   
+					add e11, e11, r0             
+					push e11                     
+					jmp	` + label)             
 				} else {
 					assemble(`
 					mov e11, pc
-					mov e12, 24
-					add e11, e11, e12
-					int 0x4
+					mov r0, 32
 					add e11, e11, r0
 					push e11
-					jmp	` + label)
+					jmp	` + label) 
+					// 4 bytes
+					// 7 bytes
+					// 4 bytes
+					// 3 bytes
+					// 6 bytes << 14 bytes
 				}
 			}
+			
 			i = i + 1
 		case "ret":
-			assemble(`jmp e11`)
-		case "jmpr":
-			assemble(`
-				int 0x4
-
-			`)
+			if (clabel == "_start" || clabel == "") && PIE == true {
+				assemble(`
+				mov r1, 1
+				int 0x04
+				`)	
+			} else {
+				assemble(`jmp e11`)
+			}
 		case "pusha":
 			assemble(`
 				push r0
@@ -1052,7 +1106,8 @@ func assemble(text string) {
 			write(append([]byte("LO_"), []byte{H, L}...))
 			i++
 		case ".ptr":
-			write(parse(words[i + 1]))
+			value, _ := parse(words[i + 1])
+			write(value)
 			i++
 		case ".pad":
 			word := words[i + 1]
@@ -1082,6 +1137,9 @@ func assemble(text string) {
 					break
 				}
 			}
+		case ".ptrlabel":
+			PtrLabels = append(PtrLabels, words[i + 1])
+			i++
 		default:
 			error(4, "'"+words[i]+"'")
 		}

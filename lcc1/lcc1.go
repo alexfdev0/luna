@@ -66,6 +66,8 @@ func main() {
 			nolink = true
 		case "-Werror":
 			error.Upgrade = true
+		case "-fpie":
+			parser.PIE = true	
 		default:
 			input_files = append(input_files, arg)
 		}

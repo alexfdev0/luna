@@ -122,9 +122,22 @@ var Debug bool = false
 var ClockSpeed int64 = 33000000
 var BIOS_REBOOT bool = false
 var BIOS_SHUTDOWN bool = false
+
+func PrintlnAsync(a ...any) {
+	go func() {
+		fmt.Println(a...)
+	}()
+}
+
+func PrintfAsync(x string, a ...any) {
+	go func() {
+		fmt.Printf(x, a...)
+	}()
+}
+
 func Log(text string) {
 	if LogOn == true {
-		fmt.Println("\033[33m" + fmt.Sprintf("0x%08x: ", getRegister(0x001a)) + text + "\033[0m")	
+		fmt.Println("\033[33m" + fmt.Sprintf("0x%08x: ", getRegister(0x001a)) + text + "\033[0m")
 	}	
 }
 

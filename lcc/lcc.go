@@ -9,6 +9,8 @@ import (
 	"runtime"
 )
 
+var SeeInvocation bool
+
 func stderr(str string) {
 	fmt.Fprintln(os.Stderr, str)
 }
@@ -23,6 +25,10 @@ func execute(command string, displayError bool) bool {
 
 	cmd := exec.Command(shell, flag, command)
 	output, err := cmd.CombinedOutput()
+
+	if SeeInvocation == true {
+		fmt.Println(command)
+	}
 	fmt.Printf(string(output))
 
 	if err != nil {
@@ -88,7 +94,7 @@ func main() {
 		case "-v":
 			fmt.Println("Luna Compiler Collection version 4.1")
 			fmt.Println("Target: luna-l2")
-			os.Exit(0)
+			SeeInvocation = true
 		case "-S":
 			noassemble = true
 		case "-Werror":
@@ -99,6 +105,7 @@ func main() {
 		case "-fpie":
 			l2ld_opt += " -fpie"
 			lasargs = append(lasargs, "-fpie")
+			cc1args = append(cc1args, "-fpie")
 		case "-fpie-32":
 			l2ld_opt += " -fpie-32"
 		case  "-fpie-16":

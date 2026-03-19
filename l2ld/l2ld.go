@@ -98,17 +98,10 @@ func Filter(data []byte, filename string) {
 			if Org != 0 {
 				org = Org
 			}
-
-			fmt.Println("ORG:", org)
-		
+	
 			if Bits32 == false {
 				H := byte((org + len(Buffer)) >> 8)
-				L := byte((org + len(Buffer)) & 0xFF)
-
-				if name == "_start" && PIE == true {
-					Buffer[5] = H
-					Buffer[6] = L
-				}
+				L := byte((org + len(Buffer)) & 0xFF)	
 
 				bindings = append(bindings, binding{Name: name, Location: []byte{H, L}, File: filename, Global: CheckGlobal(name)})
 
@@ -127,15 +120,6 @@ func Filter(data []byte, filename string) {
 				LH := byte((org + len(Buffer)) >> 8)
 				LL := byte((org + len(Buffer)) & 0xFF)
 
-				fmt.Println("Offset for label", name, ":", org + len(Buffer))
-
-				if name == "_start" && PIE == true {
-					Buffer[5] = HH
-					Buffer[6] = HL
-					Buffer[7] = LH
-					Buffer[8] = LL
-				}
-
 				bindings = append(bindings, binding{Name: name, Location: []byte{HH, HL, LH, LL}, File: filename, Global: CheckGlobal(name)})
 
 				for i, ub := range unresolvedBindings {
@@ -146,14 +130,10 @@ func Filter(data []byte, filename string) {
 							Buffer[ub.BufferLoc + 1] = HL
 							Buffer[ub.BufferLoc + 2] = LH
 							Buffer[ub.BufferLoc + 3] = LL
-							fmt.Println("Resolving ", unresolvedBindings[i].Name)
 						}	
 					}
 				}
-			}
-			if name == "_start" {
-				PIE__start_loc = int64(len(Buffer))
-			}
+			}	
 			i = j - 1
 		} else if bytes.HasPrefix(data[i:], []byte("LR_")) {
 			j := i + 3
@@ -188,6 +168,9 @@ func Filter(data []byte, filename string) {
 					write(0x00)
 				}	
 			}
+			Filter([]byte {
+					
+			}, "<auto>")
 			i = j - 1
 		} else if bytes.HasPrefix(data[i:], []byte("LP_")) {
 			i += 3
@@ -305,9 +288,9 @@ func main() {
 
 	if pie == true {
 		Filter([]byte{
-			0x00, 0x00, 0x00, 0x00, // Program base
+			0x7F, 0x4C, 0x32, 0x50, 0x49, 0x45, // Magic
 			pie_bni, // Bitness
-			0x00, 0x00, 0x00, 0x09, // Program entry point
+			0x00, 0x00, 0x00, 0x0B, // Program entry point
 		}, "<auto>")
 		if pie_bni == 0x01 {
 			bindings = append(bindings, binding{

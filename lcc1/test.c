@@ -2,5 +2,6 @@
 extern void print(char* string);
 
 void _start() {
-    print("Hello world!");
+    print("Hello world!\n");
+    return;
 }
