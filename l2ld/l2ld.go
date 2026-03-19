@@ -38,6 +38,7 @@ var Exports = []export {}
 var FillSize int = 0
 var Org int = 0
 var PIE bool
+var PIE__start_loc int64
 
 var errors = []string {
 	"no object files specified",
@@ -97,10 +98,18 @@ func Filter(data []byte, filename string) {
 			if Org != 0 {
 				org = Org
 			}
+
+			fmt.Println("ORG:", org)
 		
 			if Bits32 == false {
 				H := byte((org + len(Buffer)) >> 8)
-				L := byte((org + len(Buffer)) & 0xFF)	
+				L := byte((org + len(Buffer)) & 0xFF)
+
+				if name == "_start" && PIE == true {
+					Buffer[5] = H
+					Buffer[6] = L
+				}
+
 				bindings = append(bindings, binding{Name: name, Location: []byte{H, L}, File: filename, Global: CheckGlobal(name)})
 
 				for i, ub := range unresolvedBindings {
@@ -117,6 +126,16 @@ func Filter(data []byte, filename string) {
 				HL := byte((org + len(Buffer)) >> 16)
 				LH := byte((org + len(Buffer)) >> 8)
 				LL := byte((org + len(Buffer)) & 0xFF)
+
+				fmt.Println("Offset for label", name, ":", org + len(Buffer))
+
+				if name == "_start" && PIE == true {
+					Buffer[5] = HH
+					Buffer[6] = HL
+					Buffer[7] = LH
+					Buffer[8] = LL
+				}
+
 				bindings = append(bindings, binding{Name: name, Location: []byte{HH, HL, LH, LL}, File: filename, Global: CheckGlobal(name)})
 
 				for i, ub := range unresolvedBindings {
@@ -127,9 +146,13 @@ func Filter(data []byte, filename string) {
 							Buffer[ub.BufferLoc + 1] = HL
 							Buffer[ub.BufferLoc + 2] = LH
 							Buffer[ub.BufferLoc + 3] = LL
+							fmt.Println("Resolving ", unresolvedBindings[i].Name)
 						}	
 					}
 				}
+			}
+			if name == "_start" {
+				PIE__start_loc = int64(len(Buffer))
 			}
 			i = j - 1
 		} else if bytes.HasPrefix(data[i:], []byte("LR_")) {
@@ -202,10 +225,6 @@ func Filter(data []byte, filename string) {
 			name := string(data[i + 9:j])
 			Exports = append(Exports, export{Name: name})
 			i = j
-		} else if bytes.HasPrefix(data[i:], []byte("L_PIE")) {
-			i += 4
-			PIE = true
-			Org = 64
 		} else {
 			write(data[i])
 		}
@@ -247,6 +266,8 @@ func main() {
 	var input_files []string
 	var output_filename string = ""
 	var auto bool = false
+	var pie bool
+	var pie_bni byte
 
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -262,6 +283,12 @@ func main() {
 			i++
 		case "-a":
 			auto = true
+		case "-fpie":
+			pie = true
+		case "-fpie-32":
+			pie_bni = 0x01
+		case "-fpie-16":
+			pie_bni = 0x00
 		default:
 			input_files = append(input_files, arg)
 		}
@@ -275,13 +302,61 @@ func main() {
 	}
 
 	ParseLibs()
+
+	if pie == true {
+		Filter([]byte{
+			0x00, 0x00, 0x00, 0x00, // Program base
+			pie_bni, // Bitness
+			0x00, 0x00, 0x00, 0x09, // Program entry point
+		}, "<auto>")
+		if pie_bni == 0x01 {
+			bindings = append(bindings, binding{
+				Name: "_PROGRAM_BASE_",
+				Location: []byte {0x00, 0x00, 0x00, 0x00},
+				File: "<auto>",
+				Global: true,
+			})
+			bindings = append(bindings, binding{
+				Name: "_PROGRAM_BITNESS_",
+				Location: []byte {0x00, 0x00, 0x00, 0x04},
+				File: "<auto>",
+				Global: true,
+			})
+			bindings = append(bindings, binding{
+				Name: "_PROGRAM_ENTRY_",
+				Location: []byte {0x00, 0x00, 0x00, 0x05},
+				File: "<auto>",
+				Global: true,
+			})
+		} else {
+			bindings = append(bindings, binding{
+				Name: "_PROGRAM_BASE_",
+				Location: []byte {0x00, 0x00},
+				File: "<auto>",
+				Global: true,
+			})
+			bindings = append(bindings, binding{
+				Name: "_PROGRAM_BITNESS_",
+				Location: []byte {0x00, 0x04},
+				File: "<auto>",
+				Global: true,
+			})
+			bindings = append(bindings, binding{
+				Name: "_PROGRAM_ENTRY_",
+				Location: []byte {0x00, 0x05},
+				File: "<auto>",
+				Global: true,
+			})
+		}
+	}	
+
 	for _, file := range input_files {
 		data, err := os.ReadFile(file)
 		if err != nil {
 			error(1, "path=" + file)
 		}	
 		Filter(data, file)		
-	}
+	}	
 
 	done:
 

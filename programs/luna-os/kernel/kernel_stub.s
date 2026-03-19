@@ -23,7 +23,15 @@ IDT_SETUP:
     str r1, r2
 
     mov r1, 0x6FFF0026
-    mov r2, kernel_panic
+    mov r2, shell
+    strf r1, r2
+
+    mov r1, 0x6FFF0013
+    mov r2, 1
+    str r1, r2
+
+    mov r1, 0x6FFF0014
+    mov r2, syscall_handler
     strf r1, r2
 
     mov r1, 0x6FFF001A

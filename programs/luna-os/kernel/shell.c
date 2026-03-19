@@ -94,23 +94,8 @@ top:
         goto enterpass;
     }
 
-    if (strcmp("meteor", TEMPBUF) == 1) {
-        if (query_drive_inserted(2) == 0) {
-            puts32("Please insert the Meteor DVD and try again.\n", 255, 0);
-            goto top;
-        }
-        load_sector(2, 0x28, 0);
-        load_sector(2, 0x29, 1);
-        load_sector(2, 0x2a, 2);
-        load_sector(2, 0x2b, 3);
-
-        asm ("push meteor_done");
-        asm ("jmp 0x5000");
-        meteor_done:
-
-        IDT_SETUP();
-
-        goto top;
+    if (strcmp("exec", TEMPBUF) == 1) {
+        load_executable(); 
     }
 
     puts32("'", 255, 0);

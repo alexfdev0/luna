@@ -23,6 +23,10 @@
 .global itoa
 .global malloc
 .global free
+.global ASLR_generate_address
+.global lexec_core
+.global sectorize
+.global syscall_handler
 
 readin:
     pop e11
@@ -501,6 +505,70 @@ key_click:
     pop r2
 
     jmp e7
+
+ASLR_generate_address:
+    pop e11
+    push e11
+
+    mov r1, ASLR_addr
+    mov e6, r1 
+    
+    mov r2, 0x60
+    str r1, r2 // 1
+    inc r1
+
+    mov r3, 0x90909090
+    lod r3, r4
+
+    str r1, r4 // 2
+    inc r1
+
+    lod r3, r4
+
+    str r1, r4 // 3
+    inc r1
+
+    lod r3, r4
+
+    str r1, r4 // 4
+    inc r1
+
+    pop e11
+    ret
+ASLR_addr:
+    .dword 57800
+
+lexec_core:
+    pop e11
+    pop r1
+
+    mov r5, r1 // Base in r5
+    strf r1, r1
+
+    inc r1 // 00
+    inc r1 // 00
+    inc r1 // 00
+    inc r1 // Bitness indicator (ignore for now)
+    inc r1
+    
+    lodf r1, r2 // entry point
+    add r2, r2, r5
+    jmp r2
+
+    ret
+
+sectorize:
+    pop e11
+    pop r1
+    
+    mov r2, 512
+    div e6, r1, r2
+
+    ret
+
+syscall_handler:
+    mov r0, 0x57800
+    jmp irv
 
 // 1 - 6 destroyed
 // 

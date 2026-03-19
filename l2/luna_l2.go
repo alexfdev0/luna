@@ -50,6 +50,8 @@ var Registers = []shared.Register {
 	{0x0017, "E10", 0},
 	{0x0018, "E11", 0},
 	{0x001b, "E12", 0},
+	{0x0020, "E13", 0},
+	{0x0021, "E14", 0},
 	{0x0019, "SP", 0},
 	{0x001a, "PC", 0},
 	{0x001c, "IRV", 0},
@@ -170,6 +172,8 @@ func execute() {
 		switch op {
 		case 0x00:
 			Log("null")
+			setRegister(0x0001, uint32(op))
+			setRegister(0x0002, getRegister(0x001a))	
 			now := ProgramCounter
 			bios.IntWrapper(0x7, ProgramCounter + 1)
 			if getRegister(0x001a) == now {
@@ -546,6 +550,7 @@ func execute() {
 				setRegister(toregister, uint32(shared.Mapper(addr)) << 24 | uint32(shared.Mapper(addr + 1)) << 16 | uint32(shared.Mapper(addr + 2)) << 8 | uint32(shared.Mapper(addr + 3)))
 			}
 			setRegister(0x001a, ProgramCounter + 3)
+			fmt.Println("RESULT:", uint32(shared.Mapper(addr)) << 24 | uint32(shared.Mapper(addr + 1)) << 16 | uint32(shared.Mapper(addr + 2)) << 8 | uint32(shared.Mapper(addr + 3)))
 			Log("lodf " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(toregister))
 			stall(100)
 		case 0x1a:
@@ -977,10 +982,10 @@ func main() {
 		go rtc.RTCController()
 		go pit.PITController()
 		copy(Memory[0x6FFF0000:], []byte{ // IDT setup
-			0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x03, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x04, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x01, 0x00, 0x00, 0x00, 0x00, 0x00, // start at 0
+			0x02, 0x00, 0x00, 0x00, 0x00, 0x00, // start at 6
+			0x03, 0x00, 0x00, 0x00, 0x00, 0x00, // start at 12
+			0x04, 0x00, 0x00, 0x00, 0x00, 0x00, // start at 18
 			0x05, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x06, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x07, 0x00, 0x00, 0x00, 0x00, 0x00,

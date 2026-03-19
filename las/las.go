@@ -101,12 +101,16 @@ func isRegister(word string) byte {
 		return 0x17
 	case "e11":
 		return 0x18
+	case "e12":
+		return 0x1b
+	case "e13":
+		return 0x20
+	case "e14":
+		return 0x21
 	case "sp":
 		return 0x19
 	case "pc":
 		return 0x1a
-	case "e12":
-		return 0x1b
 	case "irv":
 		return 0x1c
 	case "ic":
@@ -327,7 +331,7 @@ func assemble(text string) {
 			}
 
 			words[i] = strings.ReplaceAll(words[i], ":", "")
-			if Bits32 == false || words[i] == "_start" {
+			if Bits32 == false {
 				write(append([]byte("LD16_" + words[i]), 0x00))
 			} else {
 				write(append([]byte("LD32_" + words[i]), 0x00))
@@ -400,26 +404,10 @@ func assemble(text string) {
 				write(value)
 			} else {	
 				// PROCESS BASE AT LOC 0 - 3
-				assemble(`
-				push r1
-				`)
-
-				if Bits32 == true {
-					assemble(`
-					mov r0, 0
-					lodf r0, r0
-					`)
-				} else {
-					assemble(`
-					mov r0, 2
-					lodf r0, r0
-					`)
-				}
-				// Base in r0
-				assemble("mov r1, " + words[i + 1])
-				assemble("add r1, r1, r0") // Add base to r1
-				write([]byte {0x03, 0x02, 0x01})
-				assemble("pop r1")
+				assemble("mov e13, " + words[i + 1])
+				assemble(`int 0x4`)
+				assemble(`add r0, r0, e13`)
+				write([]byte {0x03, 0x02, 0x00})
 			}
 			i = i + 1
 		case "int":
@@ -455,33 +443,14 @@ func assemble(text string) {
 				value := parse(words[i+2])
 				write(value)
 			} else {
-				// PROCESS BASE AT LOC 0 - 3
-				assemble(`
-				push r1
-				`)
-
-				if Bits32 == true {
-					assemble(`
-					mov r0, 0
-					lodf r0, r0
-					`)
-				} else {
-					assemble(`
-					mov r0, 2
-					lodf r0, r0
-					`)
-				}
-				// Base in r0
-				assemble("mov r1, " + words[i + 2])
-				assemble("add r1, r1, r0") // Add base to r1
-
 				register := isRegister(words[i+1])
 				if register == 0xff {
 					error(2, "'"+words[i+1]+"'")
 				}
-
-				write([]byte {0x05, 0x02, register, 0x01})
-				assemble("pop r1")
+				assemble("mov e13, " + words[i + 1])
+				assemble(`int 0x4`)
+				assemble(`add r0, r0, e13`)
+				write([]byte {0x05, 0x02, register, 0x00})
 			}
 			i = i + 2
 		case "nop":
@@ -523,33 +492,14 @@ func assemble(text string) {
 				value := parse(words[i+2])
 				write(value)
 			} else {
-				// PROCESS BASE AT LOC 0 - 3
-				assemble(`
-				push r1
-				`)
-
-				if Bits32 == true {
-					assemble(`
-					mov r0, 0
-					lodf r0, r0
-					`)
-				} else {
-					assemble(`
-					mov r0, 2
-					lodf r0, r0
-					`)
-				}
-				// Base in r0
-				assemble("mov r1, " + words[i + 2])
-				assemble("add r1, r1, r0") // Add base to r1
-
 				register := isRegister(words[i+1])
 				if register == 0xff {
 					error(2, "'"+words[i+1]+"'")
 				}
-
-				write([]byte {0x08, 0x02, register, 0x01})
-				assemble("pop r1")
+				assemble("mov e13, " + words[i + 1])
+				assemble(`int 0x4`)
+				assemble(`add r0, r0, e13`)
+				write([]byte {0x08, 0x02, register, 0x00})
 			}
 			i = i + 2
 		case "inc":
@@ -577,44 +527,11 @@ func assemble(text string) {
 					write([]byte{0x02})
 				}
 				write(parse(words[i+1]))
-			} else {
-				// PROCESS BASE AT LOC 0 - 3
-				assemble(`
-				push r1	
-				`)
-
-				if Bits32 == true {
-					assemble(`
-					mov r0, 0
-					lodf r0, r0
-					`)
-				} else {
-					assemble(`
-					mov r0, 2
-					lodf r0, r0
-					`)
-				}
-				// Base in r0
-				assemble("mov r1, " + words[i + 1])
-				assemble("add r1, r1, r0") // Add base to r1
-				assemble("push r1")
-
-				if Bits32 == false {
-					assemble(`
-					inc sp
-					inc sp
-					`)
-				} else {
-					assemble(`
-					inc sp
-					inc sp
-					inc sp
-					inc sp
-					`)
-				}
-				assemble(`
-				pop r1
-				`)
+			} else {	
+				assemble(`int 0x4`)
+				assemble("mov e13, " + words[i + 1])
+				assemble(`add r0, e13, r0`)
+				assemble(`push r0`)
 			}
 			i = i + 1
 		case "pop":
@@ -900,24 +817,51 @@ func assemble(text string) {
 			i = i + 3
 		case "call":
 			label := words[i + 1]
-			if Bits32 == false {
-				assemble(`
-				mov e11, pc
-				mov r0, 20
-				add e11, e11, r0
-				push e11
-				jmp	` + label)
+			if PIE == false {
+				if Bits32 == false {
+					assemble(`
+					mov e11, pc
+					mov r0, 20
+					add e11, e11, r0
+					push e11
+					jmp	` + label)
+				} else {
+					assemble(`
+					mov e11, pc
+					mov r0, 24
+					add e11, e11, r0
+					push e11
+					jmp	` + label)
+				}
 			} else {
-				assemble(`
-				mov e11, pc
-				mov r0, 24
-				add e11, e11, r0
-				push e11
-				jmp	` + label)
+				if Bits32 == false {
+					assemble(`
+					mov e11, pc
+					mov e12, 20
+					add e11, e11, e12
+					int 0x4
+					add e11, e11, r0
+					push e11
+					jmp	` + label)
+				} else {
+					assemble(`
+					mov e11, pc
+					mov e12, 24
+					add e11, e11, e12
+					int 0x4
+					add e11, e11, r0
+					push e11
+					jmp	` + label)
+				}
 			}
 			i = i + 1
 		case "ret":
 			assemble(`jmp e11`)
+		case "jmpr":
+			assemble(`
+				int 0x4
+
+			`)
 		case "pusha":
 			assemble(`
 				push r0
@@ -1219,10 +1163,7 @@ func main() {
 			os.Exit(1)
 		}
 		current_filename = file
-		// Assemble everything
-		if PIE == true {
-			write([]byte("L_PIE"))
-		}
+		// Assemble everything	
 		assemble(string(data))
 		// Error checking
 		var error_str string = ""

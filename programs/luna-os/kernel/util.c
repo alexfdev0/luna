@@ -1,4 +1,5 @@
 #pragma bits 32
+
 #include "stdlib.h"
 #include "audio.h"
 
@@ -69,4 +70,16 @@ void load_sector(short short int drive, long int dest_sector, long int real_sect
     asm ("mov r1, e1");
     asm ("mov r3, e2");
     asm ("int 0x0b");
+}
+
+void load_executable() {
+    if (query_drive_inserted(2) == 0) {
+        puts32("Error! ", 0xA0, 0);
+        puts32("Please insert a disc into the DVD\ndrive and try again.\n", 255, 0);
+        return;
+    }
+    // long int* address = ASLR_generate_address();
+    load_sector(2, 700, 0);
+
+    lexec_core(358400);
 }

@@ -95,7 +95,14 @@ func main() {
 			cc1args = append(cc1args, "-Werror")
 			lasargs = append(lasargs, "-Werror")
 		case "-nostdlib":
-			l2ld_opt = ""	
+			l2ld_opt = ""
+		case "-fpie":
+			l2ld_opt += " -fpie"
+			lasargs = append(lasargs, "-fpie")
+		case "-fpie-32":
+			l2ld_opt += " -fpie-32"
+		case  "-fpie-16":
+			l2ld_opt += " -fpie-16"
 		default:
 			input_files = append(input_files, arg)
 		}
