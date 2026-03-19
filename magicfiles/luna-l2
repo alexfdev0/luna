@@ -1,0 +1,9 @@
+#-----------------------------------------------------------------
+# luna-l2: file(1) magic for Luna L2 architecture executable files
+# From: Alex Flax (alex@alexflax.xyz)
+# Find out more about the architecture at luna.alexflax.xyz/documentation.php
+# No particular file extension
+
+0 string \x7FL2PIE Luna L2 executable, position independent, 
+>6 byte 0 16-bit
+>6 byte 1 32-bit
