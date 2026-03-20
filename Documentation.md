@@ -11,9 +11,10 @@
 The Luna L2 is a simple, lightweight, RISC CPU that aims to be clean while also leveraging some luxuries from CISC, with the ultimate end goal of being easy to teach and learn.<br><br>
 
 ## Registers
-L2 has 31 total registers for the storage and manipulation of data and information:<br><br>
+L2 has 33 total registers for the storage and manipulation of data and information:<br><br>
 R0-R12: general purpose registers, all can be written to and read from<br>
 E0-E12: extra registers, also general purpose. The standard calling convention uses registers E0-E6<br>
+E13-E14: Assembler reserved, do not use<br>
 SP: stack pointer<br>
 PC: program counter/instruction pointer<br>
 IRV: interrupt return address storage<br>
@@ -60,7 +61,7 @@ Luna L2 has several instructions necessary for operation and/or communicating to
 1. Print character to the screen (char in R1, foreground in R2, background in R3)<br>
 2. Reserved for the programmable interval timer<br>
 3.Unmapped<br>
-4. Unmapped<br>
+4. Syscall reserved; (if using PIE and host OS supports it.)<br>
 5. Reserved for the keyboard<br>
 6. Unmapped<br>
 7. Reserved for illegal instruction trap<br>

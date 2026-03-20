@@ -78,7 +78,7 @@ func main() {
 	var output_file string = ""
 	var cc1args []string
 	var lasargs []string
-	var l2ld_opt string = "-a"
+	var l2ld_opt string = ""
 
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -100,8 +100,8 @@ func main() {
 		case "-Werror":
 			cc1args = append(cc1args, "-Werror")
 			lasargs = append(lasargs, "-Werror")
-		case "-nostdlib":
-			l2ld_opt = ""
+		case "-fstdlib":
+			l2ld_opt += " -a"
 		case "-fpie":
 			l2ld_opt += " -fpie"
 			lasargs = append(lasargs, "-fpie")
@@ -111,7 +111,11 @@ func main() {
 		case  "-fpie-16":
 			l2ld_opt += " -fpie-16"
 		default:
-			input_files = append(input_files, arg)
+			if arg[0] == '-' {
+				stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39munknown argument: '" + arg + "'\033[0m")
+			} else {
+				input_files = append(input_files, arg)
+			}
 		}
 	}
 
