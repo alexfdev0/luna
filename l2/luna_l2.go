@@ -155,7 +155,7 @@ func stall(cycles int64) {
 func execute() {
 	for {
 		ProgramCounter := getRegister(0x001a)
-		op := shared.Mapper(ProgramCounter)
+		op := shared.Mapper(ProgramCounter)	
 
 		// Handle interrupts	
 		var IntHandled bool

@@ -23,3 +23,5 @@ extern void sleep(long int seconds);
 extern void* TEMPBUF;
 extern void* PROMPTBUF;
 extern void* PASSBUF;
+extern void* renderbuf_loc;
+extern void* sleep_loc;

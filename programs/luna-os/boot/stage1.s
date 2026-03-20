@@ -10,6 +10,12 @@ _start:
     // Check partition table
     call check_vol
 
+    // Print loading message
+    push msg_loading
+    push 255
+    push 0
+    call write
+
     // Load next sector
     int 0x10
     mov r2, r1
@@ -22,17 +28,6 @@ _start:
     mov r1, 2
     mov r3, r1
     int 11
-
-    // Load sectors
-    push msg_loading
-    push 255
-    push 0
-    call write
-
-    mov r4, num_sectors
-    lodf r4, r4
-    push r4
-    call load_sectors 
 
     jmp 512 
 
@@ -133,10 +128,7 @@ wk_after:
 key_inp:
     mov r1, 0xFA12
     lod r1, e12
-    jmp e7 
-
-num_sectors: 
-    .word 0x0336
+    jmp e7
 
 msg_loading:
     .asciz "Loading...\n\n"

@@ -2,12 +2,15 @@
 .org 1536
 
 .global IDT_SETUP
+.global targeted_load
+.global boot_load_all_sectors
 
 // LUFS header
 .pad 32
 
 set 32
 .bits 32
+LOS_BASE:
 mov sp, 0x6FFEFFFF
 
 call IDT_SETUP
@@ -47,3 +50,64 @@ IDT_SETUP:
     strf r2, r1
 
     ret
+
+targeted_load:
+    pop e11
+    pop r9 // Sectors
+    pop r1 // Address
+
+    push r1
+
+    int 0x10
+    mov r2, r1
+
+    pop r1
+
+    mov r6, 0
+
+    mov r4, 512
+    div r1, r1, r4
+
+    dec r1
+    mov r3, r1
+    int 0x0b
+
+    inc r1
+
+    mov e10, pc
+
+    mov r3, r1
+    int 0x0b
+    inc r1
+    inc r6
+
+    igt r5, r6, r9
+    jz r5, e10
+
+    ret
+
+boot_load_all_sectors:
+    pop e11
+    pop r6 // num sectors
+
+    int 0x10
+    mov r2, r1
+
+    mov r1, LOS_BASE
+    mov r4, 512
+    div r1, r1, r4 // get base
+
+    mov r7, 0
+
+    mov e10, pc
+
+    mov r3, r1
+    int 0x0b
+    inc r1
+    inc r7
+
+    igt r9, r7, r6
+    jz r9, e10
+
+    ret
+    

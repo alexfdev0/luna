@@ -113,6 +113,27 @@ list_volumes:
 
     sub r7, r5, r6
 
+    push r1
+    push r3
+    push r4
+
+    int 0x10
+    mov r2, r1
+
+    mov r4, 512
+    div r1, r7, r4
+    mov r3, r1
+    int 0x0b
+
+    inc r1
+    mov r3, r1
+    int 0x0b
+
+    pop r4
+    pop r3
+    pop r1
+    
+
     mov r2, 255
     mov r3, 0x0f
     

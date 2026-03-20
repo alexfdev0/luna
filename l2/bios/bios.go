@@ -91,7 +91,6 @@ func WriteSector(drive int, sector int, dsector int) {
 
 	start := sector * 512
 	_content_start := dsector * 512
-
 	_, err = f.WriteAt(shared.Memory[start:start + 512], int64(_content_start))
 	if err != nil {
 		fmt.Println("luna-l2: could not write to block device: ", err)

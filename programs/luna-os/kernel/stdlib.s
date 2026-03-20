@@ -29,6 +29,8 @@
 .global syscall_handler
 .global sleep
 .global pit_nxt
+.global renderbuf_loc
+.global sleep_loc
 
 readin:
     pop e11
@@ -418,6 +420,7 @@ screen_fill:
     
     ret 
 
+renderbuf_loc:
 render_buf:
     pop e11
     pop r1 // BUFFER
@@ -610,6 +613,7 @@ syscall_ret:
     jmp irv
 
 
+sleep_loc:
 sleep:
     pop e11
     pop r4 // Seconds
