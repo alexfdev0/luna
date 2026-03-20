@@ -62,7 +62,6 @@ func LoadSector(drive int, sector int, enforce bool, dest_sector int) {
 
 	start := sector * 512
 	rstart := dest_sector * 512
-	fmt.Println("Will read from", file, "at", rstart, "to", start)
 	_, err = f.ReadAt(shared.Memory[start:start + 512], int64(rstart))
 	if err != nil {
 		fmt.Println("luna-l2: could not read from disk: ", err)

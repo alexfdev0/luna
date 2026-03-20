@@ -563,7 +563,7 @@ func execute() {
 				setRegister(toregister, uint32(shared.Mapper(addr)) << 24 | uint32(shared.Mapper(addr + 1)) << 16 | uint32(shared.Mapper(addr + 2)) << 8 | uint32(shared.Mapper(addr + 3)))
 			}
 			setRegister(0x001a, ProgramCounter + 3)
-			fmt.Println("RESULT:", uint32(shared.Mapper(addr)) << 24 | uint32(shared.Mapper(addr + 1)) << 16 | uint32(shared.Mapper(addr + 2)) << 8 | uint32(shared.Mapper(addr + 3)))
+			Log("value: " + fmt.Sprintf("0x%08x", getRegister(toregister)))
 			Log("lodf " + getRegisterName(uint32(Memory[ProgramCounter + 1])) + ", " + getRegisterName(toregister))
 			stall(100)
 		case 0x1a:

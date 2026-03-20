@@ -1,10 +1,9 @@
 #pragma bits 32
 
-#include "bayachao.h"
+#include "images.h"
 #include "stdlib.h"
 #include "lufs.h"
 #include "util.h"
-#include "stub.h"
 
 void shell() {
 top:
@@ -95,7 +94,8 @@ top:
     }
 
     if (strcmp("exec", TEMPBUF) == 1) {
-        load_executable(); 
+        load_executable();
+        goto top;
     }
 
     puts32("'", 255, 0);

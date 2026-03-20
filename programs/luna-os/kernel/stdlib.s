@@ -27,6 +27,8 @@
 .global lexec_core
 .global sectorize
 .global syscall_handler
+.global sleep
+.global pit_nxt
 
 readin:
     pop e11
@@ -510,8 +512,7 @@ ASLR_generate_address:
     pop e11
     push e11
 
-    mov r1, ASLR_addr
-    mov e6, r1 
+    mov r1, ASLR_addr 
     
     mov r2, 0x60
     str r1, r2 // 1
@@ -533,6 +534,14 @@ ASLR_generate_address:
     str r1, r4 // 4
     inc r1
 
+    mov r3, 0xFFFFFE00
+    mov r1, ASLR_addr
+    lodf r1, r2
+    and r2, r2, r3
+    strf r1, r2 // align to 1 sector
+
+    mov e6, r2
+
     pop e11
     ret
 ASLR_addr:
@@ -542,36 +551,41 @@ lexec_core:
     pop e11
     pop r1
 
-    mov r5, r1 // Base in r5
-    strf r1, r1
+    mov r1, ASLR_addr
+    lodf r1, r1
 
-    inc r1
-    inc r1
-    inc r1 // 00
-    inc r1 // 00
-    inc r1 // 00
+            // at 7f
+    inc r1 // l
+    inc r1 // 2
+    inc r1 // p
+    inc r1 // i
+    inc r1 // e
     inc r1 // Bitness indicator (ignore for now)
-    inc r1
+    inc r1 // 0
+    inc r1 // 0
+    inc r1 // 0
+    inc r1 // 0
+    inc r1 // first byte of program 
     
-    lodf r1, r2 // entry point
-    add r2, r2, r5
+    mov r6, lexec_raddr
+    strf r6, e11
 
-    mov r1, lexec_raddr
-    strf r1, e11
+    mov r3, ASLR_addr
+    lodf r3, r3
 
     pusha
-    mov e14, 0x57800
+    mov e14, r3
 
-    jmp r2
+    jmp r1
 lexec_raddr:
     .dword 0x00000000
 lexec_done:
     popa
 
-    mov r1, lexec_raddr
-    lodf r1, e11
+    call IDT_SETUP
 
-    ret
+    jmp shell
+    
 
 sectorize:
     pop e11
@@ -594,6 +608,42 @@ syscall_proc_exit:
 syscall_ret:
     popa
     jmp irv
+
+
+sleep:
+    pop e11
+    pop r4 // Seconds
+    push e11
+
+    mov r5, 0 
+
+    mov e10, pc
+
+    call pit_handler
+    inc r5
+
+    cmp r6, r4, r5
+    jz r6, e10
+
+    pop e11
+    ret
+
+
+pit_handler:
+    pop e11
+
+    mov r1, 0x6FFF0007
+    mov r2, 1
+    str r1, r2 // ENABLE PIT
+pit_wait:
+    hlt
+    jmp pit_wait
+pit_nxt:
+    mov r1, 0x6FFF0007
+    mov r2, 0
+    str r1, r2 // DISABLE PIT
+
+    ret
 
 // 1 - 6 destroyed
 // 

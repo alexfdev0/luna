@@ -78,8 +78,8 @@ void load_executable() {
         puts32("Please insert a disc into the DVD\ndrive and try again.\n", 255, 0);
         return;
     }
-    // long int* address = ASLR_generate_address();
-    load_sector(2, 700, 0);
 
-    lexec_core(358400);
+    long int address = ASLR_generate_address();
+    load_sector(2, address / 512, 0);
+    lexec_core(address);
 }

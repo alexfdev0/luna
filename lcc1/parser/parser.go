@@ -408,6 +408,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 	deref := 0
 	EQU_VT := NULL
 	EQU_VAR := Variable_Static{}
+	var op string = ""
 	EXPY_TOP:
 	switch peek(0).Type {
 	default:
@@ -657,67 +658,37 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 	case lexer.TokNumber:
 		// Parse expressions
 		// Load it up into r4
-		exit := false
 
+		_NUMBER_PARSE(register)	
+	}
 
-		_NUMBER_PARSE("r5")	
-
-		var num1 string = "r5"
-		var op string = ""
+	switch peek(0).Type {
+	case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
 		OP_TRY:
-
-		switch peek(0).Type {
-		case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
-			exit = false
-		default:
-			exit = true
-		}
-		if exit == true {
-			goto CHECK_FOR_PTR
-		}
-
 		op = expect(peek(0).Type)
 		_NUMBER_PARSE("r6")
 
 		switch op {
 		case "+":
-			Write("add " + register + ", r5, r6", true)
+			Write("add " + register + ", " + register + ", r6", true)
 		case "-":
-			Write("sub " + register + ", r5, r6", true)
+			Write("sub " + register + ", " + register + ", r6", true)
 		case "*":
-			Write("mul " + register + ", r5, r6", true)
+			Write("mul " + register + ", " + register + ", r6", true)
 		case "/":
-			Write("div " + register + ", r5, r6", true)
+			Write("div " + register + ", " + register + ", r6", true)
 		}
 		switch peek(0).Type {
 		case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
-			num1 = "r5"
 			goto OP_TRY
 		}
-		goto CONTINUE
-
-		CHECK_FOR_PTR:
-		if deref < 0 {
-			error.Error(31, "'&' operand", peek(-1), &tokens)
-		}
-		derefed := false
-		Write("mov r1, " + num1, true)
-		for _ = deref; deref > 0; deref-- {
-			derefed = true
-			Write("lod r1, r2", true)
-		}
-		if derefed == false {
-			Write("mov " + register + ", r1", true)
-		} else {
-			Write("mov " + register + ", r2", true)
-		}
 	}
+	
 	CONTINUE:
 	if peek(0).Type != lexer.TokEqual && peek(0).Type != lexer.TokEquality {
 		// expect(lexer.TokSemi)
 		return i
 	}
-
 	
 	switch peek(0).Type {
 	case lexer.TokEquality:
