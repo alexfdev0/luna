@@ -75,7 +75,7 @@ top:
         goto top;
     }
 
-    if (strcmp("testfault", TEMPBUF) == 1) {
+    if (strcmp("testfault", TEMPBUF) == 1) { 
         asm ("mov r1, 4");
         asm ("mov r2, pc");
         asm ("int 0x07");
