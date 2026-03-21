@@ -19,7 +19,8 @@ import (
 	"luna_l2/pit"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/go-gl/glfw/v3.3/glfw"	
+	"github.com/go-gl/glfw/v3.3/glfw"
+	"github.com/ncruces/zenity"
 )
 
 // Basic elements of CPU
@@ -634,6 +635,32 @@ var Vertices = []float32 {
     -1,  1, 0, 0,	
 }
 
+func FileOpenDialogue(title string, drive int) {
+    ZOpen := func(title string) {
+        _path, err := zenity.SelectFile(
+            zenity.Title(title),
+        )
+        if err != nil {
+            return
+        }
+        switch drive {
+        case 0:
+            shared.Filename = _path
+        case 1:
+            shared.SDFilename = _path
+        case 2:
+            shared.OpticalFilename = _path
+        }
+    }
+
+    switch runtime.GOOS {
+    case "darwin":
+        ZOpen(title)
+    default:
+        go ZOpen(title)
+    }
+} 
+
 func UpdateFramebuffer() {
 	i := 0
 	for y := 0; y < 200; y++ {
@@ -746,11 +773,33 @@ func InitializeWindow() {
 					return
 				}	
 			}
-			if ctrl && alt && key == glfw.KeyF {
-				ToggleFullscreen(window)
+
+			switch key {	
+			case glfw.KeyF1:
+				// Insert into HDD slot
+				if shared.Filename == "" {
+					FileOpenDialogue("Select hard disk file", 0)
+				} else {
+					shared.Filename = ""
+				}
 				return
-			}
-			if ctrl && alt && key == glfw.KeyD {
+			case glfw.KeyF2:
+				// Insert into SD slot
+				if shared.SDFilename == "" {
+					FileOpenDialogue("Select SD/USB file", 1)
+				} else {
+					shared.SDFilename = ""
+				}	
+				return
+			case glfw.KeyF3:
+				// Insert into CD/DVD slot
+				if shared.OpticalFilename == "" {
+					FileOpenDialogue("Select CD/DVD file", 2)
+				} else {
+					shared.OpticalFilename = ""
+				}	
+				return
+			case glfw.KeyF4:
 				if Debug == true {
 					LogOn = false
 					Debug = false
@@ -759,7 +808,13 @@ func InitializeWindow() {
 					Debug = true
 				}
 				return
-			}
+			case glfw.KeyF5:
+				shared.RaiseInterrupt(0xF)	
+			case glfw.KeyF11:
+				ToggleFullscreen(window)
+				return	
+			}	
+	
 
 			var char string
 			switch key {

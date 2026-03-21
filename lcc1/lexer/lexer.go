@@ -8,6 +8,7 @@ import (
 	"unicode"
 	"os"
 	"path/filepath"
+	"runtime"
 )
 
 var Bits int = 16
@@ -302,10 +303,25 @@ func Preprocessor(text string, filename string, just_split bool) string {
 				path = filepath.Join(base, raw)
 			}
 
+			ogpath := path
+			times := 0
+
+			ff_top:
 			contents, err := os.ReadFile(path)
 			if err != nil {
-				fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + ":\033[0m \033[1;31mfatal error:\033[0m \033[1;39mno such file or directory '" + path + "'\033[0m")
-				os.Exit(1)
+				times++
+				if times >= 2 {
+					fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + ":\033[0m \033[1;31mfatal error:\033[0m \033[1;39mno such file or directory '" + ogpath + "'\033[0m")
+					os.Exit(1)
+				} else {
+					switch runtime.GOOS {
+					case "windows":
+						path = "C:\\Program Files (x86)\\Luna L2\\lcc\\" + raw
+					default:
+						path = "/usr/local/lib/lcc/" + raw
+					} 
+					goto ff_top
+				}
 			}
 			i++
 			ntokens := tokenize(string(contents)) 

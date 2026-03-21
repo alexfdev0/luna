@@ -6,11 +6,17 @@ require (
 	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20250301202403-da16c1255728
 	github.com/gopxl/beep v1.4.1
+	github.com/ncruces/zenity v0.10.14
 )
 
 require (
+	github.com/akavel/rsrc v0.10.2 // indirect
+	github.com/dchest/jsmin v0.0.0-20220218165748-59f39799265f // indirect
 	github.com/ebitengine/oto/v3 v3.1.0 // indirect
 	github.com/ebitengine/purego v0.7.1 // indirect
+	github.com/josephspurrier/goversioninfo v1.4.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	golang.org/x/sys v0.12.0 // indirect
+	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844 // indirect
+	golang.org/x/image v0.20.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
 )

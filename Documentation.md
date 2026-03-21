@@ -197,7 +197,7 @@ All valid attributes are listed below:<br>
 `require_const`: tells compiler to require that the non-global variable in question have a constant compile time initializer. (valid for variables)<br><br>
 ## Extensions
 In LCC1, there are a few extensions to make programming easier. They are as follows:<br>
-`short short <int>`: Specifies an 8-bit integer without a custom type like `uint8_t`
+`short short <int>`: Specifies an 8-bit integer without a custom type like `uint8_t`.<br>
 `__embed__`: Embeds a file into the resulting assembly file; equivalent to `.embed` but from C. Syntax: `__embed__ <pre (puts at top of file instead at canonical location)/static (no auto .global)> <label name> (("<file path>"))`<br>
 `void*` dereferences: equivalent to `char`/`short short int` dereferences; grabs 8 bits.<br><br>
 
