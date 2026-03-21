@@ -142,10 +142,10 @@ Byte 4: Current month<br>
 Byte 5: Current year minus 2000<br>
 
 # Assembly
-The Luna toolchain has a custom assembler (`las`) to convert programs from assembly language to object format that can then be linked and then run on L2. (Flags can be found in the [frontend](#frontend) setion.)<br>
+The Luna toolchain has a custom assembler (`las`) to convert programs from assembly language to object format that can then be linked and then run on L2. (Flags can be found in the [frontend](#frontend) section.)<br>
 ## Syntax specifications
 The syntax of L2 assembly is similar to that of Intel assembly syntax. An instruction consists of a mnemonic, then the operands. Above, there were no specifications on which instructions use which registers, since every instruction that uses registers can use any register.<br>
-Except for LOD/LODE, STR/STR, LODF/LODFE, and STRF/STRFE, the destination register is always the first register in the instruction.<br>
+Except for LOD/LODE, STR/STRE, LODF/LODFE, and STRF/STRFE, the destination register is always the first register in the instruction.<br>
 You can use a label name followed by a colon to make a label, which gets turned into a numerical offset at assembly time. Therefore you can treat them as numbers as well. These can also be used as functions with `call` and `ret`.<br>
 ## Custom directives
 There are some directives in LAS that do not correspond to any instruction on L2. They are as follows:<br>
