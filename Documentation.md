@@ -13,7 +13,7 @@ The Luna L2 is a simple, lightweight, RISC CPU that aims to be clean while also 
 L2 has 33 total registers for the storage and manipulation of data and information:<br><br>
 R0-R12: general purpose registers, all can be written to and read from<br>
 E0-E12: extra registers, also general purpose. The standard calling convention uses registers E0-E6<br>
-E13-E14: Assembler reserved, do not use<br>
+E13-E14: Assembler reserved for PIE mode and PIE macros, do not use<br>
 SP: stack pointer<br>
 PC: program counter/instruction pointer<br>
 IRV: interrupt return address storage<br>
@@ -98,6 +98,48 @@ The standard Luna L2 memory map is as follows:<br>
 0x7000FA13 - 0x7000FA1A: PIT registers<br>
 0x7001A644 - 0x7001A659: Network controller registers<br>
 0x7001B65E - 0x7001B663: RTC registers<br><br>
+
+## Device registers
+### VRAM
+VRAM controls the screen graphics; 1 byte in VRAM is equivalent to 1 pixel on screen with the RGB332 color scheme; this makes for a 320x200 resolution with 8 bits per pixel for 64,000 bytes of VRAM.<br>
+The display refreshes at 70 hertz.<br>
+### Audio controller
+Byte 0: Play flag; commands the audio controller to play sound based on given parameters.<br>
+Bytes 1-4: 32-bit pointer of audio start (reads from mapper so MMIO works); tells the audio controller where to start from.<br>
+Bytes 5-8: 32-bit size of audio; gets added to the start pointer to determine where to stop playing audio.<br>
+Byte 9: done flag; set to 1 when the audio controller is done playing audio.<br>
+### Mouse registers
+Bytes 0-3: 32-bit X position of mouse.<br>
+Bytes 4-7: 32-bit Y position of mouse.<br>
+### Keyboard register
+Byte 0: character code of last key pressed.<br>
+### PIT registers
+Bytes 0-3: 32-bit programmed countdown value (PIT updates every millisecond)
+Bytes 4-7: 32-bit actual countdown value (when this reaches 0, the PIT interrupt will be triggered and it will be reset to the programmed countdown value)<br>
+### Network controller registers
+All modes:<br>
+Byte 0: execute register; executes a function based on parameters.<br>
+Byte 1: mode; 0x00: TCP client; 0x01: TCP server.<br>
+Bytes 6-7: 16 bit port number (for both modes).<br>
+Client mode:<br>
+Bytes 2-5: IP address; stored as number.<br>
+Bytes 14-17: pointer to data to send.<br>
+Bytes 18-21: size of data to send.<br>
+Bytes 10-13: output pointer (outputs are always 2048 bytes).<br>
+Server mode:<br>
+Byte 2: Accept flag<br>
+Byte 4: Connection waiting flag<br>
+Byte 5: Command register; 0: close connection; 1: read from network buffer (2048 bytes); 2: write to network buffer<br>
+Bytes 10-13: output pointer<br>
+Bytes 14-17: pointer to data to send.<br>
+Bytes 18-21: size of data to send.<br>
+### RTC registers
+Byte 0: Current second<br>
+Byte 1: Current minute<br>
+Byte 2: Current hour<br>
+Byte 3: Current day<br>
+Byte 4: Current month<br>
+Byte 5: Current year minus 2000<br>
 
 # Assembly
 The Luna toolchain has a custom assembler (`las`) to convert programs from assembly language to object format that can then be linked and then run on L2. (Flags can be found in the [frontend](#frontend) setion.)<br>
