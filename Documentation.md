@@ -3,7 +3,10 @@
 [Jump to registers](#registers)<br>
 [Jump to instructions](#instructions)<br>
 [Jump to interrupts](#interrupts)<br>
+[Jump to memory map](#memory_map)<br>
 [Jump to assembly](#assembly)<br>
+[Jump to linking](#linking)<br>
+[Jump to C compilation](#c_compilation)<br>
 [Jump to frontend](#frontend)<br><br>
 
 # Preamble
