@@ -139,7 +139,7 @@ func main() {
 	for _, file := range input_files {
 		// name := filepath.Base(file) // add when we make the C compiler
 		ext := filepath.Ext(file)
-		name, _ := splitFile(file)
+		name := strings.TrimSuffix(file, filepath.Ext(file))
 
 		switch ext {
 		case ".c", ".h", ".cxx", ".hxx", ".cpp", ".hpp":
@@ -160,6 +160,7 @@ func main() {
 	}	
 
 	if hl_error == true {
+		cleanupFiles(cleanup)
 		os.Exit(1)
 	}
 

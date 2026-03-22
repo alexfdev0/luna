@@ -92,7 +92,7 @@ func main() {
 		parser.Parse(tokens, 1)
 
 		if error.Errors < 1 {
-			name, _ := splitFile(file)
+			name := strings.TrimSuffix(file, filepath.Ext(file))
 			assembly_files = append(assembly_files, name + ".s")
 			dir := ""
 

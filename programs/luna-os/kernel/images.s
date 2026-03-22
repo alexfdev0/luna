@@ -4,7 +4,7 @@
 .global BAYACHAO_IMG
 
 BAYACHAO_IMG:
-    .embed "kernel/images/bayachao.raw"
+    .embed "images/bayachao.raw"
 
 BOOT_IMG:
-    .embed "kernel/images/boot.332"
+    .embed "images/boot.332"

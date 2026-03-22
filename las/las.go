@@ -1055,10 +1055,20 @@ func assemble(text string) {
 			}
 			i++
 		case ".embed":
-			file := strings.ReplaceAll(words[i + 1],  "\"", "")
-			data, err := os.ReadFile(file)
+			absSource, _ := filepath.Abs(current_filename)
+			base := filepath.Dir(absSource)
+			raw := strings.ReplaceAll(words[i + 1], "\"", "")
+
+			path := raw
+			if !filepath.IsAbs(raw) {
+				path = filepath.Join(base, raw)
+			}
+
+			fmt.Println(path, base, raw)
+
+			data, err := os.ReadFile(path)
 			if err != nil {
-				error(1, "'" + file + "'")
+				error(1, "'" + path + "'")
 				continue
 			}
 			write(data)
