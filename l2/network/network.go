@@ -12,7 +12,7 @@ import (
 	// 10 - 13: outbound ptr
 	// 14 - 17: inbound ptr
 
-var MemoryNetwork[22]byte
+var MemoryNetwork[38]byte
 var Connections []net.Conn
 
 func waitForAcceptBit() {
@@ -108,7 +108,7 @@ func NetHandleConn(connection net.Conn) {
 }
 
 func NetController() {
-	// copy(MemoryNetwork[4107:], []byte("enp0s0")) // Interface name
+	copy(MemoryNetwork[22:], []byte("enp0s0")) // Interface name
 	for {
 		if MemoryNetwork[0] != 0x00 {	
 			connType := ""

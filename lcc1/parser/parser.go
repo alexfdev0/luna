@@ -685,25 +685,33 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 	}
 	
 	CONTINUE:
-	if peek(0).Type != lexer.TokEqual && peek(0).Type != lexer.TokEquality {
+	if peek(0).Type != lexer.TokEqual && peek(0).Type != lexer.TokEquality && peek(0).Type != lexer.TokInequality {
 		// expect(lexer.TokSemi)
 		return i
 	}
 	
 	switch peek(0).Type {
-	case lexer.TokEquality:
-		expect(lexer.TokEquality)
+	case lexer.TokEquality, lexer.TokInequality:
+		expect(peek(0).Type)
+		switch peek(-1).Type {
+		case lexer.TokEquality:
+			_CMP_MOP = "jnz"
+			_CMP_MOP_REVERSE = "jz"
+		case lexer.TokInequality:
+			_CMP_MOP = "jz"
+			_CMP_MOP_REVERSE = "jnz"	
+		}
+
 		i = ParseExpy(tokens, i, Scope, "r5")
 		// Universal IF register = r11
+
 		cmpopreal := ""
 		if CMP_OP == "" {
 			cmpopreal = "cmp"
 		} else {
 			cmpopreal = CMP_OP
 		}
-		Write(cmpopreal + " r11, " + register + ", r5", true)
-		_CMP_MOP = "jnz"
-		_CMP_MOP_REVERSE = "jz"
+		Write(cmpopreal + " r11, " + register + ", r5", true)	
 	default:
 		expect(lexer.TokEqual)
 		i = ParseExpy(tokens, i, Scope, "r5")

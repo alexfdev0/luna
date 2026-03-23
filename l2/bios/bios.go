@@ -196,15 +196,15 @@ func IntWrapper(code uint32, next uint32) {
 	case 0x00:
 		IntHandler(code)
 	case 0x01:
-		shared.SetRegister(0x001c, next)
-		shared.SetRegister(0x001a, loc)
+		shared.SetRegister(0x001e, next)
+		shared.SetRegister(0x001d, loc)
 	case 0x02:
 		IntHandler(code)
-		shared.SetRegister(0x001c, next)
-		shared.SetRegister(0x001a, loc)
+		shared.SetRegister(0x001e, next)
+		shared.SetRegister(0x001d, loc)
 	case 0x03:
-		shared.SetRegister(0x001c, next)
-		shared.SetRegister(0x001a, loc)
+		shared.SetRegister(0x001e, next)
+		shared.SetRegister(0x001d, loc)
 		IntHandler(code)
 	}
 }

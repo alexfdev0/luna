@@ -27,7 +27,7 @@ var MemoryVideo *[64000]byte
 var MemoryAudio *[10]byte
 var MemoryMouse *[8]byte
 var MemoryKeyboard *[1]byte
-var MemoryNetwork *[22]byte
+var MemoryNetwork *[38]byte
 var MemoryRTC *[6]byte
 var MemoryPIT *[8]byte
 
@@ -46,7 +46,7 @@ func Mapper(address uint32) byte {
 			return (*MemoryKeyboard)[address - 0x7000FA12]
 		case address >= 0x7000FA13 && address <= 0x7000FA1A:
 			return (*MemoryPIT)[address - 0x7000FA13]
-		case address >= 0x7001A644 && address <= 0x7001A659:
+		case address >= 0x7001A644 && address <= 0x7001A669:
 			return (*MemoryNetwork)[address - 0x7001A644]
 		case address >= 0x7001B65E && address <= 0x7001B663:
 			return (*MemoryRTC)[address - 0x7001B65E]
@@ -63,16 +63,16 @@ func Mapper(address uint32) byte {
 			return (*MemoryKeyboard)[address - 0xFA12]
 		case address >= 0xFA13 && address <= 0xFA1A:
 			return (*MemoryPIT)[address - 0xFA13]
-		case address >= 0xFA1B && address <= 0xFA30:
-			return (*MemoryNetwork)[address - 0xFA30]
-		case address >= 0xFA31 && address <= 0xFA36:
-			return (*MemoryRTC)[address - 0xFA31]
+		case address >= 0xFA1B && address <= 0xFA40:
+			return (*MemoryNetwork)[address - 0xFA40]
+		case address >= 0xFA41 && address <= 0xFA46:
+			return (*MemoryRTC)[address - 0xFA41]
 		case address >= 0xFA37 && address <= 0xFC36:
 			// IDT
 			return (*Memory)[0x6FFF0000 + (address - 0xFA37)]
 		case address >= 0xFE00 && address <= 0xFFFF:
 			if GetRegister(0x001F) <= 124 {
-				return (*MemoryVideo)[video.Clamp((GetRegister(0x001f) * 0x200) + (address - 0xFE00), 0, 63999)]
+				return (*MemoryVideo)[video.Clamp((GetRegister(0x0020) * 0x200) + (address - 0xFE00), 0, 63999)]
 			}
 		}
 	}
@@ -94,7 +94,7 @@ func MapperWrite(address uint32, content byte) {
 			(*MemoryKeyboard)[address - 0x7000FA12] = content
 		case address >= 0x7000FA13 && address <= 0x7000FA1A:
 			(*MemoryPIT)[address - 0x7000FA13] = content
-		case address >= 0x7001A644 && address <= 0x7001A659:
+		case address >= 0x7001A644 && address <= 0x7001A669:
 			(*MemoryNetwork)[address - 0x7001A644] = content
 		case address >= 0x7001B65E && address <= 0x7001B663:
 			(*MemoryRTC)[address - 0x7001B65E] = content
@@ -111,39 +111,35 @@ func MapperWrite(address uint32, content byte) {
 			(*MemoryKeyboard)[address - 0xFA12] = content
 		case address >= 0xFA13 && address <= 0xFA1A:
 			(*MemoryPIT)[address - 0xFA13] = content
-		case address >= 0xFA1B && address <= 0xFA30:
+		case address >= 0xFA1B && address <= 0xFA40:
 			(*MemoryNetwork)[address - 0xFA30] = content
-		case address >= 0xFA31 && address <= 0xFA36:
-			(*MemoryRTC)[address - 0xFA31] = content
+		case address >= 0xFA41 && address <= 0xFA46:
+			(*MemoryRTC)[address - 0xFA41] = content
 		case address >= 0xFA37 && address <= 0xFC36:
 			// IDT
 			(*Memory)[0x6FFF0000 + (address - 0xFA37)] = content
 		case address >= 0xFE00 && address <= 0xFFFF:
 			if GetRegister(0x001F) <= 124 {
-				(*MemoryVideo)[(GetRegister(0x001f) * 0x200) + (address - 0xFE00)] = content
+				(*MemoryVideo)[(GetRegister(0x0020) * 0x200) + (address - 0xFE00)] = content
 			}
 		}
 	}	
 }
 
 func SetRegister(address uint32, value uint32) {
-	for i := range (*Registers) {
-		if (*Registers)[i].Address == address {
-			if Bits32 == false {
-				(*Registers)[i].Value = uint32(uint16(value))
-			} else {
-				(*Registers)[i].Value = value
-			}
+	if address < uint32(len((*Registers))) {
+		if Bits32 == false {
+			(*Registers)[address].Value = uint32(uint16(value))
+		} else {
+			(*Registers)[address].Value = value
 		}
 	}
 }
 
 func GetRegister(address uint32) uint32 {
-	for _, register := range (*Registers) {
-		if register.Address == address {
-			return register.Value
-		}
-	}
+	if address < uint32(len((*Registers))) {
+		return (*Registers)[address].Value
+	}	
 	return 0x0000
 }
 
@@ -152,7 +148,7 @@ func RaiseInterrupt(code uint32)  {
 	if code >= 32 {
 		return
 	}
-	SetRegister(0x001e, GetRegister(0x001e) | (1 << code))
+	SetRegister(0x001f, GetRegister(0x001f) | (1 << code))
 }
 
 var Bits32 bool = false

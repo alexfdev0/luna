@@ -50,14 +50,15 @@ var Registers = []shared.Register {
 	{0x0016, "E9", 0},
 	{0x0017, "E10", 0},
 	{0x0018, "E11", 0},
-	{0x001b, "E12", 0},
-	{0x0020, "E13", 0},
-	{0x0021, "E14", 0},
-	{0x0019, "SP", 0},
-	{0x001a, "PC", 0},
-	{0x001c, "IRV", 0},
-	{0x001e, "IR", 0},
-	{0x001f, "B", 0},
+	{0x0019, "E12", 0},
+	{0x001a, "E13", 0},
+	{0x001b, "E14", 0},
+	{0x001c, "SP", 0},
+	{0x001d, "PC", 0},
+	{0x001e, "IRV", 0},
+	{0x001f, "IR", 0},
+	{0x0020, "B", 0},
+		
 }
 
 var Memory [0x70000000]byte
@@ -68,23 +69,19 @@ const (
 
 // Register controls
 func setRegister(address uint32, value uint32) {
-	for i := range Registers {
-		if Registers[i].Address == address {
-			if shared.Bits32 == false {
-				Registers[i].Value = uint32(uint16(value))
-			} else {
-				Registers[i].Value = value
-			}
+	if address < uint32(len(Registers)) {
+		if shared.Bits32 == false {
+			Registers[address].Value = uint32(uint16(value))
+		} else {
+			Registers[address].Value = value
 		}
-	}
+	}	
 }
 
 func getRegister(address uint32) uint32 {
-	for _, register := range Registers {
-		if register.Address == address {
-			return register.Value
-		}
-	}
+	if address < uint32(len(Registers)) {
+		return Registers[address].Value
+	}	
 	return 0x0000
 }
 
@@ -124,21 +121,9 @@ var ClockSpeed int64 = 33000000
 var BIOS_REBOOT bool = false
 var BIOS_SHUTDOWN bool = false
 
-func PrintlnAsync(a ...any) {
-	go func() {
-		fmt.Println(a...)
-	}()
-}
-
-func PrintfAsync(x string, a ...any) {
-	go func() {
-		fmt.Printf(x, a...)
-	}()
-}
-
 func Log(text string) {
 	if LogOn == true {
-		fmt.Println("\033[33m" + fmt.Sprintf("0x%08x: ", getRegister(0x001a)) + text + "\033[0m")
+		fmt.Println("\033[33m" + fmt.Sprintf("0x%08x: ", getRegister(0x001d)) + text + "\033[0m")
 	}	
 }
 
@@ -153,18 +138,20 @@ func stall(cycles int64) {
 	}	
 }
 
+var ins int64 = 0
+
 func execute() {
 	for {
-		ProgramCounter := getRegister(0x001a)
+		ProgramCounter := getRegister(0x001d)
 		op := shared.Mapper(ProgramCounter)	
 
 		// Handle interrupts	
 		var IntHandled bool
 		for i := 0; i < 32; i++ {
-			if (getRegister(0x001e) & (1 << i)) != 0 {
+			if (getRegister(0x001f) & (1 << i)) != 0 {
 				code := i + 1
 				IntHandled = true
-				setRegister(0x001e, getRegister(0x001e) &^ (1 << i))
+				setRegister(0x001f, getRegister(0x001f) &^ (1 << i))
 				bios.IntWrapper(uint32(code), ProgramCounter)
 				
 				if code == 0x0f {
@@ -200,12 +187,12 @@ func execute() {
 					next = ProgramCounter + 7
 				}
 				setRegister(uint32(dst), imm)
-				setRegister(0x001a, next)
+				setRegister(0x001d, next)
 				Log("mov " + getRegisterName(uint32(dst)) + ", " + fmt.Sprintf("0x%08x", imm))
 			} else if mode == 0x02 {
 				frm := uint32(shared.Mapper(ProgramCounter + 3))
 				setRegister(uint32(dst), uint32(getRegister(frm)))
-				setRegister(0x001a, ProgramCounter + 4)
+				setRegister(0x001d, ProgramCounter + 4)
 				Log("mov " + getRegisterName(uint32(dst)) + ", " + getRegisterName(frm))
 			}	
 			stall(4)
@@ -214,12 +201,12 @@ func execute() {
 			Log("hlt")
 			now := ProgramCounter
 			for {
-				if getRegister(0x001a) != now || getRegister(0x001e) != 0 {
+				if getRegister(0x001d) != now || getRegister(0x001f) != 0 {
 					break	
 				}	
 				time.Sleep(time.Duration(15) * time.Millisecond)
 			}
-			setRegister(0x001a, ProgramCounter + 1)
+			setRegister(0x001d, ProgramCounter + 1)
 		case 0x03:
 			// JMP	
 			mode := shared.Mapper(ProgramCounter + 1)
@@ -232,12 +219,12 @@ func execute() {
 					loc = uint32(shared.Mapper(ProgramCounter + 2)) << 24 | uint32(shared.Mapper(ProgramCounter + 3)) << 16 | uint32(shared.Mapper(ProgramCounter + 4)) << 8 | uint32(shared.Mapper(ProgramCounter + 5))
 				}
 				Log("jmp " + fmt.Sprintf("0x%08x", loc))
-				setRegister(0x001a, loc)	
+				setRegister(0x001d, loc)	
 			} else if mode == 0x02 {
 				frm := uint32(shared.Mapper(ProgramCounter + 2))
 				loc := getRegister(frm)
 				Log("jmp " + getRegisterName(frm))
-				setRegister(0x001a, loc)	
+				setRegister(0x001d, loc)	
 			}
 			stall(8)
 		case 0x04:
@@ -254,7 +241,7 @@ func execute() {
 			}	
 	
 			shared.RaiseInterrupt(code)
-			setRegister(0x001a, next)	
+			setRegister(0x001d, next)	
 
 			Log("int " + fmt.Sprintf("0x%08x", code))	
 			stall(34)
@@ -283,14 +270,14 @@ func execute() {
 			}
 
 			if getRegister(uint32(checkRegister)) != 0 {
-				setRegister(0x001a, loc)
+				setRegister(0x001d, loc)
 			} else {
-				setRegister(0x001a, not)
+				setRegister(0x001d, not)
 			}
 			stall(8)
 		case 0x06:
 			// NOP
-			setRegister(0x001a, ProgramCounter + 1)
+			setRegister(0x001d, ProgramCounter + 1)
 			Log("nop")
 			stall(1)
 		case 0x07:
@@ -306,7 +293,7 @@ func execute() {
 			} else {
 				setRegister(uint32(to), uint32(0))
 			}
-			setRegister(0x001a, ProgramCounter + 4)
+			setRegister(0x001d, ProgramCounter + 4)
 			stall(4)
 		case 0x08:
 			// JZ
@@ -333,9 +320,9 @@ func execute() {
 			}
 
 			if getRegister(uint32(checkRegister)) == 0 {
-				setRegister(0x001a, loc)
+				setRegister(0x001d, loc)
 			} else {
-				setRegister(0x001a, not)
+				setRegister(0x001d, not)
 			}
 			stall(8)
 		case 0x09:
@@ -343,7 +330,7 @@ func execute() {
 			// inc <register>
 			register := uint32(shared.Mapper(ProgramCounter + 1))
 			setRegister(register, getRegister(register) + 1)
-			setRegister(0x001a, ProgramCounter+2)
+			setRegister(0x001d, ProgramCounter+2)
 			Log("inc " + getRegisterName(register))
 			stall(1)
 		case 0x0a:
@@ -351,7 +338,7 @@ func execute() {
 			// dec <register>
 			register := uint32(shared.Mapper(ProgramCounter + 1))
 			setRegister(register, getRegister(register) - 1)
-			setRegister(0x001a, ProgramCounter + 2)
+			setRegister(0x001d, ProgramCounter + 2)
 			Log("dec " + getRegisterName(register))
 			stall(1)
 		case 0x0b:
@@ -368,14 +355,14 @@ func execute() {
 					value = uint32(shared.Mapper(ProgramCounter + 2)) << 24 | uint32(shared.Mapper(ProgramCounter + 3)) << 16 | uint32(shared.Mapper(ProgramCounter + 4)) << 8 | uint32(shared.Mapper(ProgramCounter + 5))
 					next = ProgramCounter + 6
 				}	
-				setRegister(0x001a, next)
+				setRegister(0x001d, next)
 				Log("push " + fmt.Sprintf("0x%08x", value))
 			} else if mode == 0x2 {
 				value = getRegister(uint32(shared.Mapper(ProgramCounter + 2)))
-				setRegister(0x001a, ProgramCounter + 3)
+				setRegister(0x001d, ProgramCounter + 3)
 				Log("push " + getRegisterName(uint32(shared.Mapper(ProgramCounter + 2))))
 			}	
-			sp := getRegister(0x0019)
+			sp := getRegister(0x001c)
 			if shared.Bits32 == false {
 				sp = video.Clamp(sp - 2, 0, MEMCAP)
 				shared.MapperWrite(sp, byte(value & 0xFF))
@@ -387,13 +374,13 @@ func execute() {
 				shared.MapperWrite(sp + 2, byte(value >> 16))
 				shared.MapperWrite(sp + 3, byte(value >> 24))
 			}	
-			setRegister(0x0019, uint32(sp))	
+			setRegister(0x001c, uint32(sp))	
 			stall(2)
 		case 0x0c:
 			// POP
 			// pop <register>	
 			register := shared.Mapper(ProgramCounter + 1)
-			sp := getRegister(0x0019)
+			sp := getRegister(0x001c)
 			var value uint32
 			if shared.Bits32 == false {
 				value = uint32(uint16(shared.Mapper(sp)) | uint16(shared.Mapper(sp + 1)) << 8) 
@@ -407,8 +394,8 @@ func execute() {
 			} else {
 				sp = video.Clamp(sp + 4, 0, MEMCAP)
 			}
-			setRegister(0x0019, uint32(sp))
-			setRegister(0x001a, ProgramCounter + 2)
+			setRegister(0x001c, uint32(sp))
+			setRegister(0x001d, ProgramCounter + 2)
 			Log("pop " + getRegisterName(register))
 			stall(2)
 		case 0x0d:
@@ -418,7 +405,7 @@ func execute() {
 			regone := shared.Mapper(ProgramCounter + 2)
 			regtwo := shared.Mapper(ProgramCounter + 3)
 			setRegister(uint32(toregister), getRegister(uint32(regone)) + getRegister(uint32(regtwo)))
-			setRegister(0x001a, ProgramCounter + 4)
+			setRegister(0x001d, ProgramCounter + 4)
 			Log("add " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
 			stall(7)
 		case 0x0e:
@@ -428,7 +415,7 @@ func execute() {
 			regone := shared.Mapper(ProgramCounter + 2)
 			regtwo := shared.Mapper(ProgramCounter + 3)
 			setRegister(uint32(toregister), getRegister(uint32(regone)) - getRegister(uint32(regtwo)))
-			setRegister(0x001a, ProgramCounter + 4)
+			setRegister(0x001d, ProgramCounter + 4)
 			Log("sub " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
 			stall(7)
 		case 0x0f:
@@ -438,7 +425,7 @@ func execute() {
 			regone := shared.Mapper(ProgramCounter + 2)
 			regtwo := shared.Mapper(ProgramCounter + 3)
 			setRegister(uint32(toregister), getRegister(uint32(regone)) * getRegister(uint32(regtwo)))
-			setRegister(0x001a, ProgramCounter + 4)
+			setRegister(0x001d, ProgramCounter + 4)
 			Log("mul " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
 			stall(70)
 		case 0x10:
@@ -448,7 +435,7 @@ func execute() {
 			regone := shared.Mapper(ProgramCounter + 2)
 			regtwo := shared.Mapper(ProgramCounter + 3)
 			setRegister(uint32(toregister), getRegister(uint32(regone)) / getRegister(uint32(regtwo)))
-			setRegister(0x001a, ProgramCounter + 4)
+			setRegister(0x001d, ProgramCounter + 4)
 			Log("div " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
 			stall(140)
 		case 0x11:
@@ -462,7 +449,7 @@ func execute() {
 			} else {
 				setRegister(uint32(toregister), uint32(0))
 			}
-			setRegister(0x001a, ProgramCounter + 4)
+			setRegister(0x001d, ProgramCounter + 4)
 			Log("igt " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
 			stall(4)
 		case 0x12:
@@ -476,7 +463,7 @@ func execute() {
 			} else {
 				setRegister(uint32(toregister), uint32(0))
 			}
-			setRegister(0x001a, ProgramCounter + 4)
+			setRegister(0x001d, ProgramCounter + 4)
 			Log("ilt " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
 			stall(4)
 		case 0x13:
@@ -486,7 +473,7 @@ func execute() {
 			regone := shared.Mapper(ProgramCounter + 2)
 			regtwo := shared.Mapper(ProgramCounter + 3)
 			setRegister(uint32(toregister), getRegister(uint32(regone)) & getRegister(uint32(regtwo)))	
-			setRegister(0x001a, ProgramCounter + 4)
+			setRegister(0x001d, ProgramCounter + 4)
 			Log("and " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
 			stall(1)
 		case 0x14:
@@ -496,7 +483,7 @@ func execute() {
 			regone := shared.Mapper(ProgramCounter + 2)
 			regtwo := shared.Mapper(ProgramCounter + 3)
 			setRegister(uint32(toregister), getRegister(uint32(regone)) | getRegister(uint32(regtwo)))	
-			setRegister(0x001a, ProgramCounter + 4)
+			setRegister(0x001d, ProgramCounter + 4)
 			Log("or " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
 			stall(1)
 		case 0x15:
@@ -505,7 +492,7 @@ func execute() {
 			toregister := shared.Mapper(ProgramCounter + 1)
 			regone := shared.Mapper(ProgramCounter + 2)
 			setRegister(uint32(uint32(toregister)), ^getRegister(uint32(regone)))	
-			setRegister(0x001a, ProgramCounter + 3)
+			setRegister(0x001d, ProgramCounter + 3)
 			Log("not " + getRegisterName(toregister) + ", " + getRegisterName(regone))
 			stall(1)
 		case 0x16:
@@ -515,7 +502,7 @@ func execute() {
 			regone := shared.Mapper(ProgramCounter + 2)
 			regtwo := shared.Mapper(ProgramCounter + 3)
 			setRegister(uint32(toregister), getRegister(uint32(regone)) ^ getRegister(uint32(regtwo)))	
-			setRegister(0x001a, ProgramCounter + 4)
+			setRegister(0x001d, ProgramCounter + 4)
 			Log("xor " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
 			stall(6)
 		case 0x17:
@@ -524,7 +511,7 @@ func execute() {
 			addr := getRegister(uint32(shared.Mapper(ProgramCounter + 1)))
 			toregister := uint32(shared.Mapper(ProgramCounter+2))
 			setRegister(toregister, uint32(shared.Mapper(addr)))
-			setRegister(0x001a, ProgramCounter + 3)
+			setRegister(0x001d, ProgramCounter + 3)
 			Log("lod " + getRegisterName(uint32(shared.Mapper(ProgramCounter + 1))) + ", " + getRegisterName(toregister) + " (" + fmt.Sprintf("0x%02x", shared.Mapper(addr)) + ")")
 			stall(100)
 		case 0x18:
@@ -541,7 +528,7 @@ func execute() {
 				shared.MapperWrite(addr + 2, byte(getRegister(value) >> 8))
 				shared.MapperWrite(addr + 3, byte(getRegister(value) & 0xFF))
 			}	
-			setRegister(0x001a, ProgramCounter + 3)
+			setRegister(0x001d, ProgramCounter + 3)
 			Log("strf " + getRegisterName(uint32(shared.Mapper(ProgramCounter + 1))) + ", " + getRegisterName(value))
 			stall(100)
 		case 0x19:
@@ -554,7 +541,7 @@ func execute() {
 			} else {
 				setRegister(toregister, uint32(shared.Mapper(addr)) << 24 | uint32(shared.Mapper(addr + 1)) << 16 | uint32(shared.Mapper(addr + 2)) << 8 | uint32(shared.Mapper(addr + 3)))
 			}
-			setRegister(0x001a, ProgramCounter + 3)
+			setRegister(0x001d, ProgramCounter + 3)
 			Log("value: " + fmt.Sprintf("0x%08x", getRegister(toregister)))
 			Log("lodf " + getRegisterName(uint32(shared.Mapper(ProgramCounter + 1))) + ", " + getRegisterName(toregister))
 			stall(100)
@@ -569,7 +556,7 @@ func execute() {
 				shared.Bits32 = true
 				Log("32 bit mode")
 			}
-			setRegister(0x001a, ProgramCounter + 2)
+			setRegister(0x001d, ProgramCounter + 2)
 			stall(1)
 		case 0x1b:
 			// STR
@@ -577,7 +564,7 @@ func execute() {
 			addr := getRegister(uint32(shared.Mapper(ProgramCounter + 1)))
 			value := uint32(shared.Mapper(ProgramCounter + 2))
 			shared.MapperWrite(addr, byte(getRegister(value)))
-			setRegister(0x001a, ProgramCounter + 3)
+			setRegister(0x001d, ProgramCounter + 3)
 			stall(100)
 		case 0x1c:
 			// SHL
@@ -586,7 +573,7 @@ func execute() {
 			value := getRegister(uint32(shared.Mapper(ProgramCounter + 2)))
 			by := getRegister(uint32(shared.Mapper(ProgramCounter + 3)))
 			setRegister(dest, uint32(value) << uint32(by))
-			setRegister(0x001a, ProgramCounter + 4)
+			setRegister(0x001d, ProgramCounter + 4)
 			stall(95)
 		case 0x1d:
 			// SHR
@@ -595,18 +582,18 @@ func execute() {
 			value := getRegister(uint32(shared.Mapper(ProgramCounter + 2)))
 			by := getRegister(uint32(shared.Mapper(ProgramCounter + 3)))
 			setRegister(dest, uint32(value) >> uint32(by))
-			setRegister(0x001a, ProgramCounter + 4)
+			setRegister(0x001d, ProgramCounter + 4)
 			stall(95)
 		default:
 			setRegister(0x0001, uint32(op))
-			setRegister(0x0002, getRegister(0x001a))
+			setRegister(0x0002, getRegister(0x001d))
 			Log("\033[31mIllegal instruction 0x" + fmt.Sprintf("%08x", uint32(op)) + "\033[33m")
 			now := ProgramCounter
 			bios.IntWrapper(0x7, ProgramCounter + 1)	
 			if Debug == true {
-				setRegister(0x001a, ProgramCounter + 1)
+				setRegister(0x001d, ProgramCounter + 1)
 			} else {
-				if getRegister(0x001a) == now {
+				if getRegister(0x001d) == now {
 					return
 				}
 			}

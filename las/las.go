@@ -102,21 +102,21 @@ func isRegister(word string) byte {
 	case "e11":
 		return 0x18
 	case "e12":
-		return 0x1b
-	case "e13":
-		return 0x20
-	case "e14":
-		return 0x21
-	case "sp":
 		return 0x19
-	case "pc":
+	case "e13":
 		return 0x1a
-	case "irv":
+	case "e14":
+		return 0x1b
+	case "sp":
 		return 0x1c
-	case "ic":
+	case "pc":
+		return 0x1d
+	case "irv":
 		return 0x1e
-	case "b":
+	case "ir":
 		return 0x1f
+	case "b":
+		return 0x20
 	default:
 		return 0xff
 	}
@@ -1063,8 +1063,6 @@ func assemble(text string) {
 			if !filepath.IsAbs(raw) {
 				path = filepath.Join(base, raw)
 			}
-
-			fmt.Println(path, base, raw)
 
 			data, err := os.ReadFile(path)
 			if err != nil {

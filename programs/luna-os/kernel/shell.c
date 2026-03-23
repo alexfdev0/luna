@@ -20,7 +20,7 @@ top:
     if (strcmp("about", TEMPBUF) == 1) {
         puts32("LunaOS 1.0.0\nBy Alexander Flax\n", 255, 0);
         puts32("Network adapter: ", 255, 0);
-        puts32(0x7001b64f, 255, 0);
+        puts32(0x7001A65A, 255, 0);
 
         puts32("\n\n", 255, 0);
         goto top;
