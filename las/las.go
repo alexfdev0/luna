@@ -394,9 +394,9 @@ func assemble(text string) {
 				write(value)
 				if PIE == true && label == true {	
 					if non_organic == true {
-						write([]byte {0x0d, 0x20, dst, 0x21})
+						write([]byte {0x0d, 0x1a, dst, 0x1b})
 					} else {
-						write([]byte {0x0d, dst, dst, 0x21})
+						write([]byte {0x0d, dst, dst, 0x1b})
 					}
 				}
 			}
@@ -746,7 +746,7 @@ func assemble(text string) {
 			if words[i] == "lode" {
 				assemble("add e13, " + words[i + 1] + ", e14")
 				write([]byte{0x17})
-				write([]byte{0x20})
+				write([]byte{0x1a})
 				write([]byte{one})
 			} else {
 				write([]byte{0x17})
@@ -766,7 +766,7 @@ func assemble(text string) {
 			if words[i] == "strfe" {
 				assemble("add e13, " + words[i + 1] + ", e14")
 				write([]byte{0x18})
-				write([]byte{0x20})
+				write([]byte{0x1a})
 				write([]byte{one})
 			} else {
 				write([]byte{0x18})
@@ -786,7 +786,7 @@ func assemble(text string) {
 			if words[i] == "lodfe" {
 				assemble("add e13, " + words[i + 1] + ", e14")
 				write([]byte{0x19})
-				write([]byte{0x20})
+				write([]byte{0x1a})
 				write([]byte{one})
 			} else {
 				write([]byte{0x19})
@@ -816,7 +816,7 @@ func assemble(text string) {
 			if words[i] == "stre" {
 				assemble("add e13, " + words[i + 1] + ", e14")
 				write([]byte{0x1b})
-				write([]byte{0x20})
+				write([]byte{0x1a})
 				write([]byte{one})
 			} else {
 				write([]byte{0x1b})
@@ -1190,7 +1190,7 @@ func main() {
 
 		switch arg {
 		case "-v":
-			fmt.Println("Luna Compiler Collection version 4.2")
+			fmt.Println("Luna Compiler Collection version 5.0")
 			fmt.Println("Target: luna-l2")
 			os.Exit(0)
 		case "-o":

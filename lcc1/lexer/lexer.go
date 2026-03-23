@@ -50,6 +50,9 @@ const (
 	TokTypedef
 	TokEquality
 	TokInequality
+	TokGEqual
+	TokLEqual
+	TokBreak
 )
 
 type Token struct {
@@ -85,6 +88,8 @@ func Lex(code string, filename string) []Token {
 			tokens = append(tokens, Token{Type: TokIf, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "else" {
 			tokens = append(tokens, Token{Type: TokElse, Value: content, Line: s.Pos().Line, File: filename})
+		} else if content == "break" {
+			tokens = append(tokens, Token{Type: TokBreak, Value: content, Line: s.Pos().Line, File: filename})
 		} else if num, err := strconv.ParseInt(content, 0, 64); err == nil {
 			tokens = append(tokens, Token{Type: TokNumber, Value: fmt.Sprintf("%d", num), Line: s.Pos().Line, File: filename})
 		} else if content == "(" {
@@ -150,9 +155,19 @@ func Lex(code string, filename string) []Token {
 		} else if content == "do" {
 			tokens = append(tokens, Token{Type: TokDo, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "<" {
-			tokens = append(tokens, Token{Type: TokLAngle, Value: content, Line: s.Pos().Line, File: filename})
+			if s.Peek() == '=' {
+				s.Next()
+				tokens = append(tokens, Token{Type: TokLEqual, Value: "<=", Line: s.Pos().Line, File: filename})
+			} else {
+				tokens = append(tokens, Token{Type: TokLAngle, Value: content, Line: s.Pos().Line, File: filename})
+			}
 		} else if content == ">" {
-			tokens = append(tokens, Token{Type: TokRAngle, Value: content, Line: s.Pos().Line, File: filename})
+			if s.Peek() == '=' {
+				s.Next()
+				tokens = append(tokens, Token{Type: TokGEqual, Value: ">=", Line: s.Pos().Line, File: filename})
+			} else {
+				tokens = append(tokens, Token{Type: TokRAngle, Value: content, Line: s.Pos().Line, File: filename})
+			}
 		} else if content == "&" {
 			tokens = append(tokens, Token{Type: TokAmpersand, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "!" {

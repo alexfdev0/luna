@@ -199,6 +199,7 @@ func ParseExpyL1(tokens []lexer.Token, i int, Scope int) int {
 var CMP_OP string = ""
 var _CMP_MOP_REVERSE string = ""
 var _CMP_MOP string = ""
+var _BREAK_TOPLEVEL string = ""
 func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int {
 	i := start
 	// CMP := false
@@ -586,6 +587,311 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		ParseExpyL1(else_tokens, 0, ElseScope)
 		Write(after_label + ":", false)
 		goto DONE
+	case lexer.TokWhile:
+		expect(lexer.TokWhile)
+		expect(lexer.TokLParen)
+		
+		subslice := []lexer.Token {}
+
+		depth := 1
+		exit := false
+
+		top_label := "while_stmt_" + fmt.Sprintf("%d", IDCounter) + "_check"	
+		middle_label := "while_stmt_" + fmt.Sprintf("%d", IDCounter) + "_body"
+		bottom_label := "while_stmt_" + fmt.Sprintf("%d", IDCounter) + "_after"
+
+		IDCounter++
+
+		for _ = i; i < len(tokens); i++ {
+			switch peek(0).Type {
+			case lexer.TokLParen:
+				depth++
+				subslice = append(subslice, peek(0))
+			case lexer.TokRParen:
+				depth--
+				if depth < 1 {
+					exit = true
+				} else {
+					subslice = append(subslice, peek(0))
+				}
+			default:
+				subslice = append(subslice, peek(0))
+			}
+			if exit == true {
+				break
+			}
+		}
+		expect(lexer.TokRParen)
+
+		// Write check portion
+		
+		Write(top_label + ":", false)
+		ParseExpy(subslice, 0, Scope, "r11")
+
+		cmop := ""
+		if _CMP_MOP == "" {
+			cmop = "jnz"
+		} else {
+			cmop = _CMP_MOP
+		}
+
+		Write(cmop + " r11, " + middle_label, true)
+		Write("jmp " + bottom_label, true)
+
+		expect(lexer.TokLCurly)
+		
+		subslice2 := []lexer.Token {}
+		
+		depth = 1
+		exit = false
+		for _ = i; i < len(tokens); i++ {
+			switch peek(0).Type {
+			case lexer.TokLCurly:
+				depth++
+				subslice2 = append(subslice2, peek(0))
+			case lexer.TokRCurly:
+				depth--
+				if depth == 0 {
+					exit = true
+				} else {
+					subslice2 = append(subslice2, peek(0))
+				}
+			default:
+				subslice2 = append(subslice2, peek(0))
+			}
+			if exit == true {
+				break
+			}
+		}
+		expect(lexer.TokRCurly)
+
+		WScope := CreateScope(Scope)
+
+		otln := _BREAK_TOPLEVEL
+		_BREAK_TOPLEVEL = bottom_label
+
+		Write(middle_label + ":", false)
+		ParseExpyL1(subslice2, 0, WScope)
+		Write("jmp " + top_label, true)
+		Write(bottom_label + ":", false)
+		_BREAK_TOPLEVEL = otln
+	case lexer.TokDo:
+		expect(lexer.TokDo)
+		expect(lexer.TokLCurly)
+
+		top_label := "do_stmt_" + fmt.Sprintf("%d", IDCounter) + "_top"
+		middle_label := "do_stmt_" + fmt.Sprintf("%d", IDCounter) + "_check"
+		bottom_label := "do_stmt_" + fmt.Sprintf("%d", IDCounter) + "_after"
+
+		IDCounter++
+		
+		depth := 1
+		exit := false
+		subslice := []lexer.Token {}
+
+		for _ = i; i < len(tokens); i++ {
+			switch peek(0).Type {
+			case lexer.TokLCurly:
+				depth++
+				subslice = append(subslice, peek(0))
+			case lexer.TokRCurly:
+				depth--
+				if depth == 0 {
+					exit = true
+				} else {
+					subslice = append(subslice, peek(0))
+				}
+			default:
+				subslice = append(subslice, peek(0))
+			}
+			if exit == true {
+				break
+			}
+		}
+		expect(lexer.TokRCurly)
+		expect(lexer.TokWhile)
+		expect(lexer.TokLParen)
+		
+		subslice2 := []lexer.Token {}
+		exit = false
+		depth = 1
+		for _ = i; i < len(tokens); i++ {
+			switch peek(0).Type {
+			case lexer.TokLParen:
+				depth++
+				subslice2 = append(subslice2, peek(0))
+			case lexer.TokRParen:
+				depth--
+				if depth == 0 {
+					exit = true
+				} else {
+					subslice2 = append(subslice2, peek(0))
+				}
+			default:
+				subslice2 = append(subslice2, peek(0))
+			}
+			if exit == true {
+				break
+			}
+		}
+
+		expect(lexer.TokRParen)
+		expect(lexer.TokSemi)
+
+		otln := _BREAK_TOPLEVEL
+		_BREAK_TOPLEVEL = bottom_label
+
+		Write(top_label + ":", false)
+		DScope := CreateScope(Scope)
+		ParseExpyL1(subslice, 0, DScope)
+		Write(middle_label + ":", false)
+		ParseExpy(subslice2, 0, DScope, "r11")
+
+		cmop := ""
+		if _CMP_MOP == "" {
+			cmop = "jnz"
+		} else {
+			cmop = _CMP_MOP
+		}
+
+		Write(cmop + " r11, " + top_label, true)
+		Write("jmp " + bottom_label, true)
+
+		Write(bottom_label + ":", false)
+
+		_BREAK_TOPLEVEL = otln
+	case lexer.TokFor:
+		expect(lexer.TokFor)
+		expect(lexer.TokLParen)
+
+		top_label := "for_stmt_" + fmt.Sprintf("%d", IDCounter) + "_check"
+		bottom_label := "for_stmt_" + fmt.Sprintf("%d", IDCounter) + "_after"
+
+		IDCounter++
+		
+		subslice := []lexer.Token {}
+		exit := false
+		for _ = i; i < len(tokens); i++ {
+			if exit == true {
+				break
+			}
+			switch peek(0).Type {
+			case lexer.TokSemi:
+				subslice = append(subslice, peek(0))
+				exit = true
+			default:
+				subslice = append(subslice, peek(0))
+			}
+		}
+		
+		subslice2 := []lexer.Token {}
+		exit = false
+		switch peek(0).Type {
+		case lexer.TokSemi:
+			subslice2 = append(subslice2, lexer.Token{Type: lexer.TokNumber, Value: "1", Line: peek(0).Line, File: peek(0).File})
+			expect(lexer.TokSemi)
+			goto COND_DONE	
+		}	
+
+		for _ = i; i < len(tokens); i++ {
+			if exit == true {
+				break
+			}
+			switch peek(0).Type {
+			case lexer.TokSemi:
+				subslice2 = append(subslice2, peek(0))
+				exit = true
+			default:
+				subslice2 = append(subslice2, peek(0))
+			}
+		}
+
+		COND_DONE:
+
+		FScope := CreateScope(Scope)
+		ParseExpyL1(subslice, 0, FScope) // Initialize variable
+
+		Write(top_label + ":", false)
+		ParseExpy(subslice2, 0, FScope, "r11")
+
+		cmopr := ""
+		if _CMP_MOP_REVERSE == "" {
+			cmopr = "jz"
+		} else {
+			cmopr = _CMP_MOP_REVERSE
+		}
+
+		Write(cmopr + " r11, " + bottom_label, true)
+
+		subslice3 := []lexer.Token {}
+		exit = false
+		depth := 1
+
+		for _ = i; i < len(tokens); i++ {
+			switch peek(0).Type {
+			case lexer.TokLParen:
+				depth++
+				subslice3 = append(subslice3, peek(0))
+			case lexer.TokRParen:
+				depth--
+				if depth == 0 {
+					exit = true
+				} else {
+					subslice3 = append(subslice3, peek(0))
+				}
+			default:
+				subslice3 = append(subslice3, peek(0))
+			}
+			if exit == true {
+				break
+			}
+		}
+
+		expect(lexer.TokRParen)
+		expect(lexer.TokLCurly)
+
+		subslice4 := []lexer.Token {}
+		depth = 1
+		exit = false
+		
+		for _ = i; i < len(tokens); i++ {
+			switch peek(0).Type {
+			case lexer.TokLCurly:
+				depth++
+				subslice4 = append(subslice4, peek(0))
+			case lexer.TokRCurly:
+				depth--
+				if depth == 0 {
+					exit = true
+				} else {
+					subslice4 = append(subslice4, peek(0))
+				}
+			default:
+				subslice4 = append(subslice4, peek(0))
+			}
+			if exit == true {
+				break
+			}
+		}
+		subslice3 = append(subslice3, lexer.Token{Type: lexer.TokSemi, Value: ";", Line: peek(-1).Line, File: peek(-1).File})
+
+		otln := _BREAK_TOPLEVEL
+		_BREAK_TOPLEVEL = bottom_label
+
+		ParseExpyL1(subslice4, 0, FScope)
+		ParseExpyL1(subslice3, 0, FScope)
+		Write("jmp " + top_label, true)
+		Write(bottom_label + ":", false)
+
+		_BREAK_TOPLEVEL = otln
+		expect(lexer.TokRCurly)
+	case lexer.TokBreak:
+		expect(lexer.TokBreak)
+		if _BREAK_TOPLEVEL == "" {
+			error.Error(38, "", peek(-1), &tokens)
+		} else {
+			Write("jmp " + _BREAK_TOPLEVEL, true)
+		}
 	case lexer.TokReturn:
 		expect(lexer.TokReturn)
 
@@ -685,32 +991,53 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 	}
 	
 	CONTINUE:
-	if peek(0).Type != lexer.TokEqual && peek(0).Type != lexer.TokEquality && peek(0).Type != lexer.TokInequality {
+	if peek(0).Type != lexer.TokEqual && peek(0).Type != lexer.TokEquality && peek(0).Type != lexer.TokInequality && peek(0).Type != lexer.TokGEqual && peek(0).Type != lexer.TokLEqual && peek(0).Type != lexer.TokLAngle && peek(0).Type != lexer.TokRAngle {
 		// expect(lexer.TokSemi)
 		return i
 	}
 	
 	switch peek(0).Type {
-	case lexer.TokEquality, lexer.TokInequality:
+	case lexer.TokEquality, lexer.TokInequality, lexer.TokGEqual, lexer.TokLEqual, lexer.TokLAngle, lexer.TokRAngle:
+		cmpopreal := ""
 		expect(peek(0).Type)
 		switch peek(-1).Type {
 		case lexer.TokEquality:
 			_CMP_MOP = "jnz"
 			_CMP_MOP_REVERSE = "jz"
+			if CMP_OP == "" {
+				cmpopreal = "cmp"
+			} else {
+				cmpopreal = CMP_OP
+			}
 		case lexer.TokInequality:
 			_CMP_MOP = "jz"
-			_CMP_MOP_REVERSE = "jnz"	
+			_CMP_MOP_REVERSE = "jnz"
+			if CMP_OP == "" {
+				cmpopreal = "cmp"
+			} else {
+				cmpopreal = CMP_OP
+			}
+		case lexer.TokGEqual:
+			cmpopreal = "ilt"
+			_CMP_MOP = "jz"
+			_CMP_MOP_REVERSE = "jnz"
+		case lexer.TokLEqual:
+			cmpopreal = "igt"
+			_CMP_MOP = "jz"
+			_CMP_MOP_REVERSE = "jnz"
+		case lexer.TokLAngle:
+			cmpopreal = "ilt"
+			_CMP_MOP = "jnz"
+			_CMP_MOP_REVERSE = "jz"
+		case lexer.TokRAngle:
+			cmpopreal = "igt"
+			_CMP_MOP = "jnz"
+			_CMP_MOP_REVERSE = "jz"
 		}
 
 		i = ParseExpy(tokens, i, Scope, "r5")
 		// Universal IF register = r11
-
-		cmpopreal := ""
-		if CMP_OP == "" {
-			cmpopreal = "cmp"
-		} else {
-			cmpopreal = CMP_OP
-		}
+	
 		Write(cmpopreal + " r11, " + register + ", r5", true)	
 	default:
 		expect(lexer.TokEqual)

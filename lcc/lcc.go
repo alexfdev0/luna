@@ -92,7 +92,7 @@ func main() {
 			output_file = os.Args[i + 1]
 			i++
 		case "-v":
-			fmt.Println("Luna Compiler Collection version 4.2")
+			fmt.Println("Luna Compiler Collection version 5.0")
 			fmt.Println("Target: luna-l2")
 			SeeInvocation = true
 		case "-S":

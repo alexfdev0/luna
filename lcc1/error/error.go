@@ -47,6 +47,7 @@ var errors = []string {
 	"initializer element is not a compile-time constant",
 	"implicit conversion from",
 	"taking the address of a function argument is not supported",
+	"'break' statement not in loop or switch statement",
 }
 
 var Warnings int = 0
