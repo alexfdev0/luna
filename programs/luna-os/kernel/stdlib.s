@@ -31,6 +31,7 @@
 .global pit_nxt
 .global renderbuf_loc
 .global sleep_loc
+.global lexec_done
 
 readin:
     pop e11
@@ -575,6 +576,16 @@ lexec_core:
 
     mov r3, ASLR_addr
     lodf r3, r3
+
+    push r1
+    push r2
+
+    mov r1, 0x6FFF0026
+    mov r2, app_error
+    strf r1, r2
+
+    pop r2
+    pop r1
 
     pusha
     mov e14, r3

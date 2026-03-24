@@ -53,6 +53,7 @@ const (
 	TokGEqual
 	TokLEqual
 	TokBreak
+	TokContinue
 )
 
 type Token struct {
@@ -90,6 +91,8 @@ func Lex(code string, filename string) []Token {
 			tokens = append(tokens, Token{Type: TokElse, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "break" {
 			tokens = append(tokens, Token{Type: TokBreak, Value: content, Line: s.Pos().Line, File: filename})
+		} else if content == "continue" {
+			tokens = append(tokens, Token{Type: TokContinue, Value: content, Line: s.Pos().Line, File: filename})
 		} else if num, err := strconv.ParseInt(content, 0, 64); err == nil {
 			tokens = append(tokens, Token{Type: TokNumber, Value: fmt.Sprintf("%d", num), Line: s.Pos().Line, File: filename})
 		} else if content == "(" {
@@ -189,6 +192,7 @@ func Lex(code string, filename string) []Token {
 			tokens = append(tokens, Token{Type: TokIdent, Value: content, Line: s.Pos().Line, File: filename})
 		} 
 	}
+
 	return tokens
 }
 

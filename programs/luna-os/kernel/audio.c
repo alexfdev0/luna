@@ -17,12 +17,7 @@ void play_sound(void* buffer, long int size, short short int block) {
     *play_flag = 1;
 
     if (block) {
-    psb_beginning:
-        if (*done_flag) {
-            goto psb_end;
-        }
-        goto psb_beginning;
+        while (*done_flag == 0) {}
     }
-psb_end:
     return;
 }

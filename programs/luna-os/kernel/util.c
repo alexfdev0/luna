@@ -90,3 +90,9 @@ void load_executable() {
     }
     lexec_core(address);
 }
+
+void app_error() __attribute__((noreturn)) {
+    puts32("Error! ", 0xA0, 0);
+    puts32("Executable automatically\nterminated due to instruction fault.\n", 255, 0);
+    goto lexec_done; 
+}

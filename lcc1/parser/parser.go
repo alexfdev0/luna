@@ -54,11 +54,6 @@ type Scope struct {
 	Parent int
 }
 
-type Define struct {
-	From string
-	To string
-}
-
 type UnpackOrder struct {
 	Register string
 	Label string
@@ -101,7 +96,6 @@ var Variables = []Variable_Static {
 }
 
 var FunctionDecls = []FunctionDecl {}
-var Defines = []Define {}
 var PIE bool
 
 var Scopes = []Scope {
@@ -200,6 +194,7 @@ var CMP_OP string = ""
 var _CMP_MOP_REVERSE string = ""
 var _CMP_MOP string = ""
 var _BREAK_TOPLEVEL string = ""
+var _CONTINUE_TOPLEVEL string = ""
 func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int {
 	i := start
 	// CMP := false
@@ -667,14 +662,18 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 		WScope := CreateScope(Scope)
 
-		otln := _BREAK_TOPLEVEL
+		otln_br := _BREAK_TOPLEVEL
 		_BREAK_TOPLEVEL = bottom_label
+		otln_co := _CONTINUE_TOPLEVEL	
+		_CONTINUE_TOPLEVEL = middle_label
 
 		Write(middle_label + ":", false)
 		ParseExpyL1(subslice2, 0, WScope)
 		Write("jmp " + top_label, true)
 		Write(bottom_label + ":", false)
-		_BREAK_TOPLEVEL = otln
+
+		_BREAK_TOPLEVEL = otln_br
+		_CONTINUE_TOPLEVEL = otln_co
 	case lexer.TokDo:
 		expect(lexer.TokDo)
 		expect(lexer.TokLCurly)
@@ -740,6 +739,8 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 		otln := _BREAK_TOPLEVEL
 		_BREAK_TOPLEVEL = bottom_label
+		otln_co := _CONTINUE_TOPLEVEL	
+		_CONTINUE_TOPLEVEL = middle_label
 
 		Write(top_label + ":", false)
 		DScope := CreateScope(Scope)
@@ -760,6 +761,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		Write(bottom_label + ":", false)
 
 		_BREAK_TOPLEVEL = otln
+		_CONTINUE_TOPLEVEL = otln_co
 	case lexer.TokFor:
 		expect(lexer.TokFor)
 		expect(lexer.TokLParen)
@@ -877,6 +879,8 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 		otln := _BREAK_TOPLEVEL
 		_BREAK_TOPLEVEL = bottom_label
+		otln_co := _CONTINUE_TOPLEVEL	
+		_CONTINUE_TOPLEVEL = top_label
 
 		ParseExpyL1(subslice4, 0, FScope)
 		ParseExpyL1(subslice3, 0, FScope)
@@ -884,7 +888,16 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		Write(bottom_label + ":", false)
 
 		_BREAK_TOPLEVEL = otln
+		_CONTINUE_TOPLEVEL = otln_co
 		expect(lexer.TokRCurly)
+	case lexer.TokContinue:
+		expect(lexer.TokContinue)
+		if _CONTINUE_TOPLEVEL == "" {
+			error.Error(39, "", peek(-1), &tokens)
+		} else {
+			Write("jmp " + _CONTINUE_TOPLEVEL, true)
+		}
+		expect(lexer.TokSemi)
 	case lexer.TokBreak:
 		expect(lexer.TokBreak)
 		if _BREAK_TOPLEVEL == "" {
@@ -892,6 +905,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		} else {
 			Write("jmp " + _BREAK_TOPLEVEL, true)
 		}
+		expect(lexer.TokSemi)
 	case lexer.TokReturn:
 		expect(lexer.TokReturn)
 
@@ -917,22 +931,72 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			goto CONTINUE
 		}
 
-		if peek(0).Type == lexer.TokLParen {
+		array := false
+		switch peek(0).Type {
+		case lexer.TokLParen:
 			// TODO: allow comma arbitration
 			IDENT_FUNC(label)	
 			goto CONTINUE
-		}
-
-		if peek(0).Type == lexer.TokColon {
+		case lexer.TokColon:
 			Write(label + ":", false)
 			expect(lexer.TokColon)
-			goto DONE
-		}
+			goto DONE	
+		}	
 
 		variable = LookupVariable(label, true, Scope, peek(-1), &tokens)
+
+		switch peek(0).Type {
+		case lexer.TokLBracket:
+			if variable.ArgNum < 1 {
+				error.Error(40, "", peek(0), &tokens)
+			}
+			array = true
+			expect(lexer.TokLBracket)
+
+			subslice := []lexer.Token {}
+			depth := 1
+			exit := false
+			for _ = i; i < len(tokens); i++ {
+				switch peek(0).Type {
+				case lexer.TokLBracket:
+					depth++
+					subslice = append(subslice, peek(0))
+				case lexer.TokRBracket:
+					depth--
+					if depth == 0 {
+						exit = true
+					} else {
+						subslice = append(subslice, peek(0))
+					}
+				default:
+					subslice = append(subslice, peek(0))
+				}
+				if exit == true {
+					break
+				}
+			}
+			expect(lexer.TokRBracket)
+
+			ParseExpy(subslice, 0, Scope, "e8")
+		}
+
 		EQU_VT = variable.Type
 		EQU_VAR = variable
 		Write("mov r1, " + variable.Real, true)
+		if array == true {
+			switch variable.Type {
+			case NUMBER8:
+				Write("add r1, r1, e8", true)
+			case NUMBER16:
+				Write("mov e7, 2", true)
+				Write("mul e8, e8, e7", true)
+				Write("add r1, r1, e8", true)
+			case NUMBER32:
+				Write("mov e7, 4", true)
+				Write("mul e8, e8, e7", true)
+				Write("add r1, r1, e8", true)
+			}
+		}
 
 		Intent := _IDENT_INTENT(variable.Pointer, variable.Type, deref, variable.Register)
 
