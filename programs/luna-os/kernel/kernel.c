@@ -13,7 +13,6 @@ asm (".global enterpass");
 void _cstart() __attribute__((noreturn)) {
     puts32("LunaOS\n", 255, 0);
     puts32("Copyright (c) 2025 Alexander Flax\n\n", 255, 0);
-
     // if (*PASSBUF == 0x00) { 
         // setup(); 
     // }

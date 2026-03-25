@@ -30,6 +30,7 @@ var MemoryKeyboard *[1]byte
 var MemoryNetwork *[38]byte
 var MemoryRTC *[6]byte
 var MemoryPIT *[8]byte
+var MemoryPower *[4]byte
 
 func Mapper(address uint32) byte {
 	if Bits32 == true {
@@ -50,6 +51,8 @@ func Mapper(address uint32) byte {
 			return (*MemoryNetwork)[address - 0x7001A644]
 		case address >= 0x7001B65E && address <= 0x7001B663:
 			return (*MemoryRTC)[address - 0x7001B65E]
+		case address >= 0x7001B664 && address <= 0x7001B667:
+			return (*MemoryPower)[address - 0x7001B664]
 		}
 	} else {
 		switch {
@@ -70,6 +73,8 @@ func Mapper(address uint32) byte {
 		case address >= 0xFA37 && address <= 0xFC36:
 			// IDT
 			return (*Memory)[0x6FFF0000 + (address - 0xFA37)]
+		case address >= 0xFC37 && address <= 0xFC3A:
+			return (*MemoryPower)[address - 0xFC37]
 		case address >= 0xFE00 && address <= 0xFFFF:
 			if GetRegister(0x001F) <= 124 {
 				return (*MemoryVideo)[video.Clamp((GetRegister(0x0020) * 0x200) + (address - 0xFE00), 0, 63999)]
@@ -98,6 +103,8 @@ func MapperWrite(address uint32, content byte) {
 			(*MemoryNetwork)[address - 0x7001A644] = content
 		case address >= 0x7001B65E && address <= 0x7001B663:
 			(*MemoryRTC)[address - 0x7001B65E] = content
+		case address >= 0x7001B664 && address <= 0x7001B667:
+			(*MemoryPower)[address - 0x7001B664] = content
 		}
 	} else {
 		switch {
@@ -118,6 +125,8 @@ func MapperWrite(address uint32, content byte) {
 		case address >= 0xFA37 && address <= 0xFC36:
 			// IDT
 			(*Memory)[0x6FFF0000 + (address - 0xFA37)] = content
+		case address >= 0xFC37 && address <= 0xFC3A:
+			(*MemoryPower)[address - 0xFC37] = content
 		case address >= 0xFE00 && address <= 0xFFFF:
 			if GetRegister(0x001F) <= 124 {
 				(*MemoryVideo)[(GetRegister(0x0020) * 0x200) + (address - 0xFE00)] = content

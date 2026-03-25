@@ -126,7 +126,7 @@ func IntHandler(code uint32) {
 	case 0x05:
 		// Keyboard reserved
 	case 0x06:
-		// Unmapped
+		// Power interrupt
 	case 0x07:
 		WriteLine("Illegal instruction 0x" + fmt.Sprintf("%08x", shared.GetRegister(0x0001)) + " at location 0x" + fmt.Sprintf("%08x", shared.GetRegister(0x001a)), 255, 0)
 	case 0x08:

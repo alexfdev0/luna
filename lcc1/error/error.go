@@ -49,7 +49,7 @@ var errors = []string {
 	"taking the address of a function argument is not supported",
 	"'break' statement not in loop or switch statement",
 	"'continue' statement not in loop statement",
-	"subscripted value is not an array, pointer, or vector", // 40
+	"subscripted value is not an array or pointer", // 40
 }
 
 var Warnings int = 0

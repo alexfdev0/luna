@@ -496,6 +496,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 	EQU_VAR := Variable_Static{}
 	var op string = ""
 	var NUM_TRY_DEREF bool
+	var NUM_VAR_OVERRIDE bool
 	EXPY_TOP:
 	switch peek(0).Type {
 	default:
@@ -536,11 +537,9 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		level = 1
 		goto DONE
 	case lexer.TokLParen:
-		fmt.Println("Parsing coercion")
 		expect(lexer.TokLParen)
 		_COERCE_TYPE, _COERCE_PTR = _PARSE_TYPE()	
 		expect(lexer.TokRParen)
-		fmt.Println("Done parsing coercion")
 		goto EXPY_TOP
 	case lexer.TokIf:
 		// TODO: implement quick ifs
@@ -1021,6 +1020,8 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		label := expect(lexer.TokIdent)
 		var variable Variable_Static
 
+		// NUM_VAR_OVERRIDE = true
+
 		if label[0] == '"' {
 			LTL := IDENT_STRING(label)
 			Write("mov r1, " + LTL, true)
@@ -1127,32 +1128,35 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		// Parse expressions
 		// Load it up into r4
 
-		_NUMBER_PARSE("r2")
+		_NUMBER_PARSE("r1")
 		NUM_TRY_DEREF = true
 	}
 
 	switch peek(0).Type {
 	case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
+		if NUM_TRY_DEREF == false {
+			Write("mov r1, " + register, true)
+		}
 		OP_TRY:
 		op = expect(peek(0).Type)
 		_NUMBER_PARSE("r6")
 
 		switch op {
 		case "+":
-			Write("add r2, r2, r6", true)
+			Write("add r1, r1, r6", true)
 		case "-":
-			Write("sub r2, r2, r6", true)
+			Write("sub r1, r1, r6", true)
 		case "*":
-			Write("mul r2, r2, r6", true)
+			Write("mul r1, r1, r6", true)
 		case "/":
-			Write("div r2, r2, r6", true)
+			Write("div r1, r1, r6", true)
 		}
 		switch peek(0).Type {
 		case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
 			goto OP_TRY
 		}
-		if NUM_TRY_DEREF == false {
-			Write("mov " + register + ", r2", true)
+		if NUM_TRY_DEREF == false && NUM_VAR_OVERRIDE == false {
+			Write("mov " + register + ", r1", true)
 		}
 	}
 
@@ -1185,13 +1189,9 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		Write("mov " + register + ", r2", true)
 
 		// Construct fake variable
-		if _COERCE_PTR == true {
-			EQU_VAR = Variable_Static {Pointer: _COERCE_PTR, Type: NUMBER16, Type2: _COERCE_TYPE}
-			EQU_VT = NUMBER16
-		} else {
-			EQU_VAR = Variable_Static {Pointer: _COERCE_PTR, Type: _COERCE_TYPE}
-			EQU_VT = _COERCE_TYPE
-		}
+		// Removed the pointer variant because causing issues.
+		EQU_VAR = Variable_Static {Pointer: _COERCE_PTR, Type: _COERCE_TYPE}
+		EQU_VT = _COERCE_TYPE
 		
 		// Unset coerced type
 		_COERCE_TYPE = 6
