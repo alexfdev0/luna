@@ -195,6 +195,8 @@ var _CMP_MOP_REVERSE string = ""
 var _CMP_MOP string = ""
 var _BREAK_TOPLEVEL string = ""
 var _CONTINUE_TOPLEVEL string = ""
+var _COERCE_TYPE int = 6
+var _COERCE_PTR bool = false
 func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int {
 	i := start
 	// CMP := false
@@ -400,11 +402,100 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			i++
 		}
 	}
+	_PARSE_TYPE := func() (int, bool) {
+		ptr := false
+		long := false
+		short := false
+		shortshort := false
+		unsigned := false
+		constant := false
+		bits := BitPref
+
+		for {
+			if i >= len(tokens) {
+				break
+			}
+			if peek(0).Type == lexer.TokQualifier {	
+				qual := expect(lexer.TokQualifier)	
+				switch qual {
+				case "short":
+					if long == true {
+						error.Error(12, "'long' declaration specifier", peek(-1), &tokens)
+					}
+					if short == true && shortshort == true {
+						error.Warning(13, "'short' declaration specifier", peek(-1), &tokens)
+					} else if short == true && shortshort == false {
+						shortshort = true
+						bits = 8
+					} else {
+						short = true
+						bits = 16
+					}
+				case "long":
+					if short == true {
+						error.Error(12, "'short' declaration specifier", peek(-1), &tokens)
+					}
+					if long == true {
+						error.Warning(13, "'long' declaration specifier", peek(-1), &tokens)
+					}
+					long = true
+					bits = 32
+				case "unsigned":
+					if unsigned == true {
+						error.Error(28, "'unsigned'", peek(-1), &tokens)
+					}
+					unsigned = true
+				case "const":
+					if constant == true {
+						error.Error(28, "'const'", peek(-1), &tokens)
+					}
+					constant = true
+				}
+			} else {
+				_type := expect(lexer.TokType)
+				var rtype int
+				switch _type {
+				case "int":
+					switch bits {
+					case 8:
+						rtype = NUMBER8
+					case 16:
+						rtype = NUMBER16
+					case 32:
+						rtype = NUMBER32
+					default:
+						rtype = NUMBER16
+					}
+				case "char":
+					if long == true || short == true || unsigned == true {
+						error.Error(14, "for type 'char'", peek(-2), &tokens)
+					}
+					rtype = STRING
+				case "void":
+					rtype = NULL
+				}
+
+				if peek(0).Type == lexer.TokStar {
+					ptr = true
+					i++
+				} else {
+					if rtype == NULL {
+						error.Error(7, "'void'", peek(-1), &tokens)	
+					}
+				}
+
+				return rtype, ptr
+				break
+			}
+		}
+		return NUMBER16, false
+	}
 
 	deref := 0
 	EQU_VT := NULL
 	EQU_VAR := Variable_Static{}
 	var op string = ""
+	var NUM_TRY_DEREF bool
 	EXPY_TOP:
 	switch peek(0).Type {
 	default:
@@ -444,6 +535,13 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		L1_ALLOW_NONCONST = true
 		level = 1
 		goto DONE
+	case lexer.TokLParen:
+		fmt.Println("Parsing coercion")
+		expect(lexer.TokLParen)
+		_COERCE_TYPE, _COERCE_PTR = _PARSE_TYPE()	
+		expect(lexer.TokRParen)
+		fmt.Println("Done parsing coercion")
+		goto EXPY_TOP
 	case lexer.TokIf:
 		// TODO: implement quick ifs
 
@@ -1029,7 +1127,8 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		// Parse expressions
 		// Load it up into r4
 
-		_NUMBER_PARSE(register)	
+		_NUMBER_PARSE("r2")
+		NUM_TRY_DEREF = true
 	}
 
 	switch peek(0).Type {
@@ -1040,18 +1139,64 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 		switch op {
 		case "+":
-			Write("add " + register + ", " + register + ", r6", true)
+			Write("add r2, r2, r6", true)
 		case "-":
-			Write("sub " + register + ", " + register + ", r6", true)
+			Write("sub r2, r2, r6", true)
 		case "*":
-			Write("mul " + register + ", " + register + ", r6", true)
+			Write("mul r2, r2, r6", true)
 		case "/":
-			Write("div " + register + ", " + register + ", r6", true)
+			Write("div r2, r2, r6", true)
 		}
 		switch peek(0).Type {
 		case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
 			goto OP_TRY
 		}
+		if NUM_TRY_DEREF == false {
+			Write("mov " + register + ", r2", true)
+		}
+	}
+
+	if NUM_TRY_DEREF == true {
+		Intent := _IDENT_INTENT(_COERCE_PTR, _COERCE_TYPE, deref, true)
+
+		deref--
+		derefs := 0
+		x_deref := deref
+		for x_deref > 0 {
+			x_deref--
+			if _COERCE_PTR == true && ((derefs > 0 && Intent == "write") || (Intent == "read")) {	
+				switch _COERCE_TYPE {
+				case NUMBER8, STRING, NULL:
+					Write("lod r2, r2", true)
+				case NUMBER16, NUMBER32:
+					Write("lodf r2, r2", true)
+				}
+			} else {
+				switch _COERCE_TYPE {
+				case NUMBER8, STRING, NULL:
+					Write("lod r2, r2", true)
+				case NUMBER16, NUMBER32:
+					Write("lodf r2, r2", true)
+				}
+			}
+			derefs++
+		}
+
+		Write("mov " + register + ", r2", true)
+
+		// Construct fake variable
+		if _COERCE_PTR == true {
+			EQU_VAR = Variable_Static {Pointer: _COERCE_PTR, Type: NUMBER16, Type2: _COERCE_TYPE}
+			EQU_VT = NUMBER16
+		} else {
+			EQU_VAR = Variable_Static {Pointer: _COERCE_PTR, Type: _COERCE_TYPE}
+			EQU_VT = _COERCE_TYPE
+		}
+		
+		// Unset coerced type
+		_COERCE_TYPE = 6
+		_COERCE_PTR = false
+		NUM_TRY_DEREF = false
 	}
 	
 	CONTINUE:
