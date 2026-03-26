@@ -6,7 +6,7 @@ import (
 	"strings"
 	"fmt"	
 	"strconv"
-	"os"
+	// "os"
 	"math"
 	// "runtime/debug"
 )
@@ -269,8 +269,10 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			}
 			Write("mov " + register + ", " + fmt.Sprintf("%d", val), true)
 		default:
+			NF_NOPARSE := false
 			Function_Variable := LookupVariable(label, false, Scope, peek(-2), &tokens)
 			if Function_Variable.Name == "__ZERO" {
+				NF_NOPARSE = true
 				error.Error(19, "'" + label + "'; ISO C99 and later do not support implicit function declarations", peek(-2), &tokens)	
 			}
 			// Parse arguments
@@ -318,14 +320,16 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			Write("call " + label, true)
 			Write("mov " + register + ", e6", true)
 
-			if pushed < Function_Variable.ArgNum {
-				t, s := FuncDeclLookup(label)	
-				error.Error(20, "expected " + fmt.Sprintf("%d", Function_Variable.ArgNum) + ", have " + fmt.Sprintf("%d", pushed), peek(0), &tokens)
-				error.Note(22, "'" + label + "' declared here", t, s)
-			} else if pushed > Function_Variable.ArgNum {
-				t, s := FuncDeclLookup(label)	
-				error.Error(21, "expected " + fmt.Sprintf("%d", Function_Variable.ArgNum) + ", have " + fmt.Sprintf("%d", pushed), peek(0), &tokens)
-				error.Note(22, "'" + label + "' declared here", t, s)
+			if NF_NOPARSE == false {
+				if pushed < Function_Variable.ArgNum {
+					t, s := FuncDeclLookup(label)	
+					error.Error(20, "expected " + fmt.Sprintf("%d", Function_Variable.ArgNum) + ", have " + fmt.Sprintf("%d", pushed), peek(0), &tokens)
+					error.Note(22, "'" + label + "' declared here", t, s)
+				} else if pushed > Function_Variable.ArgNum {
+					t, s := FuncDeclLookup(label)	
+					error.Error(21, "expected " + fmt.Sprintf("%d", Function_Variable.ArgNum) + ", have " + fmt.Sprintf("%d", pushed), peek(0), &tokens)
+					error.Note(22, "'" + label + "' declared here", t, s)
+				}
 			}
 			i = j
 		}
@@ -1432,8 +1436,6 @@ func FuncDeclLookup(Name string) (lexer.Token, *[]lexer.Token) {
 			return d.Token, &d.Set
 		}
 	}
-	fmt.Println("Compiler fault: func not found on lookup")
-	os.Exit(1)
 	return lexer.Token{Type: lexer.TokEOF}, &[]lexer.Token {}
 }
 
