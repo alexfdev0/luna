@@ -494,6 +494,11 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		}
 		return NUMBER16, false
 	}
+	_CMPOP_CLEANUP := func() {
+		CMP_OP = ""
+		_CMP_MOP_REVERSE = ""
+		_CMP_MOP = ""
+	}
 
 	deref := 0
 	EQU_VT := NULL
@@ -642,6 +647,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			ParseExpyL1(if_tokens, 0, IfScope)
 			Write("jmp " + after_label, true)
 			Write(after_label + ":", false)
+			_CMPOP_CLEANUP()
 			goto DONE
 		}
 		
@@ -682,6 +688,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		Write(else_label + ":", false)
 		ParseExpyL1(else_tokens, 0, ElseScope)
 		Write(after_label + ":", false)
+		_CMPOP_CLEANUP()
 		goto DONE
 	case lexer.TokWhile:
 		expect(lexer.TokWhile)
@@ -765,7 +772,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 		otln_br := _BREAK_TOPLEVEL
 		_BREAK_TOPLEVEL = bottom_label
-		otln_co := _CONTINUE_TOPLEVEL	
+		otln_co := _CONTINUE_TOPLEVEL
 		_CONTINUE_TOPLEVEL = middle_label
 
 		Write(middle_label + ":", false)
@@ -775,6 +782,8 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 		_BREAK_TOPLEVEL = otln_br
 		_CONTINUE_TOPLEVEL = otln_co
+
+		_CMPOP_CLEANUP()
 	case lexer.TokDo:
 		expect(lexer.TokDo)
 		expect(lexer.TokLCurly)
@@ -863,6 +872,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 		_BREAK_TOPLEVEL = otln
 		_CONTINUE_TOPLEVEL = otln_co
+		_CMPOP_CLEANUP()
 	case lexer.TokFor:
 		expect(lexer.TokFor)
 		expect(lexer.TokLParen)
@@ -990,6 +1000,8 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 		_BREAK_TOPLEVEL = otln
 		_CONTINUE_TOPLEVEL = otln_co
+		
+		_CMPOP_CLEANUP()
 		expect(lexer.TokRCurly)
 	case lexer.TokContinue:
 		expect(lexer.TokContinue)
@@ -2013,8 +2025,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 				case "int":
 					_i := 0
 					rn := "var_" + fmt.Sprintf("%d", IDCounter)
-					IDCounter++
-					
+					IDCounter++	
 
 					if allow_nonconst == false {
 						res := 0

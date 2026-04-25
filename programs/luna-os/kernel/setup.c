@@ -11,12 +11,10 @@ void user_setup() {
     xor_cycle(PASSBUF);
     puts32("\n\n", 255, 0);
 
-    short short int* BS_COMPAT_FLAG = 0x204;
-    if (*BS_COMPAT_FLAG == 0x9A) {
-        puts32("You have a compatible boot menu!\n", 255, 0);
+    if (*(short short int*) 0x204 == 0x9A) {
+        puts32("You have a compatible boot menu!\n", 0b00011100, 0);
     }
 
-    int a = 100;
     // puts32("Enable drive encryption?\n\nY: Yes\nN: No\n");
     // wait_for_key();
     // handle_drive_encryption();

@@ -4,6 +4,7 @@
 #include "stdlib.h"
 #include "lufs.h"
 #include "util.h"
+#include "audio.h"
 
 void shell() {
     while (1) {
@@ -11,8 +12,7 @@ void shell() {
         readin(TEMPBUF, 1, 0); 
         if (strcmp("reboot", TEMPBUF) == 1) {
             puts32("Rebooting...", 255, 0);
-            // play_sound(SHUTDOWN_SOUND, 207748, 1);
-            // sleep(500);
+            play_sound(SHUTDOWN_SOUND, 387436, 1);
             asm ("mov r1, 0");
             asm ("int 0xf"); 
         }
@@ -61,8 +61,7 @@ void shell() {
 
         if (strcmp("shutdown", TEMPBUF) == 1) {
             puts32("Shutting down...\n", 255, 0);
-            // play_sound(SHUTDOWN_SOUND, 207748, 1);
-            // sleep(500);
+            play_sound(SHUTDOWN_SOUND, 387436, 1);
             asm ("int 0x11");
         } 
 
@@ -80,7 +79,7 @@ void shell() {
             asm ("mov r2, pc");
             asm ("int 0x07");
         }
-
+        
         if (strcmp("clear", TEMPBUF) == 1) {
             render_buf(0x40404040);
             video_set_cursor(0, 0);

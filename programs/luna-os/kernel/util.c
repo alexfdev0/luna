@@ -15,13 +15,6 @@ void pause() {
     return;
 }
 
-void serve_close() {
-    puts32("Server closed.\n", 255, 0);
-    short short int* NETWORK_COMMAND = 0x7001A644;
-    *NETWORK_COMMAND = 0x00;
-    return;
-}
-
 void kernel_panic() __attribute__((noreturn)) {
     asm ("push r2");
     asm ("push r1");
