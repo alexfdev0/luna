@@ -66,10 +66,10 @@ func Mapper(address uint32) byte {
 			return (*MemoryKeyboard)[address - 0xFA12]
 		case address >= 0xFA13 && address <= 0xFA1A:
 			return (*MemoryPIT)[address - 0xFA13]
-		case address >= 0xFA1B && address <= 0xFA40:
-			return (*MemoryNetwork)[address - 0xFA40]
-		case address >= 0xFA41 && address <= 0xFA46:
-			return (*MemoryRTC)[address - 0xFA41]
+		case address >= 0xFD47 && address <= 0xFD6C:
+			return (*MemoryNetwork)[address - 0xFD47]
+		case address >= 0xFD41 && address <= 0xFD46:
+			return (*MemoryRTC)[address - 0xFD41]
 		case address >= 0xFA37 && address <= 0xFC36:
 			// IDT
 			return (*Memory)[0x6FFF0000 + (address - 0xFA37)]
@@ -118,10 +118,10 @@ func MapperWrite(address uint32, content byte) {
 			(*MemoryKeyboard)[address - 0xFA12] = content
 		case address >= 0xFA13 && address <= 0xFA1A:
 			(*MemoryPIT)[address - 0xFA13] = content
-		case address >= 0xFA1B && address <= 0xFA40:
-			(*MemoryNetwork)[address - 0xFA30] = content
-		case address >= 0xFA41 && address <= 0xFA46:
-			(*MemoryRTC)[address - 0xFA41] = content
+		case address >= 0xFD47 && address <= 0xFD6C:
+			(*MemoryNetwork)[address - 0xFD47] = content
+		case address >= 0xFD41 && address <= 0xFD46:
+			(*MemoryRTC)[address - 0xFD41] = content
 		case address >= 0xFA37 && address <= 0xFC36:
 			// IDT
 			(*Memory)[0x6FFF0000 + (address - 0xFA37)] = content

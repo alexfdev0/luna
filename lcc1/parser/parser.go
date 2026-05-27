@@ -347,7 +347,6 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		WritePre(_label + ":", false)
 		WritePre(".asciz \"" + strings.ReplaceAll(label, "\"", "") + "\"", true)
 		WritePre(__label + ":", false)
-		WritePre(".ptrlabel " + _label, true)
 		WritePre(".ptr " + _label, true)
 		// Write("mov " + register + ", " + _label, true)
 
@@ -1348,7 +1347,6 @@ func ParseNumberExpyDirect(tokens []lexer.Token, i int, Scope int) (int, int) {
 			label := expect(lexer.TokIdent)
 			Variable := LookupVariable(label, true, Scope, peek(-1), &tokens)
 			WritePre(".ptr " + Variable.Real, true)
-			WritePre(".ptrlabel " + label, true)
 			return -1, i
 		}
 		num := expect(lexer.TokNumber)
@@ -1847,12 +1845,10 @@ func Parse(tokens []lexer.Token, Scope int) {
 								if __ptr == false {
 									WritePre(".byte 0x00", true)
 								} else {
-									WritePre(".ptrlabel " + __rn, true)
 									WritePre(".ptr 0x00", true)
 								}
 							case NULL:
 								WritePre(".ptr 0x00", true)
-								WritePre(".ptrlabel " + __rn, true)
 							case NUMBER16:
 								WritePre(".word 0x0000", true)
 							case NUMBER32:
@@ -2077,7 +2073,6 @@ func Parse(tokens []lexer.Token, Scope int) {
 								Write("strf r7, r4", true)
 							}
 						} else {
-							WritePre(".ptrlabel " + rn, true)
 							WritePre(".ptr 0x00", true)
 							Write("mov r7, " + rn, true)
 							Write("strf r7, r4", true)
@@ -2103,7 +2098,6 @@ func Parse(tokens []lexer.Token, Scope int) {
 						WritePre(rn + ":", false)
 						WritePre(".asciz \"" + str + "\"", true)
 						WritePre(rn2 + ":", false)
-						WritePre(".ptrlabel " + rn, true)
 						WritePre(".ptr " + rn, true)
 					} else {	
 						if len(str) > 1 {
@@ -2162,7 +2156,6 @@ func Parse(tokens []lexer.Token, Scope int) {
 						WritePre(rn + ":", false)
 						WritePre(".asciz \"\"", true)
 						WritePre(rn2 + ":", false)
-						WritePre(".ptrlabel " + rn, true)
 						WritePre(".ptr " + rn, true)
 					} else {	
 						Variables = append(Variables, Variable_Static{Name: name, Type: STRING, Value: "", Pointer: false, Scope: Scope, Const: constant})
@@ -2182,7 +2175,6 @@ func Parse(tokens []lexer.Token, Scope int) {
 							rn := "var_" + fmt.Sprintf("%d", IDCounter)
 							IDCounter++
 							WritePre(rn + ":", false)
-							WritePre(".ptrlabel " + rn, true)
 							WritePre(".ptr " + name, true)
 							Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Value: nil, Pointer: true, Real: rn, Scope: Scope, Const: constant})	
 						}
@@ -2198,7 +2190,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 				rn := "var_" + fmt.Sprintf("%d", IDCounter)
 				IDCounter++
 				Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: nil, Pointer: false, Real: rn, Scope: Scope, Const: constant, ArgNum: int(length_real) })
-				Write(rn + ":", false)
+				WritePre(rn + ":", false)
 
 				if rtype == NUMBER8 || rtype == STRING {
 					length_real = length_real
@@ -2208,7 +2200,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 					length_real = length_real * 4
 				}
 
-				Write(".pad " + fmt.Sprintf("%d", length_real), true)
+				WritePre(".pad " + fmt.Sprintf("%d", length_real), true)
 
 				expect(lexer.TokSemi)
 			default:

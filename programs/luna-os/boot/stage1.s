@@ -7,16 +7,20 @@ _start:
     // Setup stack
     mov sp, 0xEFFF
 
+    // Check battery
+    hlt
+    hlt // allow time for the battery controller to initialize
+    call bat_check
+
     // Check partition table
     call check_vol
 
     // Print loading message
     push msg_loading
     push 255
-    push 0
     call write
 
-    // Load next sector
+    // Load next sectors
     int 0x10
     mov r2, r1
     mov r1, 1
@@ -29,32 +33,11 @@ _start:
     mov r3, r1
     int 11
 
-    jmp 512 
-
-load_sectors:
-    pop e11
-    pop e1
-
-    int 0x10
-    mov r2, r1
-
-    mov r1, 3
-
-    mov e10, pc
-
-    mov r3, r1
-    int 11
-    inc r1
-
-    igt r4, r1, e1
-    jz r4, e10
-
-    ret
+    jmp 512
 
 wait_key_and_reboot:
     push msg_press_any_key
     push 255
-    push 0
     call write
 
     call wait_key
@@ -64,15 +47,15 @@ wait_key_and_reboot:
 missing_error:
     push msg_missing_os
     push 255
-    push 0
     call write
     jmp wait_key_and_reboot
 
 write:
     pop e11
-    pop r3
     pop r2
     pop r4
+
+    xor r3, r3, r3
 
     mov e10, pc
 
@@ -130,11 +113,30 @@ key_inp:
     lod r1, e12
     jmp e7
 
+bat_check:
+    mov r1, 0xFC3A
+    lod r1, r2
+    mov r3, 3
+    igt r4, r2, r3
+
+    jnz r4, bc_ret
+
+    push msg_battery_dead
+    push 0xA0
+    call write
+    jmp pc
+bc_ret:
+    pop e11
+    ret
+
 msg_loading:
-    .asciz "Loading...\n\n"
+    .asciz "Loading\n"
 
 msg_press_any_key:
-    .asciz "Press any key to reboot...\n"
+    .asciz "Press any key to reboot\n"
 
 msg_missing_os:
     .asciz "Missing operating system\n"
+
+msg_battery_dead:
+    .asciz "Charge battery"

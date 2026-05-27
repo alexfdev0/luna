@@ -76,6 +76,9 @@ void load_executable() {
     address = address + 1;
 
     load_sector(2, address / 512, 0);
+    load_sector(2, address / 512 + 1, 1);
+    load_sector(2, address / 512 + 2, 2);
+
     if (*address != 0x4C325049) {   
         puts32("Error! ", 0xA0, 0);
         puts32("Invalid executable file format.\n", 255, 0);
