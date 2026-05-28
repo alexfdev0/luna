@@ -2,7 +2,7 @@ package shared
 
 import (
 	"math/rand"
-	"luna_l2/video"
+	"cmp"
 )
 /* 
 shared.go:
@@ -77,7 +77,7 @@ func Mapper(address uint32) byte {
 			return (*MemoryPower)[address - 0xFC37]
 		case address >= 0xFE00 && address <= 0xFFFF:
 			if GetRegister(0x001F) <= 124 {
-				return (*MemoryVideo)[video.Clamp((GetRegister(0x0020) * 0x200) + (address - 0xFE00), 0, 63999)]
+				return (*MemoryVideo)[Clamp((GetRegister(0x0020) * 0x200) + (address - 0xFE00), 0, 63999)]
 			}
 		}
 	}
@@ -160,6 +160,16 @@ func RaiseInterrupt(code uint32)  {
 	SetRegister(0x001f, GetRegister(0x001f) | (1 << code))
 }
 
+func Clamp[T cmp.Ordered](x T, min T, max T) T {
+    if x < min {
+        return min
+    }
+    if x > max {
+        return max
+    }
+    return x
+}
+
 var Bits32 bool = false
 var Filename string = ""
 var SDFilename string = ""
@@ -167,3 +177,5 @@ var OpticalFilename string = ""
 var DriveNumber int = 0
 var BootDrive int = 0
 var IntRaiseCode uint32 = 0
+var LogOn bool = false
+var Debug bool = false

@@ -7,8 +7,6 @@ import (
 	"fmt"
 )
 
-var KeyInterruptCode uint32 = 0x5
-
 const (
 	MEMSIZE uint32 = 0x70000000
 	MEMCAP uint32 = 0x6FFFFFFF

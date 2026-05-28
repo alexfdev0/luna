@@ -209,8 +209,6 @@ func parse(text string) ([]byte, bool) {
 				error(5, "'" + text + "'")
 			} else if len(text) == 1 {
 				text = string(byte(00)) + text
-			} else {
-				warning(10, "")
 			}
 		} else {
 			if len(text) > 4 {
@@ -219,12 +217,8 @@ func parse(text string) ([]byte, bool) {
 				text = string(byte(00)) + string(byte(00)) + string(byte(00)) + text
 			} else if len(text) == 2 {
 				text = string(byte(00)) + string(byte(00)) + text
-				warning(10, "")
 			} else if len(text) == 3 {
 				text = string(byte(00)) + text
-				warning(10, "")
-			} else {	
-				warning(10, "")
 			}
 		}	
 		return []byte(text), false
