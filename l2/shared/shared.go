@@ -137,7 +137,7 @@ func MapperWrite(address uint32, content byte) {
 
 func SetRegister(address uint32, value uint32) {
 	if address < uint32(len((*Registers))) {
-		if Bits32 == false {
+		if Bits32 == false && address != 0x001f {
 			(*Registers)[address].Value = uint32(uint16(value))
 		} else {
 			(*Registers)[address].Value = value

@@ -66,7 +66,7 @@ const (
 // Register controls
 func setRegister(address uint32, value uint32) {
 	if address < uint32(len(Registers)) {
-		if shared.Bits32 == false {
+		if shared.Bits32 == false && address != 0x001f {
 			Registers[address].Value = uint32(uint16(value))
 		} else {
 			Registers[address].Value = value

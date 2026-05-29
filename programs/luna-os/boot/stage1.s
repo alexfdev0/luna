@@ -124,7 +124,9 @@ bat_check:
     push msg_battery_dead
     push 0xA0
     call write
-    jmp pc
+    hlt
+    hlt
+    int 0x11
 bc_ret:
     pop e11
     ret
