@@ -49,6 +49,7 @@ func LoadSector(drive int, sector int, enforce bool, dest_sector int) {
 	f, err := os.OpenFile(file, os.O_RDONLY, 0)
 	if err != nil {
 		if enforce == false {
+			shared.SetRegister(0x0000, 1)
 			fmt.Println("luna-l2: could not load/reload block device: ", err)
 			return
 		} else {
@@ -61,9 +62,12 @@ func LoadSector(drive int, sector int, enforce bool, dest_sector int) {
 	start := sector * 512
 	rstart := dest_sector * 512
 	_, err = f.ReadAt(shared.Memory[start:start + 512], int64(rstart))
-	if err != nil {
+	if err != nil && err.Error() != "EOF" {
+		shared.SetRegister(0x0000, 1)
 		fmt.Println("luna-l2: could not read from disk: ", err)
-	}	
+	} else {
+		shared.SetRegister(0x0000, 0)
+	}
 }
 
 func WriteSector(drive int, sector int, dsector int) {
@@ -82,6 +86,7 @@ func WriteSector(drive int, sector int, dsector int) {
 	
 	f, err := os.OpenFile(file, os.O_RDWR | os.O_SYNC, 0)
 	if err != nil {
+		shared.SetRegister(0x0000, 1)
 		fmt.Println("luna-l2: could not load/reload block device: ", err)
 		return
 	}
@@ -91,7 +96,10 @@ func WriteSector(drive int, sector int, dsector int) {
 	_content_start := dsector * 512
 	_, err = f.WriteAt(shared.Memory[start:start + 512], int64(_content_start))
 	if err != nil {
+		shared.SetRegister(0x0000, 1)
 		fmt.Println("luna-l2: could not write to block device: ", err)
+	} else {
+		shared.SetRegister(0x0000, 0)
 	}
 }
 

@@ -35,6 +35,9 @@ void setup() {
             wait_for_key();
             reboot();
         }
+
+        lufs_create_file("NOTEPAD SYS", 64);
+
         puts32("Setup has detected you are running Setup on a USB device.\n\n", 255, 0);
         user_setup();
 
@@ -42,7 +45,7 @@ void setup() {
         pause();
         
         puts32("Setup is copying files to the hard disk... ", 255, 0);
-        setup_copy(0x1D4, 0);
+        setup_copy(0x4B9, 0);
         puts32("\nSetup has completed copying files to the hard disk.\n\n", 255, 0);
 
         puts32("Setup will now restart this machine to complete the setup process.\n", 255, 0);

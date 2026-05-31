@@ -72,6 +72,8 @@ targeted_load:
     mov r3, r1
     int 0x0b
 
+    jnz r0, uni_disk_error
+
     inc r1
 
     mov e10, pc
@@ -106,8 +108,33 @@ boot_load_all_sectors:
     inc r1
     inc r7
 
+    jnz r0, uni_disk_error
+
     igt r9, r7, r6
     jz r9, e10
 
     ret
-    
+uni_disk_error:
+    push disk_err_msg
+    call _builtin_print
+    jmp pc
+
+_builtin_print:
+    pop e11
+    pop r4
+
+    mov r2, 0xA0
+    xor r3, r3, r3 // xor to save space :3
+
+    mov e10, pc
+
+    lod r4, r1
+    int 1
+    inc r4
+
+    jnz r1, e10
+
+    ret
+   
+disk_err_msg:
+    .asciz "Disk read failed!"

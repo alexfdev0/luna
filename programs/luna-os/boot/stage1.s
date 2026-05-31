@@ -142,3 +142,5 @@ msg_missing_os:
 
 msg_battery_dead:
     .asciz "Charge battery"
+
+// Unfortunately no more stage1 space to house read failed error

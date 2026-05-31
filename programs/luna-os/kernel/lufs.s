@@ -54,7 +54,10 @@ lufs_create_file:
     mov r12, 512
     div r1, e12, r12 // Sector number in r12
     mov r2, 0
+    push r3
+    mov r3, r1
     int 0x0d
+    pop r3
 
     ret
 
@@ -121,14 +124,23 @@ lufs_find_file_match:
     mov r12, 512
     div r1, r3, r12 // Sector number in r12
     mov r2, 0
+    push r3
+    mov r3, r1
     int 0x0d
+    pop r3
 
     inc r1
+    push r3
+    mov r3, r1
     int 0x0d
+    pop r3
 
     dec r1
     dec r1
+    push r3
+    mov r3, r1
     int 0x0d
+    pop r3
     
     mov e6, 1
 
@@ -140,7 +152,10 @@ lufs_find_file_match:
     strf r1, r2
     mov r1, 1
     mov r2, 0
+    push r3
+    mov r3, r1
     int 0x0d
+    pop r3
 
     pop e11
     ret
