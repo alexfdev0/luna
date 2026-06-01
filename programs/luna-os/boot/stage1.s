@@ -7,17 +7,11 @@ _start:
     // Setup stack
     mov sp, 0xEFFF
 
-    // Check battery
-    hlt
-    hlt // allow time for the battery controller to initialize
-    call bat_check
-
     // Check partition table
     call check_vol
 
     // Print loading message
     push msg_loading
-    push 255
     call write
 
     // Load next sectors
@@ -26,18 +20,19 @@ _start:
     mov r1, 1
     mov r3, r1
     int 11
+    jnz r0, read_error
 
     int 0x10
     mov r2, r1
     mov r1, 2
     mov r3, r1
     int 11
+    jnz r0, read_error
 
     jmp 512
 
 wait_key_and_reboot:
     push msg_press_any_key
-    push 255
     call write
 
     call wait_key
@@ -46,16 +41,20 @@ wait_key_and_reboot:
 
 missing_error:
     push msg_missing_os
-    push 255
+    call write
+    jmp wait_key_and_reboot
+
+read_error:
+    push msg_read_error
     call write
     jmp wait_key_and_reboot
 
 write:
     pop e11
-    pop r2
     pop r4
 
-    xor r3, r3, r3
+    mov r2, 255
+    mov r3, 0
 
     mov e10, pc
 
@@ -113,24 +112,6 @@ key_inp:
     lod r1, e12
     jmp e7
 
-bat_check:
-    mov r1, 0xFC3A
-    lod r1, r2
-    mov r3, 3
-    igt r4, r2, r3
-
-    jnz r4, bc_ret
-
-    push msg_battery_dead
-    push 0xA0
-    call write
-    hlt
-    hlt
-    int 0x11
-bc_ret:
-    pop e11
-    ret
-
 msg_loading:
     .asciz "Loading\n"
 
@@ -140,7 +121,5 @@ msg_press_any_key:
 msg_missing_os:
     .asciz "Missing operating system\n"
 
-msg_battery_dead:
-    .asciz "Charge battery"
-
-// Unfortunately no more stage1 space to house read failed error
+msg_read_error:
+    .asciz "Read from disk failed"

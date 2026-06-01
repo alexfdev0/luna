@@ -14,6 +14,11 @@ _BS_FIELDS_:
 
 _stage2:
     // 0xFA -> 4f  50  51 52 53 54
+    hlt
+    hlt // Make sure battery controller is initialized
+
+    call bat_check
+
     mov r1, 0xFA53
     mov r2, key_inp
     strf r1, r2  // SET KEY CLICK ADDR
@@ -241,6 +246,24 @@ sd_ret:
 
     ret
 
+bat_check:
+    mov r1, 0xFC3A
+    lod r1, r2
+    mov r3, 3
+    igt r4, r2, r3
+
+    jnz r4, bc_ret
+
+    push msg_battery_dead
+    push 0xA0
+    call write
+    hlt
+    hlt
+    int 0x11
+bc_ret:
+    pop e11
+    ret
+
 key_inp:
     mov r1, 0xFA12
     lod r1, e12
@@ -264,3 +287,6 @@ msg_header:
 
 msg_opts:
     .asciz "\nEnter: Reboot"
+
+msg_battery_dead:
+    .asciz "Charge battery"
