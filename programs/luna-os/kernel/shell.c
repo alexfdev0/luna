@@ -37,7 +37,7 @@ void shell() {
         
         if (strcmp("notepad", TEMPBUF) == 1) {
             readin(TEMPBUF, 0, 0);
-            lufs_write_file("NOTEPAD SYS     ", TEMPBUF);
+            lufs_write_file("NOTEPAD     SYS", TEMPBUF);
 
             puts32("\n", 255, 0);
             continue;

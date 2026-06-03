@@ -32,7 +32,7 @@ void setup() {
     }
 
     puts32("Detecting your drive...\n", 255, 0);
-    lufs_create_file("NOTEPAD SYS     ", 256); // Create notepad file
+    lufs_create_file("NOTEPAD     SYS", 256); // Create notepad file
     if (getdrive()) {
         if (query_drive_inserted(0) == 0) {
             puts32("\n\nError! ", 0xA0, 0);

@@ -85,7 +85,7 @@ func main() {
 	for _, file := range input_files {
 		data, err := os.ReadFile(file)
 		if err != nil {
-			error.ErrorNoGaze(16, "\"" + file + "\"", lexer.Token{Line: 0})
+			error.ErrorNoGaze(16, "'" + file + "'", lexer.Token{Line: 0})
 			os.Exit(1)
 		}
 		code := lexer.Preprocessor(string(data), file, false)

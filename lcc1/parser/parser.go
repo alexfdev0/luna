@@ -1932,11 +1932,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 			
 				expect(lexer.TokRCurly)
 	
-				Write(name + ":", false)
-
-				if name == "_start" {
-					PreWrite("jmp _start", false)
-				}
+				Write(name + ":", false)	
 
 				if len(Children) > 0 {
 					level = 1
