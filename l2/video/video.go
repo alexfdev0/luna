@@ -371,7 +371,11 @@ func InitializeWindow() {
 				}
 				return
 			case glfw.KeyF5:
-				shared.RaiseInterrupt(0xF)	
+				shared.RaiseInterrupt(0xF)
+			case glfw.KeyF6:
+				f, _ := os.Create("dump.bin")
+				f.Write((*shared.Memory)[:])
+				f.Close()
 			case glfw.KeyF11:
 				ToggleFullscreen(window)
 				return	

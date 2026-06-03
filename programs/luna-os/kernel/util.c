@@ -9,10 +9,10 @@ void tohex(long int number, short short int capitalized) {
     puts32("\n", 255, 0);
 }
 
-void pause() {
+short short int pause() {
     puts32("Press any key to continue...\n\n", 255, 0);
-    wait_for_key();
-    return;
+    short short int code = wait_for_key();
+    return code;
 }
 
 void kernel_panic() __attribute__((noreturn)) {

@@ -20,6 +20,8 @@ extern int ASLR_generate_address();
 extern void lexec_core(long int address);
 extern int sectorize(long int number);
 extern void sleep(long int seconds);
+extern void strcpy(char* b1, char* b2);
+extern void save_sector(long int sector);
 extern void* TEMPBUF;
 extern void* PROMPTBUF;
 extern void* PASSBUF;

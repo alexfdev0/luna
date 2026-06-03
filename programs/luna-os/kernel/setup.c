@@ -24,7 +24,12 @@ void user_setup() {
 void setup() { 
     puts32("Setup LunaOS\n", 255, 0);
     puts32("Welcome to LunaOS!\n\nThis interactive setup will guide you through\nthe process of setting up LunaOS\non your computer.\n\n", 255, 0);
-    pause(); 
+    
+    if (pause() == 0xC3) {
+        render_buf(0x40404040);
+        video_set_cursor(0, 0);
+        return;
+    }
 
     puts32("Detecting your drive...\n", 255, 0);
     lufs_create_file("NOTEPAD SYS     ", 256); // Create notepad file
@@ -45,7 +50,7 @@ void setup() {
         pause();
         
         puts32("Setup is copying files to the hard disk... ", 255, 0);
-        setup_copy(0x4B9, 0);
+        setup_copy(0x4C0, 0);
         puts32("\nSetup has completed copying files to the hard disk.\n\n", 255, 0);
 
         puts32("Setup will now restart this machine to complete the setup process.\n", 255, 0);
@@ -57,8 +62,7 @@ void setup() {
         user_setup();
         
         puts32("Setup will now restart this machine to complete the setup process.\n", 255, 0);
-        save_buffer(PASSBUF, 0);
-        asm ("int 0x6");
+        pause(); 
         asm ("mov r1, 0");
         asm ("int 0xf");
     }

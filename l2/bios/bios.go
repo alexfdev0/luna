@@ -45,7 +45,6 @@ func LoadSector(drive int, sector int, enforce bool, dest_sector int) {
 		file = shared.OpticalFilename
 		time.Sleep(time.Duration(110) * time.Millisecond)
 	}	
-
 	f, err := os.OpenFile(file, os.O_RDONLY, 0)
 	if err != nil {
 		if enforce == false {
@@ -58,7 +57,6 @@ func LoadSector(drive int, sector int, enforce bool, dest_sector int) {
 		}
 	}
 	defer f.Close()
-
 	start := sector * 512
 	rstart := dest_sector * 512
 	_, err = f.ReadAt(shared.Memory[start:start + 512], int64(rstart))

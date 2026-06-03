@@ -1150,7 +1150,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 	switch peek(0).Type {
 	case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
 		if NUM_TRY_DEREF == false {
-			Write("mov r1, " + register, true)
+			Write("mov r0, " + register, true)
 		}
 		OP_TRY:
 		op = expect(peek(0).Type)
@@ -1158,20 +1158,20 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 		switch op {
 		case "+":
-			Write("add r1, r1, r6", true)
+			Write("add r0, r0, r6", true)
 		case "-":
-			Write("sub r1, r1, r6", true)
+			Write("sub r0, r0, r6", true)
 		case "*":
-			Write("mul r1, r1, r6", true)
+			Write("mul r0, r0, r6", true)
 		case "/":
-			Write("div r1, r1, r6", true)
+			Write("div r0, r0, r6", true)
 		}
 		switch peek(0).Type {
 		case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
 			goto OP_TRY
 		}
 		if NUM_TRY_DEREF == false && NUM_VAR_OVERRIDE == false {
-			Write("mov " + register + ", r1", true)
+			Write("mov " + register + ", r0", true)
 		}
 	}
 

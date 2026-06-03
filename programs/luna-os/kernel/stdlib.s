@@ -32,6 +32,9 @@
 .global renderbuf_loc
 .global sleep_loc
 .global lexec_done
+.global strcpy
+.global save_sector
+.global strlen
 
 readin:
     pop e11
@@ -197,6 +200,35 @@ strlen:
     jz r5, e10
 
     ret
+
+save_sector:
+    pop e11
+    pop r1
+
+    mov r3, r1
+    mov r2, 0
+
+    int 0x0d
+
+    ret
+
+strcpy:
+    pop e11
+    pop r2
+    pop r1
+
+    mov e10, pc
+
+    lod r1, r3
+    str r2, r3
+
+    inc r1
+    inc r2
+
+    jnz r3, e10
+
+    ret
+
 
 writeout:
     pop e11
@@ -497,6 +529,7 @@ wfk_rd:
     hlt
     jmp wfk_rd
 wfk_ret:
+    mov e6, r1
     mov r1, 0x6FFF0019
     mov r2, 0
     str r1, r2 // DISABLE KEYBOARD INTERRUPT
@@ -744,7 +777,7 @@ PROMPTBUF:
     .asciz "> "
     .pad 5
 
-PASSBUF:
+PASSBUF: 
     .pad 32
 
 MEM_PTR:

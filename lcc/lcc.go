@@ -142,7 +142,7 @@ func main() {
 		name := strings.TrimSuffix(file, filepath.Ext(file))
 
 		switch ext {
-		case ".c", ".h", ".cxx", ".hxx", ".cpp", ".hpp":
+		case ".c", ".h", ".cxx", ".hxx", ".cpp", ".hpp", ".cc", ".hh":
 			success := execute("lcc1 -S " + file + " -o " + name + ".s " + strings.Join(cc1args, " "), false)
 			if success != true {
 				hl_error = true

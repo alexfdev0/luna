@@ -1,4 +1,4 @@
-extern void pause();
+extern short short int pause();
 extern void video_set_cursor(int x, int y); 
 extern void tohex(long int number, short short int capitalized);
 extern int query_drive_inserted(short short int drive);
