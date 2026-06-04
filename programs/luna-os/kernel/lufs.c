@@ -8,14 +8,18 @@ void fcreate(char* name, long int size) {
     long int* nfp = 0x61C;
     long int* nfl = *nfp;
 
+    tohex(nfl, 1);
     *nfl = 0x4C465346; // Store file header
     nfl = nfl + 4;
+    tohex(nfl, 1);
 
     strcpy(name, nfl); // Transfer name to file
     long int name_len = strlen(name);
     nfl = nfl + name_len; 
+    tohex(nfl, 1);
     *nfl = size;
     nfl = nfl + 4;
+    tohex(nfl, 1);
 
     for (long int i = 0; i < size; i = i + 1) {
         *nfl = 0x00;
@@ -24,6 +28,7 @@ void fcreate(char* name, long int size) {
 
     long int sector = nfl / 512;
     save_sector(sector);
+    tohex(sector, 1);
 
     *nfp = *nfp + size;
     save_sector(3);
@@ -94,7 +99,28 @@ void ffnt(char* filename) {
         filename = filename + 1;
     }
    
-    puts32(bufptr, 0b00011100, 0);
+    puts32(bufptr, 0xff, 0);
+}
+
+void flist() {
+    long int* fsp = 0x618;
+    long int* fp = *fsp;
+
+    while (1) {
+        if (*fp != 0x4C465346) {
+            break;
+        }
+        // skip over header
+        fp = fp + 4;
+        ffnt(fp);
+        puts32("\n", 255, 0);
+        fp = fp + 16; // skip over name
+        long int size = *fp;
+        fp = fp + 4; // skip over size marker
+        fp = fp + size; // skip over file contents 
+    }
+
+    return 0; 
 }
 
 void fwrite(char* name, char* content) {

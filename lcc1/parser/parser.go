@@ -8,7 +8,6 @@ import (
 	"strconv"
 	// "os"
 	"math"
-	// "runtime/debug"
 )
 
 var level int = 0
@@ -407,6 +406,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			}
 			ParseExpy(subslice, 0, Scope, register)
 		case lexer.TokNumber:
+
 			Write("mov " + register + ", " + peek(0).Value, true)
 			i++
 		}
@@ -510,13 +510,13 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 	EQU_VAR := Variable_Static{}
 	var op string = ""
 	var NUM_TRY_DEREF bool
-	var NUM_VAR_OVERRIDE bool
+	var NUM_DIRECT bool
+
 	EXPY_TOP:
 	switch peek(0).Type {
-	default:
-		expect(lexer.TokEOF)
 	case lexer.TokSemi:
 		expect(lexer.TokSemi)
+		goto EXPY_TOP
 	case lexer.TokStar:
 		expect(lexer.TokStar)
 		deref++
@@ -1150,35 +1150,48 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		// Load it up into r4
 
 		_NUMBER_PARSE("r1")
-		NUM_TRY_DEREF = true
+		switch peek(0).Type {
+		case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
+			NUM_DIRECT = true	
+		}	
+		NUM_TRY_DEREF = true	
 	}
 
 	switch peek(0).Type {
 	case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
 		if NUM_TRY_DEREF == false {
-			Write("mov r0, " + register, true)
+			Write("mov r5, " + register, true)
 		}
+
+		if NUM_DIRECT == true {
+			Write("mov r5, r1", true)
+			NUM_DIRECT = false
+		}
+
 		OP_TRY:
 		op = expect(peek(0).Type)
 		_NUMBER_PARSE("r6")
 
 		switch op {
 		case "+":
-			Write("add r0, r0, r6", true)
+			Write("add r1, r5, r6", true)
 		case "-":
-			Write("sub r0, r0, r6", true)
+			Write("sub r1, r5, r6", true)
 		case "*":
-			Write("mul r0, r0, r6", true)
+			
+			Write("mul r1, r5, r6", true)
 		case "/":
-			Write("div r0, r0, r6", true)
+			Write("div r1, r5, r6", true)
 		}
 		switch peek(0).Type {
 		case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
+			Write("mov r5, r1", true)
 			goto OP_TRY
 		}
-		if NUM_TRY_DEREF == false && NUM_VAR_OVERRIDE == false {
-			Write("mov " + register + ", r0", true)
+		if NUM_TRY_DEREF == false {
+			Write("mov " + register + ", r1", true)
 		}
+		NUM_DIRECT = false
 	}
 
 	if NUM_TRY_DEREF == true {
@@ -1187,14 +1200,16 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		deref--
 		derefs := 0
 		x_deref := deref
-		for x_deref > 0 {
+		for x_deref >= 0 {
 			x_deref--
-			if _COERCE_PTR == true && ((derefs > 0 && Intent == "write") || (Intent == "read")) {	
-				switch _COERCE_TYPE {
-				case NUMBER8, STRING, NULL:
-					Write("lod r2, r2", true)
-				case NUMBER16, NUMBER32:
-					Write("lodf r2, r2", true)
+			if _COERCE_PTR == true {
+				if (derefs > 0 && Intent == "write") || (Intent == "read") {	
+					switch _COERCE_TYPE {
+					case NUMBER8, STRING, NULL:
+						Write("lod r2, r2", true)
+					case NUMBER16, NUMBER32:
+						Write("lodf r2, r2", true)
+					}
 				}
 			} else {
 				switch _COERCE_TYPE {

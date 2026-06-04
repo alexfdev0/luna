@@ -51,6 +51,12 @@ void shell() {
             continue;
         }
 
+        if (strcmp("files", TEMPBUF) == 1) {
+            flist();
+            puts32("\n", 255, 0);
+            continue;
+        }
+
         if (strcmp("passwd", TEMPBUF) == 1) {
             puts32("Enter old password: ", 255, 0);
             readin(TEMPBUF, 1, 1);

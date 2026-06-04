@@ -24,7 +24,8 @@ void user_setup() {
 void setup() {
     puts32("Setup LunaOS\n", 255, 0);
     puts32("Welcome to LunaOS!\n\nThis interactive setup will guide you through\nthe process of setting up LunaOS\non your computer.\n\n", 255, 0);
-    
+    fcreate("NOTEPAD     SYS", 256);
+
     if (pause() == 0xC3) {
         render_buf(0x40404040);
         video_set_cursor(0, 0);
@@ -32,7 +33,7 @@ void setup() {
     }
 
     puts32("Detecting your drive...\n", 255, 0);
-    fcreate("NOTEPAD     SYS", 256); // Create notepad file
+     // Create notepad file
     if (getdrive()) {
         if (query_drive_inserted(0) == 0) {
             puts32("\n\nError! ", 0xA0, 0);
