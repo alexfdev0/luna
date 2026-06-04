@@ -4,7 +4,7 @@ A simple, lightweight RISC CPU architecture.<br><br>
 # Requirements<br>
 - Windows, MacOS, Linux, or FreeBSD<br>
 - Go (if you are compiling manually)<br>
-- GCC (if you are compilimg manually) (if you are on Windows; see [this page](https://www.mingw-w64.org/) to install GCC.)
+- GCC (if you are compiling manually) (if you are on Windows; see [this page](https://www.mingw-w64.org/) to install GCC.)
 
 # Automatic Installation (Windows, MacOS (amd64/arm64))<br>
 - Download the relevant installer from the latest release.<br>
