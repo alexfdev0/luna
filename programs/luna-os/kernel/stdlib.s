@@ -6,11 +6,8 @@
 .global writeout
 .global xor_cycle
 .global getdrive
-.global PASSBUF
-.global TEMPBUF
 .global PROMPTBUF
 .global setup_copy
-.global checkpass
 .global save_buffer
 .global render
 .global screen_fill
@@ -213,10 +210,13 @@ putchar:
 
 save_sector:
     pop e11
+    
+    int 0x10
+    mov r2, r1 // Get current drive and move it to r2
+
     pop r1
 
     mov r3, r1
-    mov r2, 0
 
     int 0x0d
 
@@ -392,25 +392,18 @@ setup_copy_of:
 setup_copy_copied:
     .asciz " copied"
 
-checkpass:
-    pop e11
-
-    mov r1, PASSBUF
-    lod r1, r1
-    
-    mov e6, r1
-
-    ret
-
 save_buffer:
     pop e11 
+
+    int 0x10
+    mov r2, r1
+
     pop r1
 
     mov r5, 512
     div r4, r1, r5
     mov r1, r4
 
-    mov r2, 0 // Drive 0
     mov r3, r1
     int 0x0d
 
@@ -779,16 +772,10 @@ free:
 
 PASS_KEY_ENCRYPT:
     .pad 1
-    
-TEMPBUF:
-    .pad 256
 
 PROMPTBUF:
     .asciz "> "
     .pad 5
-
-PASSBUF: 
-    .pad 32
 
 MEM_PTR:
     .dword 0x50505050

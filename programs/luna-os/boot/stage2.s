@@ -129,10 +129,12 @@ list_volumes:
     div r1, r7, r4
     mov r3, r1
     int 0x0b
+    jnz r0, read_fail
 
     inc r1
     mov r3, r1
     int 0x0b
+    jnz r0, read_fail
 
     pop r4
     pop r3
@@ -272,6 +274,20 @@ key_inp:
 REBOOT:
     int 0x10 
     int 0xf
+
+read_fail:
+    push 0xA0A0
+    call screen_draw
+
+    push read_fail_msg
+    push 255
+    push 0xA0
+    call write
+
+    jmp pc
+
+read_fail_msg:
+    .asciz "Read from disk failed!\nPlease reboot the system."
 
 next_vol_num:
     .pad 2

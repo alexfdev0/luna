@@ -3,23 +3,41 @@
 #include "stdlib.h"
 #include "util.h"
 
+long int* ffnt(char* filename) {
+    short short int* buffer = malloc(strlen(filename));
+    long int bufptr = buffer;
+
+    long int seen = 0;
+    while (*filename != 0) { 
+        if (*filename != 0x20) {
+            putchar(*filename, buffer); 
+            buffer = buffer + 1;
+        } else {
+            if (seen == 0) {
+                seen = 1;
+                putchar(46, buffer); // .
+                buffer = buffer + 1;
+            }
+        }
+        filename = filename + 1;
+    }
+    
+    return bufptr;
+}
+
 void fcreate(char* name, long int size) {
     // Load next file pointer
     long int* nfp = 0x61C;
     long int* nfl = *nfp;
 
-    tohex(nfl, 1);
     *nfl = 0x4C465346; // Store file header
     nfl = nfl + 4;
-    tohex(nfl, 1);
 
     strcpy(name, nfl); // Transfer name to file
     long int name_len = strlen(name);
     nfl = nfl + name_len; 
-    tohex(nfl, 1);
     *nfl = size;
     nfl = nfl + 4;
-    tohex(nfl, 1);
 
     for (long int i = 0; i < size; i = i + 1) {
         *nfl = 0x00;
@@ -28,7 +46,6 @@ void fcreate(char* name, long int size) {
 
     long int sector = nfl / 512;
     save_sector(sector);
-    tohex(sector, 1);
 
     *nfp = *nfp + size;
     save_sector(3);
@@ -37,7 +54,6 @@ void fcreate(char* name, long int size) {
 long int* find_file(char* name) {
     long int* fsp = 0x618;
     long int* fp = *fsp;
-
 
     while (1) {
         if (*fp != 0x4C465346) {
@@ -61,45 +77,24 @@ long int* find_file(char* name) {
     return 0;
 }
 
-long int* fopen(char* filename) {
+long int* fopen(char* filename, short short int complain_on_not_found) {
     long int* faddr = find_file(filename);
     if (faddr == 0x00000000) {
-        puts32("File '", 0xA0, 0);
-        puts32(filename, 0xA0, 0);
-        puts32("' not found!\n", 0xA0, 0);
-        tohex(0, 1);
-        return 0;
+        if (complain_on_not_found) {
+            puts32("File '", 0xA0, 0);
+            puts32(ffnt(filename), 0xA0, 0);
+            puts32("' not found!\n", 0xA0, 0);
+            return 0;
+        }
     }
 
     return faddr;
 }
 
 long int fgetsize(char* filename) {
-    long int fptr = fopen(filename);
+    long int fptr = fopen(filename, 1);
     fptr = fptr - 4;
     return *fptr;
-}
-
-void ffnt(char* filename) {
-    short short int* buffer = malloc(strlen(filename));
-    long int bufptr = buffer;
-
-    long int seen = 0;
-    while (*filename != 0) { 
-        if (*filename != 0x20) {
-            putchar(*filename, buffer); 
-            buffer = buffer + 1;
-        } else {
-            if (seen == 0) {
-                seen = 1;
-                putchar(46, buffer); // .
-                buffer = buffer + 1;
-            }
-        }
-        filename = filename + 1;
-    }
-   
-    puts32(bufptr, 0xff, 0);
 }
 
 void flist() {
@@ -124,7 +119,7 @@ void flist() {
 }
 
 void fwrite(char* name, char* content) {
-    long int* cptr = fopen(name);
+    long int* cptr = fopen(name, 1);
     if (cptr == 0) { 
         return;
     }
@@ -133,3 +128,5 @@ void fwrite(char* name, char* content) {
     long int sec = cptr / 512;
     save_sector(sec);
 }
+
+asm (".dword 0x4a41414d");

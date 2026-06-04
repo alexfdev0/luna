@@ -243,12 +243,34 @@ func ToggleGrab(window *glfw.Window, Grab bool) {
 	}
 }
 
+func ResetAspectRatio(window *glfw.Window, width int, height int) {
+	aspect := float32(640) / float32(400)
+	actual := float32(width) / float32(height)
+
+	var H int
+	var W int
+	var X int
+	var Y int
+
+	if actual > aspect {
+		H = height
+		W = int(float32(height) * aspect)
+		X = (width - W) / 2
+		Y = 0
+	} else {
+		W = width
+		H = int(float32(width) / aspect)
+		X = 0
+		Y = (height - H) / 2
+	}
+
+	gl.Viewport(int32(X), int32(Y), int32(W), int32(H))
+}
+
 var FS bool
 func ToggleFullscreen(window *glfw.Window) {
 	if FS == false {
-		window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
-   			gl.Viewport(0, 0, int32(width), int32(height))
-		})
+		window.SetFramebufferSizeCallback(ResetAspectRatio)
 		window.SetMonitor(glfw.GetPrimaryMonitor(), 0, 0, 640, 400, 60)
 		FS = true
 	} else {
@@ -281,9 +303,7 @@ func InitializeWindow() {
 	}
 	window.MakeContextCurrent()
 
-	window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
-    	gl.Viewport(0, 0, int32(width), int32(height))
-	})
+	window.SetFramebufferSizeCallback(ResetAspectRatio)
 
 	err = gl.Init()
 	if err != nil {

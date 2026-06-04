@@ -15,7 +15,7 @@ void boot() __attribute__((noreturn)) {
     play_sound(BOOT_SOUND, 115308, 0);
     render_buf(BOOT_IMG);
 
-    boot_load_all_sectors(0x4B9);
+    boot_load_all_sectors(0x4C0);
 
     sleep(5);
 

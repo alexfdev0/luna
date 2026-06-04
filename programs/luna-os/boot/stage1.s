@@ -20,7 +20,7 @@ _start:
     mov r1, 1
     mov r3, r1
     int 11
-    jnz r0, read_error
+    jz r0, read_error
 
     int 0x10
     mov r2, r1
@@ -122,4 +122,4 @@ msg_missing_os:
     .asciz "Missing operating system\n"
 
 msg_read_error:
-    .asciz "Read from disk failed"
+    .asciz "Read from disk failed\n"

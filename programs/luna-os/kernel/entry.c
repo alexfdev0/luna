@@ -2,7 +2,6 @@
 
 #include "stdlib.h"
 #include "shell.h"
-#include "setup.h"
 #include "util.h"
 #include "lufs.h"
 
@@ -13,21 +12,17 @@
 asm (".global enterpass");
 
 void _cstart() __attribute__((noreturn)) {
-    puts32("LunaOS\n", 255, 0);
-    puts32("Copyright (c) 2025 Alexander Flax\n\n", 255, 0);
+    if (fopen("NOTEPAD     SYS", 0) == 0x00000000) {
+        fcreate("NOTEPAD     SYS", 256);
+        asm (".byte 0xFF");
+    }
 
-    if (*PASSBUF == 0x00) { 
-        setup(); 
-    }
-enterpass:
-    puts32("Password: ", 255, 0);
-    readin(TEMPBUF, 1, 1);
-    if (strcmp(PASSBUF, TEMPBUF) == 1) {
+    puts32("Welcome to ", 0xff, 0);
+    puts32("Luna", 0x9b, 0);
+    puts32("OS!\n", 0xff, 0);
+    
+    while (1) {
         shell();
-    } else {
-        puts32("Password is incorrect.\n", 255, 0);
-        goto enterpass;
     }
-    while (1) {}
 }
 
