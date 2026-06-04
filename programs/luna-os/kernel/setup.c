@@ -21,7 +21,7 @@ void user_setup() {
     return;
 }
 
-void setup() { 
+void setup() {
     puts32("Setup LunaOS\n", 255, 0);
     puts32("Welcome to LunaOS!\n\nThis interactive setup will guide you through\nthe process of setting up LunaOS\non your computer.\n\n", 255, 0);
     
@@ -32,7 +32,7 @@ void setup() {
     }
 
     puts32("Detecting your drive...\n", 255, 0);
-    lufs_create_file("NOTEPAD     SYS", 256); // Create notepad file
+    fcreate("NOTEPAD     SYS", 256); // Create notepad file
     if (getdrive()) {
         if (query_drive_inserted(0) == 0) {
             puts32("\n\nError! ", 0xA0, 0);
@@ -40,8 +40,6 @@ void setup() {
             wait_for_key();
             reboot();
         }
-
-        lufs_create_file("NOTEPAD SYS", 64);
 
         puts32("Setup has detected you are running Setup on a USB device.\n\n", 255, 0);
         user_setup();

@@ -54,6 +54,7 @@ const (
 	TokLEqual
 	TokBreak
 	TokContinue
+	TokStruct
 )
 
 type Token struct {
@@ -188,6 +189,8 @@ func Lex(code string, filename string) []Token {
 			tokens = append(tokens, Token{Type: TokRBracket, Value: content, Line: s.Pos().Line, File: filename})
 		} else if content == "typedef" {
 			tokens = append(tokens, Token{Type: TokTypedef, Value: content, Line: s.Pos().Line, File: filename})
+		} else if content == "struct" {
+			tokens = append(tokens, Token{Type: TokStruct, Value: content, Line: s.Pos().Line, File: filename})	
 		} else {
 			tokens = append(tokens, Token{Type: TokIdent, Value: content, Line: s.Pos().Line, File: filename})
 		} 

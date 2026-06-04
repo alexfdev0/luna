@@ -50,6 +50,7 @@ var errors = []string {
 	"'break' statement not in loop or switch statement",
 	"'continue' statement not in loop statement",
 	"subscripted value is not an array or pointer", // 40
+	"pointers cannot be used with 'typedef'",
 }
 
 var Warnings int = 0

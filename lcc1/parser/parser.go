@@ -61,6 +61,12 @@ type UnpackOrder struct {
 	Pointer bool
 }
 
+type TypeMapEntry struct {
+	RefersTo int
+}
+
+var TypeMap []TypeMapEntry
+
 var Variables = []Variable_Static {
 	Variable_Static{Name: "_r0", Real: "r0", Register: true, Scope: 1},
 	Variable_Static{Name: "_r1", Real: "r1", Register: true, Scope: 1},
@@ -1656,8 +1662,6 @@ func Parse(tokens []lexer.Token, Scope int) {
 
 					expect(lexer.TokIdent)
 
-
-
 					arg_parse_top:
 					switch peek(0).Value {
 					case "pre":
@@ -1694,9 +1698,32 @@ func Parse(tokens []lexer.Token, Scope int) {
 				}
 
 				if peek(0).Type == lexer.TokTypedef {
+					print("TYPEDEF")
 					expect(lexer.TokTypedef)
-					// TODO: add typedef
+					
+					switch peek(0).Type {
+					case lexer.TokQualifier, lexer.TokType:
+						Type, Pointer := _PARSE_TYPE()
+						if Pointer == true {
+							error.Warning(41, "", peek(-1), &tokens);
+						}
+						TypeMap = append(TypeMap, TypeMapEntry{
+							RefersTo: Type,
+						})
+
+						name := expect(lexer.TokIdent)
+						expect(lexer.TokSemi)
+
+						for k := i; k < len(tokens); k++ {
+							if tokens[k].Type == lexer.TokIdent && tokens[k].Value == name {
+								tokens[k].Type = lexer.TokType
+							}
+						}
+					case lexer.TokStruct:
+						// TODO: add structs	
+					}
 				}
+
 				if peek(0).Type == lexer.TokQualifier {	
 					qual := expect(lexer.TokQualifier)	
 					switch qual {

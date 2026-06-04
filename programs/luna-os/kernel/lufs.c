@@ -1,9 +1,9 @@
 #pragma bits 32
-#include "stdlib.h"
 
-void lufs_create_file(char* name, long int size) {
-    // asm ("hlt");
-    // asm ("hlt");
+#include "stdlib.h"
+#include "util.h"
+
+void fcreate(char* name, long int size) {
     // Load next file pointer
     long int* nfp = 0x61C;
     long int* nfl = *nfp;
@@ -29,9 +29,10 @@ void lufs_create_file(char* name, long int size) {
     save_sector(3);
 }
 
-long int* lufs_find_file(char* name) {
+long int* find_file(char* name) {
     long int* fsp = 0x618;
     long int* fp = *fsp;
+
 
     while (1) {
         if (*fp != 0x4C465346) {
@@ -39,7 +40,8 @@ long int* lufs_find_file(char* name) {
         }
         // skip over header
         fp = fp + 4;
-        // name portion
+
+
         if (strcmp(name, fp) == 1) {
             fp = fp + 20; // skip over name and size
             return fp;
@@ -54,14 +56,53 @@ long int* lufs_find_file(char* name) {
     return 0;
 }
 
-void lufs_write_file(char* name, char* content) {
-    long int* cptr = lufs_find_file(name);
-    if (cptr == 0) {
+long int* fopen(char* filename) {
+    long int* faddr = find_file(filename);
+    if (faddr == 0x00000000) {
         puts32("File '", 0xA0, 0);
-        puts32(name, 0xA0, 0);
+        puts32(filename, 0xA0, 0);
         puts32("' not found!\n", 0xA0, 0);
+        tohex(0, 1);
+        return 0;
+    }
+
+    return faddr;
+}
+
+long int fgetsize(char* filename) {
+    long int fptr = fopen(filename);
+    fptr = fptr - 4;
+    return *fptr;
+}
+
+void ffnt(char* filename) {
+    short short int* buffer = malloc(strlen(filename));
+    long int bufptr = buffer;
+
+    long int seen = 0;
+    while (*filename != 0) { 
+        if (*filename != 0x20) {
+            putchar(*filename, buffer); 
+            buffer = buffer + 1;
+        } else {
+            if (seen == 0) {
+                seen = 1;
+                putchar(46, buffer); // .
+                buffer = buffer + 1;
+            }
+        }
+        filename = filename + 1;
+    }
+   
+    puts32(bufptr, 0b00011100, 0);
+}
+
+void fwrite(char* name, char* content) {
+    long int* cptr = fopen(name);
+    if (cptr == 0) { 
         return;
     }
+
     strcpy(content, cptr);
     long int sec = cptr / 512;
     save_sector(sec);

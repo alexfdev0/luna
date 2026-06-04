@@ -35,6 +35,7 @@
 .global strcpy
 .global save_sector
 .global strlen
+.global putchar
 
 readin:
     pop e11
@@ -198,6 +199,15 @@ strlen:
 
     cmp r5, r3, r2
     jz r5, e10
+
+    ret
+
+putchar:
+    pop e11
+    pop r2 // destination
+    pop r1 // char
+
+    str r2, r1
 
     ret
 

@@ -6,6 +6,8 @@
 #include "util.h"
 #include "audio.h"
 
+char* notepad_file = "NOTEPAD     SYS";
+
 void shell() {
     while (1) {
         puts32(PROMPTBUF, 255, 0);
@@ -36,8 +38,14 @@ void shell() {
         }
         
         if (strcmp("notepad", TEMPBUF) == 1) {
-            readin(TEMPBUF, 0, 0);
-            lufs_write_file("NOTEPAD     SYS", TEMPBUF);
+            long int size = fgetsize(notepad_file);
+            long int* buf = malloc(size); 
+            long int* file = fopen(notepad_file);
+
+            strcpy(file, buf);
+
+            readin(buf, 0, 0);
+            fwrite(notepad_file, buf);
 
             puts32("\n", 255, 0);
             continue;
