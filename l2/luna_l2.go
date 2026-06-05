@@ -509,35 +509,24 @@ func execute() {
 			Log("lod " + getRegisterName(uint32(shared.Mapper(ProgramCounter + 1))) + ", " + getRegisterName(toregister) + " (" + fmt.Sprintf("0x%02x", shared.Mapper(addr)) + ")")
 			stall(100)
 		case 0x18:
-			// STRF
-			// strf <addr (register)> <value (register)>	
+			// STR16
+			// str16 <addr (register)> <value (register)>	
 			addr := getRegister(uint32(shared.Mapper(ProgramCounter + 1)))
 			value := uint32(shared.Mapper(ProgramCounter + 2))
-			if shared.Bits32 == false {
-				shared.MapperWrite(addr, byte(getRegister(value) >> 8))
-				shared.MapperWrite(addr + 1, byte(getRegister(value) & 0xFF))
-			} else {
-				shared.MapperWrite(addr, byte(getRegister(value) >> 24))
-				shared.MapperWrite(addr + 1, byte(getRegister(value) >> 16))
-				shared.MapperWrite(addr + 2, byte(getRegister(value) >> 8))
-				shared.MapperWrite(addr + 3, byte(getRegister(value) & 0xFF))
-			}	
+			shared.MapperWrite(addr, byte(getRegister(value) >> 8))
+			shared.MapperWrite(addr + 1, byte(getRegister(value) & 0xFF))	
 			setRegister(0x001d, ProgramCounter + 3)
-			Log("strf " + getRegisterName(uint32(shared.Mapper(ProgramCounter + 1))) + ", " + getRegisterName(value))
+			Log("str16 " + getRegisterName(uint32(shared.Mapper(ProgramCounter + 1))) + ", " + getRegisterName(value))
 			stall(100)
 		case 0x19:
-			// LODF
-			// lodf <addr (register)> <destination register>
+			// LOD16
+			// lod16 <addr (register)> <destination register>
 			addr := getRegister(uint32(shared.Mapper(ProgramCounter + 1)))
 			toregister := uint32(shared.Mapper(ProgramCounter + 2))
-			if shared.Bits32 == false {
-				setRegister(toregister, uint32(uint16(shared.Mapper(addr)) << 8 | uint16(shared.Mapper(addr + 1))))
-			} else {
-				setRegister(toregister, uint32(shared.Mapper(addr)) << 24 | uint32(shared.Mapper(addr + 1)) << 16 | uint32(shared.Mapper(addr + 2)) << 8 | uint32(shared.Mapper(addr + 3)))
-			}
+			setRegister(toregister, uint32(uint16(shared.Mapper(addr)) << 8 | uint16(shared.Mapper(addr + 1))))
 			setRegister(0x001d, ProgramCounter + 3)
 			Log("value: " + fmt.Sprintf("0x%08x", getRegister(toregister)))
-			Log("lodf " + getRegisterName(uint32(shared.Mapper(ProgramCounter + 1))) + ", " + getRegisterName(toregister))
+			Log("lod16 " + getRegisterName(uint32(shared.Mapper(ProgramCounter + 1))) + ", " + getRegisterName(toregister))
 			stall(100)
 		case 0x1a:
 			// SET
@@ -578,6 +567,30 @@ func execute() {
 			setRegister(dest, uint32(value) >> uint32(by))
 			setRegister(0x001d, ProgramCounter + 4)
 			stall(95)
+		case 0x1e:
+			// LOD32
+			// lod32 <addr (register)> <destination register>
+			addr := getRegister(uint32(shared.Mapper(ProgramCounter + 1)))
+			toregister := uint32(shared.Mapper(ProgramCounter + 2))	
+			setRegister(toregister, uint32(shared.Mapper(addr)) << 24 | uint32(shared.Mapper(addr + 1)) << 16 | uint32(shared.Mapper(addr + 2)) << 8 | uint32(shared.Mapper(addr + 3)))
+			setRegister(0x001d, ProgramCounter + 3)
+			Log("value: " + fmt.Sprintf("0x%08x", getRegister(toregister)))
+			Log("lod32 " + getRegisterName(uint32(shared.Mapper(ProgramCounter + 1))) + ", " + getRegisterName(toregister))
+			stall(100)
+		case 0x1f:
+			// STR32
+			// str32 <addr (register)> <value (register)>	
+			addr := getRegister(uint32(shared.Mapper(ProgramCounter + 1)))
+			value := uint32(shared.Mapper(ProgramCounter + 2))
+			shared.MapperWrite(addr, byte(getRegister(value) >> 24))
+			shared.MapperWrite(addr + 1, byte(getRegister(value) >> 16))
+			shared.MapperWrite(addr + 2, byte(getRegister(value) >> 8))
+			shared.MapperWrite(addr + 3, byte(getRegister(value) & 0xFF))
+			setRegister(0x001d, ProgramCounter + 3)
+			Log("str32 " + getRegisterName(uint32(shared.Mapper(ProgramCounter + 1))) + ", " + getRegisterName(value))
+			stall(100)
+		case 0x20:
+			// MOD
 		default:
 			setRegister(0x0001, uint32(op))
 			setRegister(0x0002, getRegister(0x001d))

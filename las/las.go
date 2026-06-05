@@ -133,9 +133,10 @@ var errors = []string{
 	"expected string",
 	"invalid architecture",
 	"invalid argument to 'bits', must be 16 or 32",
-	"putting more than one character to a register may have undesirable results",
+	"putting more than one character to a register may have undesirable results", // 10
 	"expected number",
 	"unknown pragma directive",
+	"deprecated instruction",
 }
 
 var Upgrade bool
@@ -748,7 +749,7 @@ func assemble(text string) {
 				write([]byte{one})
 			}
 			i = i + 2
-		case "strf", "strfe":
+		case "str16": // strfe
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
@@ -768,7 +769,7 @@ func assemble(text string) {
 				write([]byte{one})
 			}
 			i = i + 2
-		case "lodf", "lodfe":
+		case "lod16": // lodfe
 			check := isRegister(words[i+1])
 			one := isRegister(words[i+2])
 			if check == 0xff {
@@ -854,6 +855,57 @@ func assemble(text string) {
 			write([]byte{one})
 			write([]byte{two})
 			i = i + 3
+		case "str32": // strfe
+			check := isRegister(words[i+1])
+			one := isRegister(words[i+2])
+			if check == 0xff {
+				error(2, "'"+words[i+1]+"'")
+			}
+			if one == 0xff {
+				error(2, "'"+words[i+2]+"'")
+			}
+			if words[i] == "strfe" {
+				assemble("add e13, " + words[i + 1] + ", e14")
+				write([]byte{0x1f})
+				write([]byte{0x1a})
+				write([]byte{one})
+			} else {
+				write([]byte{0x1f})
+				write([]byte{check})
+				write([]byte{one})
+			}
+			i = i + 2
+		case "lod32": // lodfe
+			check := isRegister(words[i+1])
+			one := isRegister(words[i+2])
+			if check == 0xff {
+				error(2, "'"+words[i+1]+"'")
+			}
+			if one == 0xff {
+				error(2, "'"+words[i+2]+"'")
+			}
+			if words[i] == "lodfe" {
+				assemble("add e13, " + words[i + 1] + ", e14")
+				write([]byte{0x1e})
+				write([]byte{0x1a})
+				write([]byte{one})
+			} else {
+				write([]byte{0x1e})
+				write([]byte{check})
+				write([]byte{one})
+			}
+			i = i + 2
+		case "lodf", "strf":
+			warning(13, "'" + words[i] + "'")
+
+			
+			if Bits32 == false {
+				assemble(words[i][0:3] + "16 " + words[i + 1] + " " + words[i + 2])
+			} else {
+				assemble(words[i][0:3] + "32 " + words[i + 1] + " " + words[i + 2])
+			}
+			
+			i += 2
 		case "call":
 			label := words[i + 1]
 			if PIE == false {

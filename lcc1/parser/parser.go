@@ -369,8 +369,10 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 					switch _type {
 					case NUMBER8, STRING, NULL:
 						Write("lod r1, r2", true)
-					case NUMBER16, NUMBER32:
-						Write("lodf r1, r2", true) 	
+					case NUMBER16:
+						Write("lod16 r1, r2")
+					case NUMBER32:
+						Write("lod32 r1, r2", true) 	
 					}
 				} else {
 					Write("mov r2, r1", true)
