@@ -20,7 +20,7 @@ _start:
     mov r1, 1
     mov r3, r1
     int 11
-    jz r0, read_error
+    jnz r0, read_error
 
     int 0x10
     mov r2, r1
