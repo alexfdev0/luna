@@ -24,7 +24,7 @@ bin/lcc: $(SRC)/lcc/*
 	cd lcc && go build -o ../bin/lcc ./lcc.go
 
 bin/l2ld: $(SRC)/l2ld/*	
-	cd l2ld && go build -o ../bin/l2ld ./l2ld.go
+	cd l2ld && go build -o ../bin/l2ld ./l2ld.go	
 
 macos-installer:
 	cd l2 && CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o ../Mac/amd64/usr/local/bin/"Luna L2"/Contents/MacOS/luna-l2 luna_l2.go

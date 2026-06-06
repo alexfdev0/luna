@@ -7,3 +7,4 @@ bin
 *.o
 *.out
 lcc1/test
+.vscode

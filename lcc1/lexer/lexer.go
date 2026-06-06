@@ -76,45 +76,55 @@ func contains(set string, c byte) bool {
 func Lex(code string, filename string) []Token {
 	var tokens = []Token {}
 	var s scanner.Scanner
+
+	Add := func(Type TokenType, Value string) {
+		tokens = append(tokens, Token{
+			Type: Type,
+			Value: Value,
+			Line: s.Pos().Line,
+			File: filename,
+		})
+	}
+
+	
     s.Init(strings.NewReader(code))
     s.Mode = scanner.ScanIdents | scanner.ScanInts | scanner.ScanChars | scanner.ScanStrings | scanner.SkipComments
     for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {	
 		content := s.TokenText()
-		if content == "int" || content == "void" || content == "char" {
-			tokens = append(tokens, Token{Type: TokType, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "volatile" || content == "unsigned" || content == "long" || content == "short" || content == "static" || content == "const" || content == "extern" {
-			tokens = append(tokens, Token{Type: TokQualifier, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "return" {
-			tokens = append(tokens, Token{Type: TokReturn, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "if" {
-			tokens = append(tokens, Token{Type: TokIf, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "else" {
-			tokens = append(tokens, Token{Type: TokElse, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "break" {
-			tokens = append(tokens, Token{Type: TokBreak, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "continue" {
-			tokens = append(tokens, Token{Type: TokContinue, Value: content, Line: s.Pos().Line, File: filename})
-		} else if num, err := strconv.ParseInt(content, 0, 64); err == nil {
-			tokens = append(tokens, Token{Type: TokNumber, Value: fmt.Sprintf("%d", num), Line: s.Pos().Line, File: filename})
-		} else if content == "(" {
-			tokens = append(tokens, Token{Type: TokLParen, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == ")" {
-			tokens = append(tokens, Token{Type: TokRParen, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "{" {
-			tokens = append(tokens, Token{Type: TokLCurly, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "}" {
-			tokens = append(tokens, Token{Type: TokRCurly, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == ";" {
-			tokens = append(tokens, Token{Type: TokSemi, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "+" {
-			tokens = append(tokens, Token{Type: TokPlus, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "-" {
-			tokens = append(tokens, Token{Type: TokMinus, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "*" {
-			tokens = append(tokens, Token{Type: TokStar, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "/" {
-			next := s.Peek()
 
+		switch content {	
+		case "int", "void", "char":
+			Add(TokType, content)
+		case "volatile", "unsigned", "short", "long", "static", "const", "extern":
+			Add(TokQualifier, content)
+		case "return":
+			Add(TokReturn, content)
+		case "if":
+			Add(TokIf, content)
+		case "else":
+			Add(TokElse, content)
+		case "break":
+			Add(TokBreak, content)
+		case "continue":
+			Add(TokContinue, content)
+		case "(":
+			Add(TokLParen, content)
+		case ")":
+			Add(TokRParen, content)
+		case "{":
+			Add(TokLCurly, content)
+		case "}":
+			Add(TokRCurly, content)
+		case ";":
+			Add(TokSemi, content)
+		case "+":
+			Add(TokPlus, content)
+		case "-":
+			Add(TokMinus, content)
+		case "*":
+			Add(TokStar, content)
+		case "/":
+			next := s.Peek()
 			if next == '/' {
 				for {
 					r := s.Next()
@@ -137,63 +147,65 @@ func Lex(code string, filename string) []Token {
 				}
 				continue
 			} else {
-				tokens = append(tokens, Token{Type: TokSlash, Value: content, Line: s.Pos().Line, File: filename})
-			}	
-		} else if content == "=" {
+				Add(TokSlash, content)	
+			}
+		case "=":
 			if s.Peek() == '=' {
 				s.Next()
-				tokens = append(tokens, Token{Type: TokEquality, Value: "==", Line: s.Pos().Line, File: filename})
+				Add(TokEquality, "==")
 			} else {
-				tokens = append(tokens, Token{Type: TokEqual, Value: content, Line: s.Pos().Line, File: filename})
+				Add(TokEqual, content)
 			}
-		} else if content == "," {
-			tokens = append(tokens, Token{Type: TokComma, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == ":" {
-			tokens = append(tokens, Token{Type: TokColon, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "goto" {
-			tokens = append(tokens, Token{Type: TokGoto, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "for" {
-			tokens = append(tokens, Token{Type: TokFor, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "while" {
-			tokens = append(tokens, Token{Type: TokWhile, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "do" {
-			tokens = append(tokens, Token{Type: TokDo, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "<" {
+		case ",":
+			Add(TokComma, content)
+		case ":":
+			Add(TokColon, content)
+		case "goto":
+			Add(TokGoto, content)
+		case "for":
+			Add(TokFor, content)
+		case "while":
+			Add(TokWhile, content)
+		case "do":
+			Add(TokDo, content)
+		case "<":
 			if s.Peek() == '=' {
 				s.Next()
-				tokens = append(tokens, Token{Type: TokLEqual, Value: "<=", Line: s.Pos().Line, File: filename})
+				Add(TokLEqual, "<=")
 			} else {
-				tokens = append(tokens, Token{Type: TokLAngle, Value: content, Line: s.Pos().Line, File: filename})
+				Add(TokLAngle, content)
 			}
-		} else if content == ">" {
+		case ">":
 			if s.Peek() == '=' {
 				s.Next()
-				tokens = append(tokens, Token{Type: TokGEqual, Value: ">=", Line: s.Pos().Line, File: filename})
+				Add(TokGEqual, ">=")
 			} else {
-				tokens = append(tokens, Token{Type: TokRAngle, Value: content, Line: s.Pos().Line, File: filename})
+				Add(TokRAngle, content)
 			}
-		} else if content == "&" {
-			tokens = append(tokens, Token{Type: TokAmpersand, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "!" {
+		case "&":
+			Add(TokAmpersand, content)
+		case "!":
 			if s.Peek() == '=' {
 				s.Next()
-				tokens = append(tokens, Token{Type: TokInequality, Value: "!=", Line: s.Pos().Line, File: filename})
+				Add(TokInequality, "!=")
 			} else {
-				tokens = append(tokens, Token{Type: TokExclamation, Value: content, Line: s.Pos().Line, File: filename})
+				Add(TokExclamation, content)
 			}
-		} else if content == "//" {
-
-		} else if content == "[" {
-			tokens = append(tokens, Token{Type: TokLBracket, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "]" {
-			tokens = append(tokens, Token{Type: TokRBracket, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "typedef" {
-			tokens = append(tokens, Token{Type: TokTypedef, Value: content, Line: s.Pos().Line, File: filename})
-		} else if content == "struct" {
-			tokens = append(tokens, Token{Type: TokStruct, Value: content, Line: s.Pos().Line, File: filename})	
-		} else {
-			tokens = append(tokens, Token{Type: TokIdent, Value: content, Line: s.Pos().Line, File: filename})
-		} 
+		case "//":
+		case "[":
+			Add(TokLBracket, content)
+		case "]":
+			Add(TokRBracket, content)
+		case "typedef":
+		case "struct":
+		default:
+			num, err := strconv.ParseInt(content, 0, 64)
+			if err == nil {
+				Add(TokNumber, fmt.Sprintf("%d", num))
+			} else {
+				Add(TokIdent, content)
+			}
+		}	
 	}
 
 	return tokens
@@ -338,7 +350,7 @@ func Preprocessor(text string, filename string, just_split bool) string {
 				} else {
 					switch runtime.GOOS {
 					case "windows":
-						path = "C:\\Program Files (x86)\\Luna L2\\lcc\\" + raw
+						path = "C:\\Program Files (x86)\\Luna L2\\lib\\lcc\\" + raw
 					default:
 						path = "/usr/local/lib/lcc/" + raw
 					} 
@@ -346,6 +358,7 @@ func Preprocessor(text string, filename string, just_split bool) string {
 				}
 			}
 			i++
+
 			ntokens := tokenize(string(contents)) 
 			for j := 0; j < len(ntokens); j++ {
 				out = append(out, ntokens[j])
