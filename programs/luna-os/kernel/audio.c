@@ -9,7 +9,7 @@ void play_sound(void* buffer, long int size, short short int block) {
 
     *(long int*) 0x7000FA01 = buffer;
     *(long int*) 0x7000FA05 = size;
-    *(short short int*) 0x7000FA00 = 1;
+    *(short short int*) 0x7000FA00 = 1; 
 
     if (block) {
         while (*done_flag == 0) {}

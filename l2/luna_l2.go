@@ -591,6 +591,12 @@ func execute() {
 			stall(100)
 		case 0x20:
 			// MOD
+		case 0x21:
+			// BREAKPOINT; not an instruction, just a breakpoint	
+			shared.Debug = true
+			shared.LogOn = true
+			Log("\033[31m----- BREAKPOINT -----\033[33m")
+			setRegister(0x001d, ProgramCounter + 1)
 		default:
 			setRegister(0x0001, uint32(op))
 			setRegister(0x0002, getRegister(0x001d))

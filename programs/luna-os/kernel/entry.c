@@ -12,6 +12,9 @@
 asm (".global enterpass");
 
 void _cstart() __attribute__((noreturn)) {
+    short short int a = 0xAABBCCDD;
+    tohex(a, 1);
+
     if (fopen("NOTEPAD     SYS", 0) == 0x00000000) {
         fcreate("NOTEPAD     SYS", 256);
     }

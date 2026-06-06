@@ -896,9 +896,15 @@ func assemble(text string) {
 			}
 			i = i + 2
 		case "lodf", "strf":
-			warning(13, "'" + words[i] + "'")
-
+			warning(13, "'" + words[i] + "'")	
+			if Bits32 == false {
+				assemble(words[i][0:3] + "16 " + words[i + 1] + " " + words[i + 2])
+			} else {
+				assemble(words[i][0:3] + "32 " + words[i + 1] + " " + words[i + 2])
+			}
 			
+			i += 2
+		case "lod_ptr", "str_ptr":			
 			if Bits32 == false {
 				assemble(words[i][0:3] + "16 " + words[i + 1] + " " + words[i + 2])
 			} else {

@@ -26,6 +26,8 @@ const (
 	STRING             // unsigned char
 	POINT              // goto labels
 	NULL               // void / void*
+	POINTER            // any kind of pointer; used because pointers need their own compatibility
+					   // mode with the new 16/32 bit ops distinction
 )
 
 type Variable_Static struct {
@@ -357,7 +359,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 		return __label
 	}
-	_IDENT_INTENT := func(pointer bool, _type int, deref int, register bool) string {
+	_IDENT_INTENT := func(pointer bool, _type int, deref int, register bool, variable Variable_Static) string {	
 		if peek(0).Type == lexer.TokEqual {
 			// Write intent (NEVER give one free dereference)
 			Write("mov r2, r1", true)
@@ -366,13 +368,17 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			// Read intent (ALWAYS give one free dereference)
 			if deref >= 0 {
 				if register == false {
-					switch _type {
-					case NUMBER8, STRING, NULL:
-						Write("lod r1, r2", true)
-					case NUMBER16:
-						Write("lod16 r1, r2")
-					case NUMBER32:
-						Write("lod32 r1, r2", true) 	
+					if pointer == false {
+						switch _type {
+						case NUMBER8, STRING, NULL:
+							Write("lod r1, r2", true)
+						case NUMBER16:
+							Write("lod16 r1, r2", true)
+						case NUMBER32:
+							Write("lod32 r1, r2", true)
+						}
+					} else {
+						Write("lod_ptr r1, r2", true)
 					}
 				} else {
 					Write("mov r2, r1", true)
@@ -1048,7 +1054,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		if label[0] == '"' {
 			LTL := IDENT_STRING(label)
 			Write("mov r1, " + LTL, true)
-			_IDENT_INTENT(true, NUMBER16, 0, false)
+			_IDENT_INTENT(true, NUMBER16, 0, false, variable)
 			Write("mov " + register + ", r2", true)
 			goto CONTINUE
 		}
@@ -1119,29 +1125,37 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 				Write("add r1, r1, e8", true)
 			}
 		}
-
-		Intent := _IDENT_INTENT(variable.Pointer, variable.Type, deref, variable.Register)
+	
+		Intent := _IDENT_INTENT(variable.Pointer, variable.Type, deref, variable.Register, variable)
 
 		x_deref := deref
 		derefs := 0
 		for x_deref > 0 {
 			x_deref--
-			if variable.Pointer == true && ((derefs > 0 && Intent == "write") || (Intent == "read")) {
-				if PIE == true {
-					Write("add r2, r2, e14", true)
-				}
-				switch variable.Type2 {
-				case NUMBER8, STRING, NULL:
-					Write("lod r2, r2", true)	
-				case NUMBER16, NUMBER32:
-					Write("lodf r2, r2", true)
-				}
+			if variable.Pointer == true {
+				if ((derefs > 0 && Intent == "write") || (Intent == "read")) {
+					if PIE == true {
+						Write("add r2, r2, e14", true)
+					}
+					switch variable.Type2 {
+					case NUMBER8, STRING, NULL:
+						Write("lod r2, r2", true)	
+					case NUMBER16:
+						Write("lod16 r2, r2", true)	
+					case NUMBER32:
+						Write("lod32 r2, r2", true)
+					}
+				} else {
+					Write("lod_ptr r2, r2", true)
+				}	
 			} else {
 				switch variable.Type {
 				case NUMBER8, STRING, NULL:
 					Write("lod r2, r2", true)
-				case NUMBER16, NUMBER32:
-					Write("lodf r2, r2", true)
+				case NUMBER16:
+					Write("lod16 r2, r2", true)
+				case NUMBER32:
+					Write("lod32 r2, r2", true)
 				}
 			}
 			derefs++
@@ -1197,11 +1211,11 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 	}
 
 	if NUM_TRY_DEREF == true {
-		Intent := _IDENT_INTENT(_COERCE_PTR, _COERCE_TYPE, deref, true)
+		Intent := _IDENT_INTENT(_COERCE_PTR, _COERCE_TYPE, deref, true, Variable_Static{Name: "__FAKE__"})
 
-		deref--
+		// deref--
 		derefs := 0
-		x_deref := deref
+		x_deref := deref - 1
 		for x_deref >= 0 {
 			x_deref--
 			if _COERCE_PTR == true {
@@ -1209,16 +1223,20 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 					switch _COERCE_TYPE {
 					case NUMBER8, STRING, NULL:
 						Write("lod r2, r2", true)
-					case NUMBER16, NUMBER32:
-						Write("lodf r2, r2", true)
+					case NUMBER16:
+						Write("lod16 r2, r2", true)
+					case NUMBER32:
+						Write("lod32 r2, r2", true)
 					}
 				}
 			} else {
 				switch _COERCE_TYPE {
 				case NUMBER8, STRING, NULL:
 					Write("lod r2, r2", true)
-				case NUMBER16, NUMBER32:
-					Write("lodf r2, r2", true)
+				case NUMBER16:
+					Write("lod16 r2, r2", true)
+				case NUMBER32:
+					Write("lod32 r2, r2", true)
 				}
 			}
 			derefs++
@@ -1228,7 +1246,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 		// Construct fake variable
 		// Removed the pointer variant because causing issues.
-		EQU_VAR = Variable_Static {Pointer: _COERCE_PTR, Type: _COERCE_TYPE}
+		EQU_VAR = Variable_Static {Pointer: _COERCE_PTR, Type: _COERCE_TYPE, Type2: _COERCE_TYPE}
 		EQU_VT = _COERCE_TYPE
 		
 		// Unset coerced type
@@ -1296,23 +1314,30 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			error.Note(22, "'" + EQU_VAR.Name + "' declared here", token, stream)
 		}
 
-		if EQU_VAR.Pointer == false || (EQU_VAR.Pointer == true && deref < 1) {	
+		if EQU_VAR.Pointer == false {	
 			switch EQU_VT {
 			case NUMBER8, STRING, NULL:
 				Write("str " + register + ", r5", true)
-			case NUMBER16, NUMBER32:
-				Write("strf " + register + ", r5", true)
+			case NUMBER16:
+				Write("str16 " + register + ", r5", true)	
+			case NUMBER32:
+				Write("str32 " + register + ", r5", true)
 			}
 		} else {
-			switch EQU_VAR.Type2 {
-			case NUMBER8, STRING, NULL:
-				Write("str " + register + ", r5", true)
-			case NUMBER16, NUMBER32:
-				Write("strf " + register + ", r5", true)
+			if deref >= 1 {
+				switch EQU_VAR.Type2 {
+				case NUMBER8, STRING, NULL:
+					Write("str " + register + ", r5", true)
+				case NUMBER16:
+					Write("str16 " + register + ", r5", true)
+				case NUMBER32:
+					Write("str32 " + register + ", r5", true)
+				}
+			} else {
+				Write("str_ptr " + register + ", r5", true)
 			}
 		}
 		
-
 		expect(lexer.TokSemi)	
 	}
 
@@ -1993,7 +2018,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 							r--
 						}
 					}
-					if name != "_start" && noreturn == false {
+					if noreturn == false {
 						Write("push e11", true)
 					}
 
@@ -2013,23 +2038,23 @@ func Parse(tokens []lexer.Token, Scope int) {
 								Write("str r1, " + __arg_reg, true)
 							} else {
 								Write("mov r1, " + __rn, true)
-								Write("strf r1, " + __arg_reg, true)
+								Write("str_ptr r1, " + __arg_reg, true)
 							}
 						case NULL:
 							Write("mov r1, " + __rn, true)
-							Write("strf r1, " + __arg_reg, true)	
+							Write("str_ptr r1, " + __arg_reg, true)	
 						case NUMBER16:
 							Write("mov r1, " + __rn, true)
-							Write("strf r1, " + __arg_reg, true)
+							Write("str16 r1, " + __arg_reg, true)
 						case NUMBER32:
 							Write("mov r1, " + __rn, true)
-							Write("strf r1, " + __arg_reg, true)
+							Write("str32 r1, " + __arg_reg, true)
 						}	
 					}
 	
 					ParseExpyL1(Children, 0, fscope)
 
-					if name != "_start" && noreturn == false {
+					if noreturn == false {
 						Write("pop e11", true)
 						Write("ret", true)
 					}
@@ -2106,16 +2131,16 @@ func Parse(tokens []lexer.Token, Scope int) {
 							case NUMBER16:
 								WritePre(".word 0x0000", true)
 								Write("mov r7, " + rn, true)
-								Write("strf r7, r4", true)
+								Write("str16 r7, r4", true)
 							case NUMBER32:
 								WritePre(".dword 0x00000000", true)
 								Write("mov r7, " + rn, true)
-								Write("strf r7, r4", true)
+								Write("str32 r7, r4", true)
 							}
 						} else {
 							WritePre(".ptr 0x00", true)
 							Write("mov r7, " + rn, true)
-							Write("strf r7, r4", true)
+							Write("str_ptr r7, r4", true)
 						}
 					}
 					i = _i
