@@ -895,6 +895,24 @@ func assemble(text string) {
 				write([]byte{one})
 			}
 			i = i + 2
+		case "mod":
+			check := isRegister(words[i+1])
+			one := isRegister(words[i+2])
+			two := isRegister(words[i+3])
+			if check == 0xff {
+				error(2, "'"+words[i+1]+"'")
+			}
+			if one == 0xff {
+				error(2, "'"+words[i+2]+"'")
+			}
+			if two == 0xff {
+				error(2, "'"+words[i+3]+"'")
+			}
+			write([]byte{0x20})
+			write([]byte{check})
+			write([]byte{one})
+			write([]byte{two})
+			i = i + 3
 		case "lodf", "strf":
 			warning(13, "'" + words[i] + "'")	
 			if Bits32 == false {

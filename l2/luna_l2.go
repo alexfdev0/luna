@@ -591,6 +591,14 @@ func execute() {
 			stall(100)
 		case 0x20:
 			// MOD
+			// mod <dest> <reg1> <reg2>
+			toregister := shared.Mapper(ProgramCounter + 1)
+			regone := shared.Mapper(ProgramCounter + 2)
+			regtwo := shared.Mapper(ProgramCounter + 3)
+			setRegister(uint32(toregister), getRegister(uint32(regone)) % getRegister(uint32(regtwo)))
+			setRegister(0x001d, ProgramCounter + 4)
+			Log("mod " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
+			stall(70)
 		case 0x21:
 			// BREAKPOINT; not an instruction, just a breakpoint	
 			shared.Debug = true
