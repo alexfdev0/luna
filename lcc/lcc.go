@@ -92,8 +92,10 @@ func main() {
 			output_file = os.Args[i + 1]
 			i++
 		case "-v":
-			fmt.Println("Luna Compiler Collection version 5.0")
+			fmt.Println("Luna Compiler Collection version 6.0")
 			fmt.Println("Target: luna-l2")
+			os.Exit(0)
+		case "-si":
 			SeeInvocation = true
 		case "-S":
 			noassemble = true
@@ -200,7 +202,7 @@ func main() {
 	success := execute("l2ld " + l2ld_opt + " " + strings.Join(object_files, " ") + " -o " + output_file, false)
 	if success != true {
 		cleanupFiles(cleanup)
-		stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39mlinker command failed.\033[0m")
+		stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39mlinker command failed (use -si to see invocation)\033[0m")
 		os.Exit(1)
 	}
 	cleanupFiles(cleanup)
