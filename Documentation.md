@@ -24,7 +24,7 @@ IR: interrupt register<br>
 B: bank register.<br>
 
 # Instructions
-The Luna L2 has 29 unique instructions that allow the CPU to interact with registers, memory, and the BIOS<br><br>
+The Luna L2 has 32 unique instructions that allow the CPU to interact with registers, memory, and the BIOS<br><br>
 
 1. MOV: moves a value from the source to the destination; source can be register or immediate.<br>
 2. HLT: stops the CPU from executing instructions.<br>
@@ -49,13 +49,15 @@ The Luna L2 has 29 unique instructions that allow the CPU to interact with regis
 21. NOT: performs bitwise NOT on a registers and puts the result to a register.<br> 
 22. XOR: performs bitwise XOR on two registers and puts the result to a register.<br>
 23. LOD: loads a byte from memory to a register.<br>
-24. STR: stores a value to a memory address from a register. (bytewise)<br>
-25. STRF: stores 2 bytes (16-bit mode) or 4 bytes(32-bit mode) from a register to memory.<br>
-26. LODF: loads 2 bytes (16-bit mode) or 4 bytes (32-bit mode) from memory to a register.<br>
+24. STR: stores a value to a memory address from a register.<br>
+25. STR16: stores 2 bytes from a register to memory.<br>
+26. LOD16: loads 2 bytes from memory to a register.<br>
 27. SET: if the operand is 00, it sets the CPU to 16 bit mode. If the operand is 01, it sets the CPU to 32 bit mode.<br>
 28. SHL: Shifts the value in a register to the left by a certain value.<br>
 29. SHR: Shifts the value in a register to the right by a certain value.<br>
-(bytewise: scheme where storing a register value to memory stores the low byte in `address` and the high byte in `address + 1`; in 32 bit mode, it's from `address` to `address + 3`)<br><br>
+30. STR32: stores 4 bytes from a register to memory.<br>
+31. LOD32: loads 4 bytes from memory to a register.<br>
+32. MOD: Puts the remainder of 2 registers into a register.<br><br>
 
 # Interrupts
 Luna L2 has several instructions necessary for operation and/or communicating to other devices, listed below:<br><br>
