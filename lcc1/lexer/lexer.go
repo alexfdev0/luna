@@ -257,11 +257,23 @@ func Tokenize (text string, filename string) []SmallToken {
 	return tokens
 }
 
-func Preprocessor(text string, filename string, just_split bool) []SmallToken {
+func Preprocessor(text string, filename string) []SmallToken {
 	var out []SmallToken
 	defines := make(map[string][]SmallToken)
 	defines["__LCC__"] = []SmallToken{SmallToken{Value: "1", Line: 0}}
 	again := false
+
+	var pragma_once_files []string
+	var included_files []string
+
+	CheckPragmaOnce := func(filename string) bool {
+		for _, file := range pragma_once_files {
+			if file == filename {
+				return true
+			}
+		}
+		return false
+	}
 
 	tokens := Tokenize(text, filename)
 PREPROCESSOR_TOP:
@@ -335,6 +347,10 @@ PREPROCESSOR_TOP:
 			}
 
 			ff_top:
+			if CheckPragmaOnce(path) == true {
+				continue
+			}
+
 			contents, err := os.ReadFile(path)
 			if err != nil {
 				times++
@@ -370,6 +386,8 @@ PREPROCESSOR_TOP:
 			for j := 0; j < len(ntokens); j++ {
 				out = append(out, ntokens[j])
 			}
+
+			included_files = append(included_files, path)
 		case "#pragma":
 			i++
 			switch tokens[i].Value {
@@ -396,7 +414,10 @@ PREPROCESSOR_TOP:
 					}
 					origin := FakeStream[2]
 					error.Warning(43, "", origin, &FakeStream)
-				}	
+				}
+			case "once":
+				file := tokens[i - 1].Filename
+				pragma_once_files = append(pragma_once_files, file)
 			}
 
 			for j := i; j < len(tokens); j++ {

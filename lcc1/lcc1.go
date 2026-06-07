@@ -89,7 +89,7 @@ func main() {
 			error.ErrorNoGaze(16, "'" + file + "'", shared.Token{Line: 0})
 			os.Exit(1)
 		}
-		code := lexer.Preprocessor(string(data), file, false)
+		code := lexer.Preprocessor(string(data), file)
 		tokens := lexer.Lex(code, file)
 		parser.Parse(tokens, 1)
 
