@@ -159,6 +159,8 @@ There are some directives in LAS that do not correspond to any instruction on L2
 `lode/stre/lodfe/strfe`: Same as their normal equivalents (`lod/str/lodf/strf`) but they factor in the effective address (in `e14`); useful if you are making PIEs.<br>
 `pusha`: Pushes all GP registers from R0 upwards.<br>
 `popa`: Pops all GP registers from E12 downwards.<br>
+`lod_ptr`: Emits LOD16/LOD32 based on current assembler mode.<br>
+`str_ptr`: Emits LOD16/LOD32 based on current assembler mode.<br>
 `.ascii <string>`: defines a sequence of ASCII bytes, wrapped in quotation marks<br>
 `.asciz <string>`: defines a sequence of ASCII bytes, wrapped in quotation marks (null terminated)<br>
 `.word <number>`: defines a 2-byte constant<br>
