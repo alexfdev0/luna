@@ -3,7 +3,7 @@ package error
 import (
 	"fmt"
 	"os"
-	"lcc1/lexer"
+	"lcc1/shared"
 	"strings"
 	"regexp"
 )
@@ -51,6 +51,8 @@ var errors = []string {
 	"'continue' statement not in loop statement",
 	"subscripted value is not an array or pointer", // 40
 	"pointers cannot be used with 'typedef'",
+	"invalid preprocessing directive",
+	"invalid number for '#pragma bits'",
 }
 
 var Warnings int = 0
@@ -67,7 +69,7 @@ func Clamp(num int, mini int, maxi int) int {
 	return num
 }
 
-func Stargaze(Tokens *[]lexer.Token, where int, errno int, kind int) {
+func Stargaze(Tokens *[]shared.Token, where int, errno int, kind int) {
 	// Kinds:
 	// 1: error
 	// 2: warning
@@ -92,7 +94,7 @@ func Stargaze(Tokens *[]lexer.Token, where int, errno int, kind int) {
 
 	words := make([]string, 0, end - start + 1)
 	for j := start; j <= end; j++ {	
-		if (*Tokens)[j].Type != lexer.TokType && (*Tokens)[j].Type != lexer.TokQualifier {
+		if (*Tokens)[j].Type != shared.TokType && (*Tokens)[j].Type != shared.TokQualifier {
 			words = append(words, (*Tokens)[j].Value)
 		} else {
 			words = append(words, "\033[34m" + (*Tokens)[j].Value + "\033[0m")
@@ -126,7 +128,7 @@ func Stargaze(Tokens *[]lexer.Token, where int, errno int, kind int) {
 	}
 }
 
-func find(token lexer.Token, tokens *[]lexer.Token) int {
+func find(token shared.Token, tokens *[]shared.Token) int {
 	for i, t := range (*tokens) {
 		if t == token {
 			return i
@@ -135,7 +137,7 @@ func find(token lexer.Token, tokens *[]lexer.Token) int {
 	return 0
 }
 
-func Error(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
+func Error(errno int, args string, token shared.Token, tokens *[]shared.Token) {
 	label := "lcc:"
 	if token.Line != 0 {
 		label = token.File + ":" + fmt.Sprintf("%d", token.Line) + ":"
@@ -151,7 +153,7 @@ func Error(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
 	// os.Exit(1)
 }
 
-func ErrorNoGaze(errno int, args string, token lexer.Token) {
+func ErrorNoGaze(errno int, args string, token shared.Token) {
 	label := "lcc:"
 	if token.Line != 0 {
 		label = token.File + ":" + fmt.Sprintf("%d", token.Line) + ":"
@@ -165,7 +167,7 @@ func ErrorNoGaze(errno int, args string, token lexer.Token) {
 	// os.Exit(1)
 }
 
-func Warning(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
+func Warning(errno int, args string, token shared.Token, tokens *[]shared.Token) {
 	if Upgrade == true {
 		Error(errno, args, token, tokens)
 		return
@@ -182,7 +184,7 @@ func Warning(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
 	Stargaze(tokens, find(token, tokens), errno, 2)
 	Warnings = Warnings + 1
 }
-func Note(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {	
+func Note(errno int, args string, token shared.Token, tokens *[]shared.Token) {	
 	label := "lcc:"
 	if token.Line != 0 {
 		label = token.File + ":" + fmt.Sprintf("%d", token.Line) + ":"
@@ -196,7 +198,6 @@ func Note(errno int, args string, token lexer.Token, tokens *[]lexer.Token) {
 }
 
 func Summary() {
-	Warnings += lexer.Warnings
 	if Errors < 1 && Warnings < 1 {
 		return
 	}

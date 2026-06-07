@@ -92,7 +92,7 @@ func main() {
 			output_file = os.Args[i + 1]
 			i++
 		case "-v":
-			fmt.Println("Luna Compiler Collection version 6.0")
+			fmt.Println("Luna Compiler Collection version 6.1")
 			fmt.Println("Target: luna-l2")
 			os.Exit(0)
 		case "-si":
@@ -116,6 +116,11 @@ func main() {
 			if arg[0] == '-' {
 				stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39munknown argument: '" + arg + "'\033[0m")
 			} else {
+				_, err := os.Stat(arg)
+				if err != nil {
+					stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39mno such file or directory '" + arg + "'\033[0m")
+					continue
+				}
 				input_files = append(input_files, arg)
 			}
 		}
@@ -139,7 +144,6 @@ func main() {
 
 	// First pass: compile high-level languages to assembly
 	for _, file := range input_files {
-		// name := filepath.Base(file) // add when we make the C compiler
 		ext := filepath.Ext(file)
 		name := strings.TrimSuffix(file, filepath.Ext(file))
 

@@ -1260,7 +1260,7 @@ func main() {
 
 		switch arg {
 		case "-v":
-			fmt.Println("Luna Compiler Collection version 6.0")
+			fmt.Println("Luna Compiler Collection version 6.1")
 			fmt.Println("Target: luna-l2")
 			os.Exit(0)
 		case "-o":

@@ -1,7 +1,6 @@
 package lexer
 
 import (
-	"text/scanner"
 	"strconv"
 	"strings"
 	"fmt"
@@ -9,201 +8,111 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"lcc1/shared"
+	"lcc1/error"
 )
 
-var Bits int = 16
-var Warnings = 0
-
-type TokenType int
-
-const (
-	TokType TokenType = iota
-	TokReturn
-	TokIf
-	TokElse
-	TokIdent
-	TokNumber
-	TokLParen
-	TokRParen
-	TokLCurly
-	TokRCurly	
-	TokSemi
-	TokPlus
-	TokMinus
-	TokStar
-	TokSlash
-	TokEqual
-	TokComma
-	TokEOF
-	TokColon
-	TokGoto
-	TokQualifier
-	TokFor
-	TokWhile
-	TokDo
-	TokLAngle
-	TokRAngle
-	TokAmpersand
-	TokExclamation
-	TokLBracket
-	TokRBracket
-	TokTypedef
-	TokEquality
-	TokInequality
-	TokGEqual
-	TokLEqual
-	TokBreak
-	TokContinue
-	TokStruct
-)
-
-type Token struct {
-	Type TokenType
+type SmallToken struct {
 	Value string
 	Line int
-	File string
+	Filename string
 }
 
-func contains(set string, c byte) bool {
-    for i := 0; i < len(set); i++ {
-        if set[i] == c {
-            return true
-        }
-    }
-    return false
-}
+func Lex(code []SmallToken, filename string) []shared.Token {
+	var tokens = []shared.Token {}
 
-func Lex(code string, filename string) []Token {
-	var tokens = []Token {}
-	var s scanner.Scanner
-
-	Add := func(Type TokenType, Value string) {
-		tokens = append(tokens, Token{
+	Add := func(Type shared.TokenType, Value string, ST SmallToken) {
+		tokens = append(tokens, shared.Token{
 			Type: Type,
 			Value: Value,
-			Line: s.Pos().Line,
-			File: filename,
+			Line: ST.Line,
+			File: ST.Filename,
 		})
 	}
-
-	
-    s.Init(strings.NewReader(code))
-    s.Mode = scanner.ScanIdents | scanner.ScanInts | scanner.ScanChars | scanner.ScanStrings | scanner.SkipComments
-    for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {	
-		content := s.TokenText()
+   	 
+	for i := 0; i < len(code); i++ {
+		SToken := code[i]
+		content := SToken.Value
 
 		switch content {	
 		case "int", "void", "char":
-			Add(TokType, content)
+			Add(shared.TokType, content, SToken)
 		case "volatile", "unsigned", "short", "long", "static", "const", "extern":
-			Add(TokQualifier, content)
+			Add(shared.TokQualifier, content, SToken)
 		case "return":
-			Add(TokReturn, content)
+			Add(shared.TokReturn, content, SToken)
 		case "if":
-			Add(TokIf, content)
+			Add(shared.TokIf, content, SToken)
 		case "else":
-			Add(TokElse, content)
+			Add(shared.TokElse, content, SToken)
 		case "break":
-			Add(TokBreak, content)
+			Add(shared.TokBreak, content, SToken)
 		case "continue":
-			Add(TokContinue, content)
+			Add(shared.TokContinue, content, SToken)
 		case "(":
-			Add(TokLParen, content)
+			Add(shared.TokLParen, content, SToken)
 		case ")":
-			Add(TokRParen, content)
+			Add(shared.TokRParen, content, SToken)
 		case "{":
-			Add(TokLCurly, content)
+			Add(shared.TokLCurly, content, SToken)
 		case "}":
-			Add(TokRCurly, content)
+			Add(shared.TokRCurly, content, SToken)
 		case ";":
-			Add(TokSemi, content)
+			Add(shared.TokSemi, content, SToken)
 		case "+":
-			Add(TokPlus, content)
+			Add(shared.TokPlus, content, SToken)
 		case "-":
-			Add(TokMinus, content)
+			Add(shared.TokMinus, content, SToken)
 		case "*":
-			Add(TokStar, content)
-		case "/":
-			next := s.Peek()
-			if next == '/' {
-				for {
-					r := s.Next()
-					if r == '\n' || r == scanner.EOF {
-						break
-					}
-				}
-				continue
-			} else if next == '*' {
-				s.Next()
-				for {
-					r := s.Next()
-					if r == scanner.EOF {
-						break
-					}
-					if r == '*' && s.Peek() == '/' {
-						s.Next()
-						break
-					}
-				}
-				continue
-			} else {
-				Add(TokSlash, content)	
-			}
+			Add(shared.TokStar, content, SToken)
+		case "/":	
+			Add(shared.TokSlash, content, SToken)	
 		case "=":
-			if s.Peek() == '=' {
-				s.Next()
-				Add(TokEquality, "==")
-			} else {
-				Add(TokEqual, content)
-			}
+			Add(shared.TokEqual, content, SToken)
+		case "==":
+			Add(shared.TokEquality, content, SToken)
 		case ",":
-			Add(TokComma, content)
+			Add(shared.TokComma, content, SToken)
 		case ":":
-			Add(TokColon, content)
+			Add(shared.TokColon, content, SToken)
 		case "goto":
-			Add(TokGoto, content)
+			Add(shared.TokGoto, content, SToken)
 		case "for":
-			Add(TokFor, content)
+			Add(shared.TokFor, content, SToken)
 		case "while":
-			Add(TokWhile, content)
+			Add(shared.TokWhile, content, SToken)
 		case "do":
-			Add(TokDo, content)
+			Add(shared.TokDo, content, SToken)
 		case "<":
-			if s.Peek() == '=' {
-				s.Next()
-				Add(TokLEqual, "<=")
-			} else {
-				Add(TokLAngle, content)
-			}
+			Add(shared.TokLAngle, content, SToken)
+		case "<=":
+			Add(shared.TokLEqual, content, SToken)
 		case ">":
-			if s.Peek() == '=' {
-				s.Next()
-				Add(TokGEqual, ">=")
-			} else {
-				Add(TokRAngle, content)
-			}
+			Add(shared.TokRAngle, content, SToken)
+		case ">=":
+			Add(shared.TokGEqual, content, SToken)
 		case "&":
-			Add(TokAmpersand, content)
+			Add(shared.TokAmpersand, content, SToken)
 		case "!":
-			if s.Peek() == '=' {
-				s.Next()
-				Add(TokInequality, "!=")
-			} else {
-				Add(TokExclamation, content)
-			}
+			Add(shared.TokExclamation, content, SToken)
+		case "!=":
+			Add(shared.TokInequality, content, SToken)
 		case "//":
+		case "\n":
 		case "[":
-			Add(TokLBracket, content)
+			Add(shared.TokLBracket, content, SToken)
 		case "]":
-			Add(TokRBracket, content)
+			Add(shared.TokRBracket, content, SToken)
 		case "typedef":
+			Add(shared.TokTypedef, content, SToken)
 		case "struct":
+			Add(shared.TokStruct, content, SToken)
 		default:
 			num, err := strconv.ParseInt(content, 0, 64)
 			if err == nil {
-				Add(TokNumber, fmt.Sprintf("%d", num))
+				Add(shared.TokNumber, fmt.Sprintf("%d", num), SToken)
 			} else {
-				Add(TokIdent, content)
+				Add(shared.TokIdent, content, SToken)
 			}
 		}	
 	}
@@ -211,142 +120,240 @@ func Lex(code string, filename string) []Token {
 	return tokens
 }
 
-type SmallToken struct {
-	Value string
-	Line int
+func Tokenize (text string, filename string) []SmallToken {
+	var tokens []SmallToken
+	runes := []rune(text)
+	i := 0
+	Line := 1
+
+	peek := func(offset int) rune {
+		j := i + offset
+		if j < len(runes) {
+			return runes[j]
+		}
+		return 0
+	}
+
+	emit := func(Value string) {
+		tokens = append(tokens, SmallToken{Value: Value, Line: Line, Filename: filename})
+	}
+
+	for i < len(runes) {
+		r := runes[i]
+
+		if r == '/' && peek(1) == '/' {
+			i += 2
+			for i < len(runes) && runes[i] != '\n' {
+				i++
+			}
+			continue
+		}
+
+		if r == '/' && peek(1) == '*' {
+			i += 2
+			for i < len(runes) {
+				if runes[i] == '*' && peek(1) == '/' {
+					i += 2
+					break
+				}
+				if runes[i] == '\n' {
+					Line++
+				}
+				i++
+			}
+			continue
+		}
+
+		if r == '\n' {
+			emit("\n")
+			Line++
+			i++
+			continue
+		}
+
+		if unicode.IsSpace(r) {
+			i++
+			continue
+		}
+
+		if r == '"' || (r == '<' && tokens[len(tokens) - 1].Value == "#include")  {
+			var termonrangle bool
+			var buf []rune
+
+			if r == '<' && tokens[len(tokens) - 1].Value == "#include" {
+				termonrangle = true
+			}
+
+			buf = append(buf, r)
+			i++
+			for i < len(runes) {
+				c := runes[i]
+				buf = append(buf, c)
+				if c == '\\' && peek(1) != 0 {
+					i++
+					buf = append(buf, runes[i])
+				} else if c == '"' || (c == '>' && termonrangle == true) {
+					break
+				} else if c == '\n' {
+					Line++
+				}
+				i++
+			}
+			i++
+
+			emit(string(buf))
+			continue
+		}
+
+		// ==
+		// >=
+		// <=
+		// !=
+
+		if r == '=' && peek(1) == '=' {
+			emit("==")
+			i += 2
+			continue
+		}
+
+		if r == '>' && peek(1) == '=' {
+			emit(">=")
+			i += 2
+			continue
+		}
+
+		if r == '<' && peek(1) == '=' {
+			emit("<=")
+			i += 2
+			continue
+		}
+
+		if r == '!' && peek(1) == '=' {
+			emit("!=")
+			i += 2
+			continue
+		}
+
+		if strings.ContainsRune("+-*/%&|^~<>=!?:;.,()[]{}@", r) {
+			emit(string(r))
+			i++
+			continue
+		}
+
+		var buf []rune
+		for i < len(runes) {
+			c := runes[i]
+			if unicode.IsSpace(c) || strings.ContainsRune("+-*/%&|^~<>=!?:;.,()[]{}@\"", c) {
+				break
+			}
+			buf = append(buf, c)
+			i++
+		}
+		if len(buf) > 0 {
+			emit(string(buf))
+		}
+	}
+
+	return tokens
 }
 
-func Preprocessor(text string, filename string, just_split bool) string {
+func Preprocessor(text string, filename string, just_split bool) []SmallToken {
 	var out []SmallToken
 	defines := make(map[string][]SmallToken)
 	defines["__LCC__"] = []SmallToken{SmallToken{Value: "1", Line: 0}}
-	again := false	
+	again := false
 
-	tokenize := func(text string) []SmallToken {
-		currentLine := 1
-		inString := false
-		var tokens []SmallToken
-		var buf []rune
-		for i, r := range text {
-			switch {
-			case r == '"':
-				buf = append(buf, r)
-				if inString { 
-					tokens = append(tokens, SmallToken{Value: string(buf), Line: currentLine})
-					buf = buf[:0]
-				}
-				inString = !inString	
-			case r == '\n':
-				if len(buf) > 0 {
-					tokens = append(tokens, SmallToken{Value: string(buf), Line: currentLine})
-					buf = buf[:0]
-				}
-				tokens = append(tokens, SmallToken{Value: "\n", Line: currentLine})
-				currentLine++
-			case unicode.IsSpace(r) && inString == false:
-				if len(buf) > 0 {
-					tokens = append(tokens, SmallToken{Value: string(buf), Line: currentLine})
-					buf = buf[:0]
-				}
-			default:
-				buf = append(buf, r)
-			}
-			if i == len(text) - 1 && len(buf) > 0 {
-				tokens = append(tokens, SmallToken{Value: string(buf), Line: currentLine})
-			}
-		}
-		return tokens
-	}
-
-	tokens := tokenize(text)	
-
+	tokens := Tokenize(text, filename)
+PREPROCESSOR_TOP:
 	for i := 0; i < len(tokens); i++ {
-		switch tokens[i].Value {
-		case "#define":
-			alias := tokens[i + 1].Value
-			actual := []SmallToken {}
-			i += 2
-			
-			for j := i; j < len(tokens); j++ {
-				i++
-				if tokens[j].Value == "\n" {
-					break
-				}	
-				actual = append(actual, tokens[j]) 
-			}
-
-			defines[alias] = actual
-		case "#ifdef", "#ifndef":
-			alias := tokens[i + 1].Value
-			i += 2
-			if _, ok := defines[alias]; (ok && tokens[i - 2].Value == "#ifdef") || (!ok && tokens[i - 2].Value == "#ifndef") {
-				for j := i; j < len(tokens); j++ {
-					if tokens[j].Value != "#else" && tokens[j].Value != "#endif" {
-						again = true
-						out = append(out, tokens[j])
-						i++
-					} else {
-						if tokens[j].Value == "#endif" {
-							i++
-						} else {
-							for k := j; k < len(tokens); k++ {
-								i++
-								if tokens[k].Value == "#endif" {
-									break
-								}
-							}
-						}
-						break
-					}
-				}
-					
-			} else {
-				for j := i; j < len(tokens); j++ {
-					i++
-					if tokens[j].Value == "#endif" {
-						break
-					} else if tokens[j].Value == "#else" {
-						for k := j + 1; k < len(tokens); k++ {
-							i++
-							if tokens[k].Value != "#endif" {
-								again = true
-								out = append(out, tokens[k])
-							} else {
-								break
-							}
-						}
-					}
-				}
-			}
+		switch tokens[i].Value {	
 		case "#error":
+			var FakeStream []shared.Token
+			for j := i; j < len(tokens); j++ {
+				t := tokens[j]
+				if t.Value == "\n" {
+					break
+				}
+				FakeStream = append(FakeStream, shared.Token{
+					Type: shared.TokIdent,
+					Value: t.Value,
+					Line: t.Line,
+					File: t.Filename,
+				})
+			}
+			origin := FakeStream[0]
 			i++
-			fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + ":\033[0m \033[1;31merror:\033[0m \033[1;39m" + tokens[i].Value + "\033[0m")
-			os.Exit(1)
+			error.Error(22, tokens[i].Value, origin, &FakeStream)
 		case "#warning":
+			var FakeStream []shared.Token
+			for j := i; j < len(tokens); j++ {
+				t := tokens[j]
+				if t.Value == "\n" {
+					break
+				}
+				FakeStream = append(FakeStream, shared.Token{
+					Type: shared.TokIdent,
+					Value: t.Value,
+					Line: t.Line,
+					File: t.Filename,
+				})
+			}
+			origin := FakeStream[0]
 			i++
-			Warnings++
-			fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + ":\033[0m \033[1;35mwarning:\033[0m \033[1;39m" + tokens[i].Value + "\033[0m")	
+			error.Warning(22, tokens[i].Value, origin, &FakeStream)	
 		case "#include":
-			base := filepath.Dir(filename)
-			i++
 			again = true
-			raw := strings.ReplaceAll(tokens[i].Value, "\"", "")
-			path := raw
+			i++
 
+			raw := ""
+			times := 0
+			root_by_default := false
+			base := filepath.Dir(filename)
+			if tokens[i].Value[0] == '"' {
+				raw = strings.ReplaceAll(tokens[i].Value, "\"", "")
+			} else if tokens[i].Value[0] == '<' {
+				raw = strings.ReplaceAll(tokens[i].Value, "<", "")
+				raw = strings.ReplaceAll(raw, ">", "")
+				root_by_default = true
+				times = 1
+			}
+
+			path := raw
 			if !filepath.IsAbs(raw) {
 				path = filepath.Join(base, raw)
 			}
-
 			ogpath := path
-			times := 0
+
+			if root_by_default == true {
+				switch runtime.GOOS {
+				case "windows":
+					path = "C:\\Program Files (x86)\\Luna L2\\lib\\lcc\\" + raw
+				default:
+					path = "/usr/local/lib/lcc/" + raw
+				}
+				ogpath = path
+			}
 
 			ff_top:
 			contents, err := os.ReadFile(path)
 			if err != nil {
 				times++
 				if times >= 2 {
-					fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + ":\033[0m \033[1;31mfatal error:\033[0m \033[1;39mno such file or directory '" + ogpath + "'\033[0m")
-					os.Exit(1)
+					var FakeStream []shared.Token
+					for j := i - 1; j < len(tokens); j++ {
+						t := tokens[j]
+						if t.Value == "\n" {
+							break
+						}
+						FakeStream = append(FakeStream, shared.Token{
+							Type: shared.TokIdent,
+							Value: t.Value,
+							Line: t.Line,
+							File: t.Filename,
+						})
+					}
+					origin := FakeStream[1]
+					error.Error(16, "\"" + ogpath + "\"", origin, &FakeStream)
 				} else {
 					switch runtime.GOOS {
 					case "windows":
@@ -357,9 +364,9 @@ func Preprocessor(text string, filename string, just_split bool) string {
 					goto ff_top
 				}
 			}
-			i++
+			i++	
 
-			ntokens := tokenize(string(contents)) 
+			ntokens := Tokenize(string(contents), path) 
 			for j := 0; j < len(ntokens); j++ {
 				out = append(out, ntokens[j])
 			}
@@ -370,41 +377,65 @@ func Preprocessor(text string, filename string, just_split bool) string {
 				i++
 				switch tokens[i].Value {
 				case "16":
-					Bits = 16
+					shared.Bits = 16
 				case "32":
-					Bits = 32
+					shared.Bits = 32
 				default:
-					fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + ":\033[0m \033[1;35mwarning:\033[0m \033[1;39minvalid number for '#pragma bits'\033[0m")
-					Warnings++	
+					var FakeStream []shared.Token
+					for j := i - 2; j < len(tokens); j++ {
+						t := tokens[j]
+						if t.Value == "\n" {
+							break
+						}
+						FakeStream = append(FakeStream, shared.Token{
+							Type: shared.TokIdent,
+							Value: t.Value,
+							Line: t.Line,
+							File: t.Filename,
+						})
+					}
+					origin := FakeStream[2]
+					error.Warning(43, "", origin, &FakeStream)
+				}	
+			}
+
+			for j := i; j < len(tokens); j++ {
+				if tokens[j].Value == "\n" {
+					break
 				}
+				i++
 			}
 		default:
 			token := tokens[i]
 			if tokens[i].Value[0] == '#' {
-				fmt.Println("\033[1;39m" + filename + ":" + fmt.Sprintf("%d", tokens[i - 1].Line) + ":\033[0m \033[1;31merror:\033[0m \033[1;39minvalid preprocessor directive '" + tokens[i].Value + "'\033[0m")
-				os.Exit(1)
-			}
-
-			if repl, ok := defines[token.Value]; ok {
-				for j := 0; j < len(repl); j++ {
-					out = append(out, repl[j])
+				var FakeStream []shared.Token
+				for j := i; j < len(tokens); j++ {
+					t := tokens[j]
+					if t.Value == "\n" {
+						break
+					}
+					FakeStream = append(FakeStream, shared.Token{
+						Type: shared.TokIdent,
+						Value: t.Value,
+						Line: t.Line,
+						File: t.Filename,
+					})
 				}
-				i++
+				origin := FakeStream[0]
+				error.Error(42, "\"" + token.Value + "\"", origin, &FakeStream)
 			} else {
 				out = append(out, token)
-			}	
+			}
 		}	
 	}	
 
-	out_text := ""
-	for i := 0; i < len(out); i++ {
-		out_text = out_text + out[i].Value + " "
-	}
-
 	if again == true {
-		return Preprocessor(out_text, filename, false)
+		tokens = out
+		out = []SmallToken {}
+		again = false
+		goto PREPROCESSOR_TOP
 	}
 
-	return out_text 
+	return out 
 }
 

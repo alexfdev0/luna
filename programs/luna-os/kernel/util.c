@@ -7,6 +7,7 @@ void tohex(long int number, short short int capitalized) {
     puts32("0x", 255, 0);
     puts32(itoa(number, capitalized, malloc(11)), 255, 0);
     puts32("\n", 255, 0);
+    free(11);
 }
 
 short short int pause() {

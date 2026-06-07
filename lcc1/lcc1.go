@@ -3,7 +3,8 @@ package main
 import (	
 	"lcc1/lexer"
 	"lcc1/parser"
-	"lcc1/error"	
+	"lcc1/error"
+	"lcc1/shared"
 	"os"
 	"fmt"
 	"strings"
@@ -41,7 +42,7 @@ func splitFile(path string) (name string, ext string) {
 
 func main() {
 	if len(os.Args) < 2 {
-		error.ErrorNoGaze(0, "", lexer.Token{Line: 0})
+		error.ErrorNoGaze(0, "", shared.Token{Line: 0})
 		os.Exit(1)
 	}
 
@@ -57,7 +58,7 @@ func main() {
 			output_file = os.Args[i + 1]
 			i++
 		case "-v":
-			fmt.Println("Luna Compiler Collection version 6.0")
+			fmt.Println("Luna Compiler Collection version 6.1")
 			fmt.Println("Target: luna-l2")
 			os.Exit(0)
 		case "-S":
@@ -85,7 +86,7 @@ func main() {
 	for _, file := range input_files {
 		data, err := os.ReadFile(file)
 		if err != nil {
-			error.ErrorNoGaze(16, "'" + file + "'", lexer.Token{Line: 0})
+			error.ErrorNoGaze(16, "'" + file + "'", shared.Token{Line: 0})
 			os.Exit(1)
 		}
 		code := lexer.Preprocessor(string(data), file, false)
@@ -97,7 +98,7 @@ func main() {
 			assembly_files = append(assembly_files, name + ".s")
 			dir := ""
 
-			switch lexer.Bits {
+			switch shared.Bits {
 			case 16:
 				dir = ".bits 16"
 			case 32:

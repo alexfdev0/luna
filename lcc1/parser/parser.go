@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"lcc1/lexer"
+	"lcc1/shared"
 	"lcc1/error"
 	"strings"
 	"fmt"	
@@ -46,8 +46,8 @@ type Variable_Static struct {
 
 type FunctionDecl struct {
 	Name string
-	Token lexer.Token
-	Set []lexer.Token
+	Token shared.Token
+	Set []shared.Token
 }
 
 type Scope struct {
@@ -133,7 +133,7 @@ func PreWrite(text string, spaced bool) {
 	}
 }
 
-func CheckNum(token lexer.Token) bool {
+func CheckNum(token shared.Token) bool {
 	if _, err := strconv.ParseInt(token.Value, 0, 64); err == nil {
 		return true
 	} else {
@@ -186,7 +186,7 @@ func ReturnIntType(i int) string {
 	return "unsigned short int"
 }
 
-func ParseExpyL1(tokens []lexer.Token, i int, Scope int) int {
+func ParseExpyL1(tokens []shared.Token, i int, Scope int) int {
 	for {
 		if i >= len(tokens) {
 			break
@@ -204,13 +204,13 @@ var _BREAK_TOPLEVEL string = ""
 var _CONTINUE_TOPLEVEL string = ""
 var _COERCE_TYPE int = 6
 var _COERCE_PTR bool = false
-func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int {
+func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int {
 	i := start
 	// CMP := false
-	expect := func(toktype lexer.TokenType) string {
+	expect := func(toktype shared.TokenType) string {
 		var value string
 		if i >= len(tokens) {
-			if toktype != lexer.TokSemi {
+			if toktype != shared.TokSemi {
 				error.Error(1, "'<EOF>'", tokens[i - 1], &tokens)
 			} else {
 				error.Error(18, "", tokens[i - 1], &tokens)
@@ -221,7 +221,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			value = tokens[i].Value
 			i++
 		} else {
-			if toktype != lexer.TokSemi {
+			if toktype != shared.TokSemi {
 				error.Error(1, "'" + tokens[i].Value + "'", tokens[i], &tokens)
 			} else {
 				error.Error(18, "", tokens[i - 1], &tokens)
@@ -229,38 +229,38 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		}
 		return value
 	}	
-	peek := func(lookahead int) lexer.Token {
+	peek := func(lookahead int) shared.Token {
 		if i + lookahead < len(tokens) && i + lookahead >= 0 {
 			return tokens[i + lookahead]
 		}
-		return lexer.Token{Type: lexer.TokEOF, Value: ""}
+		return shared.Token{Type: shared.TokEOF, Value: ""}
 	}
 
 
 	IDENT_FUNC := func(label string) {
-		expect(lexer.TokLParen)
+		expect(shared.TokLParen)
 
 		switch label {
 		case "asm", "__asm__":
-			if peek(0).Type == lexer.TokQualifier && peek(0).Value == "volatile" {
-				expect(lexer.TokQualifier)
+			if peek(0).Type == shared.TokQualifier && peek(0).Value == "volatile" {
+				expect(shared.TokQualifier)
 			}
-			asmval := expect(lexer.TokIdent)
-			expect(lexer.TokRParen)
-			// expect(lexer.TokSemi)
+			asmval := expect(shared.TokIdent)
+			expect(shared.TokRParen)
+			// expect(shared.TokSemi)
 			// TODO: make quotes check here
 			Write(strings.ReplaceAll(asmval, "\"", ""), true)
 		case "sizeof":
 			val := 0
-			_label := expect(lexer.TokIdent)
-			expect(lexer.TokRParen)
+			_label := expect(shared.TokIdent)
+			expect(shared.TokRParen)
 			Variable := LookupVariable(_label, true, Scope, peek(-2), &tokens)
 			switch Variable.Type {
 			case NUMBER8:
 				val = 1
 			case STRING:
 				if Variable.Pointer == true {
-					switch lexer.Bits {
+					switch shared.Bits {
 					case 16:
 						val = 2
 					case 32:
@@ -287,25 +287,25 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			pushed := 0
 			j := i
 			exit := false
-			var CurrentTokens []lexer.Token
+			var CurrentTokens []shared.Token
 			for j = i; j < len(tokens); j++ {
 				if exit == true {
 					break
 				}
 				switch tokens[j].Type {
-				case lexer.TokComma:
+				case shared.TokComma:
 					if depth == 1 {
 						ParseExpy(CurrentTokens, 0, Scope, "r7")
 						Write("push r7", true)
-						CurrentTokens = []lexer.Token{}
+						CurrentTokens = []shared.Token{}
 						pushed++
 					} else {
 						CurrentTokens = append(CurrentTokens, tokens[j])
 					}
-				case lexer.TokLParen:
+				case shared.TokLParen:
 					depth++
 					CurrentTokens = append(CurrentTokens, tokens[j])
-				case lexer.TokRParen:
+				case shared.TokRParen:
 					depth--
 					if depth == 0 {
 						exit = true
@@ -360,7 +360,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		return __label
 	}
 	_IDENT_INTENT := func(pointer bool, _type int, deref int, register bool, variable Variable_Static) string {	
-		if peek(0).Type == lexer.TokEqual {
+		if peek(0).Type == shared.TokEqual {
 			// Write intent (NEVER give one free dereference)
 			Write("mov r2, r1", true)
 			return "write"
@@ -395,25 +395,25 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 	}
 	_NUMBER_PARSE := func(register string) {
 		switch peek(0).Type {
-		case lexer.TokIdent, lexer.TokStar, lexer.TokAmpersand:
-			subslice := []lexer.Token {}
+		case shared.TokIdent, shared.TokStar, shared.TokAmpersand:
+			subslice := []shared.Token {}
 			fl_exit := false
 			for {
 				if fl_exit == true {
 					break
 				}
 				switch peek(0).Type {
-				case lexer.TokStar, lexer.TokAmpersand:
+				case shared.TokStar, shared.TokAmpersand:
 					subslice = append(subslice, peek(0))
 					i++
-				case lexer.TokIdent:
+				case shared.TokIdent:
 					subslice = append(subslice, peek(0))
 					i++
 					fl_exit = true
 				}
 			}
 			ParseExpy(subslice, 0, Scope, register)
-		case lexer.TokNumber:
+		case shared.TokNumber:
 
 			Write("mov " + register + ", " + peek(0).Value, true)
 			i++
@@ -432,8 +432,8 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			if i >= len(tokens) {
 				break
 			}
-			if peek(0).Type == lexer.TokQualifier {	
-				qual := expect(lexer.TokQualifier)	
+			if peek(0).Type == shared.TokQualifier {	
+				qual := expect(shared.TokQualifier)	
 				switch qual {
 				case "short":
 					if long == true {
@@ -469,7 +469,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 					constant = true
 				}
 			} else {
-				_type := expect(lexer.TokType)
+				_type := expect(shared.TokType)
 				var rtype int
 				switch _type {
 				case "int":
@@ -492,7 +492,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 					rtype = NULL
 				}
 
-				if peek(0).Type == lexer.TokStar {
+				if peek(0).Type == shared.TokStar {
 					ptr = true
 					i++
 				} else {
@@ -522,32 +522,32 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 	EXPY_TOP:
 	switch peek(0).Type {
-	case lexer.TokSemi:
-		expect(lexer.TokSemi)
+	case shared.TokSemi:
+		expect(shared.TokSemi)
 		goto EXPY_TOP
-	case lexer.TokStar:
-		expect(lexer.TokStar)
+	case shared.TokStar:
+		expect(shared.TokStar)
 		deref++
 		goto EXPY_TOP
-	case lexer.TokAmpersand:
-		expect(lexer.TokAmpersand)
+	case shared.TokAmpersand:
+		expect(shared.TokAmpersand)
 		deref--
 		if deref <= -2 {
 			error.Error(27, "'int'", peek(-1), &tokens)
 		}
 		goto EXPY_TOP
-	case lexer.TokGoto:
+	case shared.TokGoto:
 		// TODO: add goto var checks
-		expect(lexer.TokGoto)
-		label := expect(lexer.TokIdent)
-		expect(lexer.TokSemi)
+		expect(shared.TokGoto)
+		label := expect(shared.TokIdent)
+		expect(shared.TokSemi)
 		Write("jmp " + label, true)
 		goto DONE
-	case lexer.TokType, lexer.TokQualifier:
-		bodytokens := []lexer.Token {}
+	case shared.TokType, shared.TokQualifier:
+		bodytokens := []shared.Token {}
 		for j := i; j < len(tokens); j++ {
 			bodytokens = append(bodytokens, tokens[j])
-			if tokens[j].Type == lexer.TokSemi {
+			if tokens[j].Type == shared.TokSemi {
 				i = j + 1
 				break
 			}
@@ -558,30 +558,30 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		L1_ALLOW_NONCONST = true
 		level = 1
 		goto DONE
-	case lexer.TokLParen:
-		expect(lexer.TokLParen)
+	case shared.TokLParen:
+		expect(shared.TokLParen)
 		_COERCE_TYPE, _COERCE_PTR = _PARSE_TYPE()	
-		expect(lexer.TokRParen)
+		expect(shared.TokRParen)
 		goto EXPY_TOP
-	case lexer.TokIf:
+	case shared.TokIf:
 		// TODO: implement quick ifs
 
 		IfScope := CreateScope(Scope)
 		ElseScope := CreateScope(Scope)
 
-		expect(lexer.TokIf)
-		expect(lexer.TokLParen)
+		expect(shared.TokIf)
+		expect(shared.TokLParen)
 
-		exp_tokens := []lexer.Token {}
+		exp_tokens := []shared.Token {}
 
 		depth := 1
 		exit := false
 		for _ = i; i < len(tokens); i++ {	
 			switch tokens[i].Type {
-			case lexer.TokLParen:
+			case shared.TokLParen:
 				depth++
 				exp_tokens = append(exp_tokens, tokens[i])
-			case lexer.TokRParen:
+			case shared.TokRParen:
 				depth--
 				if depth == 0 {
 					exit = true
@@ -600,7 +600,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		ParseExpy(exp_tokens, 0, Scope, "r11") // r12 and r5 clobbered
 											   // r11 result
 
-		expect(lexer.TokRParen)
+		expect(shared.TokRParen)
 
 		if_label := fmt.Sprintf("if_stmt_%d", IDCounter)
 		IDCounter++
@@ -609,10 +609,10 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		after_label := fmt.Sprintf("after_stmt_%d", IDCounter)
 		IDCounter++	
 
-		if_tokens := []lexer.Token {}
-		else_tokens := []lexer.Token {}
+		if_tokens := []shared.Token {}
+		else_tokens := []shared.Token {}
 		
-		expect(lexer.TokLCurly)	
+		expect(shared.TokLCurly)	
 		j := i
 		depth = 1
 		exit = false
@@ -621,10 +621,10 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 				break
 			}
 			switch tokens[j].Type {
-			case lexer.TokLCurly:
+			case shared.TokLCurly:
 				depth++
 				if_tokens = append(if_tokens, tokens[j])
-			case lexer.TokRCurly:
+			case shared.TokRCurly:
 				depth--
 				if depth == 0 {
 					exit = true
@@ -636,7 +636,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			}
 		}
 		i = j - 1
-		expect(lexer.TokRCurly)
+		expect(shared.TokRCurly)
 
 		cmop := ""
 		cmopr := ""
@@ -652,7 +652,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			cmopr = _CMP_MOP_REVERSE
 		}
 
-		if peek(0).Type != lexer.TokElse {
+		if peek(0).Type != shared.TokElse {
 			// Write everything
 			Write(cmop + " r11, " + if_label, true)
 			Write(cmopr + " r11, " + after_label, true)
@@ -664,9 +664,9 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			goto DONE
 		}
 		
-		expect(lexer.TokElse)
+		expect(shared.TokElse)
 
-		expect(lexer.TokLCurly)	
+		expect(shared.TokLCurly)	
 		j = i
 		depth = 1
 		exit = false
@@ -675,10 +675,10 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 				break
 			}
 			switch tokens[j].Type {
-			case lexer.TokLCurly:
+			case shared.TokLCurly:
 				depth++
 				else_tokens = append(else_tokens, tokens[j])
-			case lexer.TokRCurly:
+			case shared.TokRCurly:
 				depth--
 				if depth == 0 {
 					exit = true
@@ -690,7 +690,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			}
 		}
 		i = j - 1
-		expect(lexer.TokRCurly)
+		expect(shared.TokRCurly)
 
 		// Write everything
 		Write(cmop + " r11, " + if_label, true)
@@ -703,11 +703,11 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		Write(after_label + ":", false)
 		_CMPOP_CLEANUP()
 		goto DONE
-	case lexer.TokWhile:
-		expect(lexer.TokWhile)
-		expect(lexer.TokLParen)
+	case shared.TokWhile:
+		expect(shared.TokWhile)
+		expect(shared.TokLParen)
 		
-		subslice := []lexer.Token {}
+		subslice := []shared.Token {}
 
 		depth := 1
 		exit := false
@@ -720,10 +720,10 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 		for _ = i; i < len(tokens); i++ {
 			switch peek(0).Type {
-			case lexer.TokLParen:
+			case shared.TokLParen:
 				depth++
 				subslice = append(subslice, peek(0))
-			case lexer.TokRParen:
+			case shared.TokRParen:
 				depth--
 				if depth < 1 {
 					exit = true
@@ -737,7 +737,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 				break
 			}
 		}
-		expect(lexer.TokRParen)
+		expect(shared.TokRParen)
 
 		// Write check portion
 		
@@ -754,18 +754,18 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		Write(cmop + " r11, " + middle_label, true)
 		Write("jmp " + bottom_label, true)
 
-		expect(lexer.TokLCurly)
+		expect(shared.TokLCurly)
 		
-		subslice2 := []lexer.Token {}
+		subslice2 := []shared.Token {}
 		
 		depth = 1
 		exit = false
 		for _ = i; i < len(tokens); i++ {
 			switch peek(0).Type {
-			case lexer.TokLCurly:
+			case shared.TokLCurly:
 				depth++
 				subslice2 = append(subslice2, peek(0))
-			case lexer.TokRCurly:
+			case shared.TokRCurly:
 				depth--
 				if depth == 0 {
 					exit = true
@@ -779,7 +779,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 				break
 			}
 		}
-		expect(lexer.TokRCurly)
+		expect(shared.TokRCurly)
 
 		WScope := CreateScope(Scope)
 
@@ -797,9 +797,9 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		_CONTINUE_TOPLEVEL = otln_co
 
 		_CMPOP_CLEANUP()
-	case lexer.TokDo:
-		expect(lexer.TokDo)
-		expect(lexer.TokLCurly)
+	case shared.TokDo:
+		expect(shared.TokDo)
+		expect(shared.TokLCurly)
 
 		top_label := "do_stmt_" + fmt.Sprintf("%d", IDCounter) + "_top"
 		middle_label := "do_stmt_" + fmt.Sprintf("%d", IDCounter) + "_check"
@@ -809,14 +809,14 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		
 		depth := 1
 		exit := false
-		subslice := []lexer.Token {}
+		subslice := []shared.Token {}
 
 		for _ = i; i < len(tokens); i++ {
 			switch peek(0).Type {
-			case lexer.TokLCurly:
+			case shared.TokLCurly:
 				depth++
 				subslice = append(subslice, peek(0))
-			case lexer.TokRCurly:
+			case shared.TokRCurly:
 				depth--
 				if depth == 0 {
 					exit = true
@@ -830,19 +830,19 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 				break
 			}
 		}
-		expect(lexer.TokRCurly)
-		expect(lexer.TokWhile)
-		expect(lexer.TokLParen)
+		expect(shared.TokRCurly)
+		expect(shared.TokWhile)
+		expect(shared.TokLParen)
 		
-		subslice2 := []lexer.Token {}
+		subslice2 := []shared.Token {}
 		exit = false
 		depth = 1
 		for _ = i; i < len(tokens); i++ {
 			switch peek(0).Type {
-			case lexer.TokLParen:
+			case shared.TokLParen:
 				depth++
 				subslice2 = append(subslice2, peek(0))
-			case lexer.TokRParen:
+			case shared.TokRParen:
 				depth--
 				if depth == 0 {
 					exit = true
@@ -857,8 +857,8 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			}
 		}
 
-		expect(lexer.TokRParen)
-		expect(lexer.TokSemi)
+		expect(shared.TokRParen)
+		expect(shared.TokSemi)
 
 		otln := _BREAK_TOPLEVEL
 		_BREAK_TOPLEVEL = bottom_label
@@ -886,23 +886,23 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		_BREAK_TOPLEVEL = otln
 		_CONTINUE_TOPLEVEL = otln_co
 		_CMPOP_CLEANUP()
-	case lexer.TokFor:
-		expect(lexer.TokFor)
-		expect(lexer.TokLParen)
+	case shared.TokFor:
+		expect(shared.TokFor)
+		expect(shared.TokLParen)
 
 		top_label := "for_stmt_" + fmt.Sprintf("%d", IDCounter) + "_check"
 		bottom_label := "for_stmt_" + fmt.Sprintf("%d", IDCounter) + "_after"
 
 		IDCounter++
 		
-		subslice := []lexer.Token {}
+		subslice := []shared.Token {}
 		exit := false
 		for _ = i; i < len(tokens); i++ {
 			if exit == true {
 				break
 			}
 			switch peek(0).Type {
-			case lexer.TokSemi:
+			case shared.TokSemi:
 				subslice = append(subslice, peek(0))
 				exit = true
 			default:
@@ -910,12 +910,12 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			}
 		}
 		
-		subslice2 := []lexer.Token {}
+		subslice2 := []shared.Token {}
 		exit = false
 		switch peek(0).Type {
-		case lexer.TokSemi:
-			subslice2 = append(subslice2, lexer.Token{Type: lexer.TokNumber, Value: "1", Line: peek(0).Line, File: peek(0).File})
-			expect(lexer.TokSemi)
+		case shared.TokSemi:
+			subslice2 = append(subslice2, shared.Token{Type: shared.TokNumber, Value: "1", Line: peek(0).Line, File: peek(0).File})
+			expect(shared.TokSemi)
 			goto COND_DONE	
 		}	
 
@@ -924,7 +924,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 				break
 			}
 			switch peek(0).Type {
-			case lexer.TokSemi:
+			case shared.TokSemi:
 				subslice2 = append(subslice2, peek(0))
 				exit = true
 			default:
@@ -949,16 +949,16 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 		Write(cmopr + " r11, " + bottom_label, true)
 
-		subslice3 := []lexer.Token {}
+		subslice3 := []shared.Token {}
 		exit = false
 		depth := 1
 
 		for _ = i; i < len(tokens); i++ {
 			switch peek(0).Type {
-			case lexer.TokLParen:
+			case shared.TokLParen:
 				depth++
 				subslice3 = append(subslice3, peek(0))
-			case lexer.TokRParen:
+			case shared.TokRParen:
 				depth--
 				if depth == 0 {
 					exit = true
@@ -973,19 +973,19 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			}
 		}
 
-		expect(lexer.TokRParen)
-		expect(lexer.TokLCurly)
+		expect(shared.TokRParen)
+		expect(shared.TokLCurly)
 
-		subslice4 := []lexer.Token {}
+		subslice4 := []shared.Token {}
 		depth = 1
 		exit = false
 		
 		for _ = i; i < len(tokens); i++ {
 			switch peek(0).Type {
-			case lexer.TokLCurly:
+			case shared.TokLCurly:
 				depth++
 				subslice4 = append(subslice4, peek(0))
-			case lexer.TokRCurly:
+			case shared.TokRCurly:
 				depth--
 				if depth == 0 {
 					exit = true
@@ -999,7 +999,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 				break
 			}
 		}
-		subslice3 = append(subslice3, lexer.Token{Type: lexer.TokSemi, Value: ";", Line: peek(-1).Line, File: peek(-1).File})
+		subslice3 = append(subslice3, shared.Token{Type: shared.TokSemi, Value: ";", Line: peek(-1).Line, File: peek(-1).File})
 
 		otln := _BREAK_TOPLEVEL
 		_BREAK_TOPLEVEL = bottom_label
@@ -1015,38 +1015,38 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 		_CONTINUE_TOPLEVEL = otln_co
 		
 		_CMPOP_CLEANUP()
-		expect(lexer.TokRCurly)
-	case lexer.TokContinue:
-		expect(lexer.TokContinue)
+		expect(shared.TokRCurly)
+	case shared.TokContinue:
+		expect(shared.TokContinue)
 		if _CONTINUE_TOPLEVEL == "" {
 			error.Error(39, "", peek(-1), &tokens)
 		} else {
 			Write("jmp " + _CONTINUE_TOPLEVEL, true)
 		}
-		expect(lexer.TokSemi)
-	case lexer.TokBreak:
-		expect(lexer.TokBreak)
+		expect(shared.TokSemi)
+	case shared.TokBreak:
+		expect(shared.TokBreak)
 		if _BREAK_TOPLEVEL == "" {
 			error.Error(38, "", peek(-1), &tokens)
 		} else {
 			Write("jmp " + _BREAK_TOPLEVEL, true)
 		}
-		expect(lexer.TokSemi)
-	case lexer.TokReturn:
-		expect(lexer.TokReturn)
+		expect(shared.TokSemi)
+	case shared.TokReturn:
+		expect(shared.TokReturn)
 
 		switch peek(0).Type {
-		case lexer.TokSemi:
+		case shared.TokSemi:
 			
 		default:
 			i = ParseExpy(tokens, i, Scope, "e6")
 		}	
-		expect(lexer.TokSemi)
+		expect(shared.TokSemi)
 		Write("pop e11", true)
 		Write("ret", true)
 		goto DONE
-	case lexer.TokIdent:
-		label := expect(lexer.TokIdent)
+	case shared.TokIdent:
+		label := expect(shared.TokIdent)
 		var variable Variable_Static
 
 		// NUM_VAR_OVERRIDE = true
@@ -1061,35 +1061,35 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 
 		array := false
 		switch peek(0).Type {
-		case lexer.TokLParen:
+		case shared.TokLParen:
 			// TODO: allow comma arbitration
 			IDENT_FUNC(label)	
 			goto CONTINUE
-		case lexer.TokColon:
+		case shared.TokColon:
 			Write(label + ":", false)
-			expect(lexer.TokColon)
+			expect(shared.TokColon)
 			goto DONE	
 		}	
 
 		variable = LookupVariable(label, true, Scope, peek(-1), &tokens)
 
 		switch peek(0).Type {
-		case lexer.TokLBracket:
+		case shared.TokLBracket:
 			if variable.ArgNum < 1 {
 				error.Error(40, "", peek(0), &tokens)
 			}
 			array = true
-			expect(lexer.TokLBracket)
+			expect(shared.TokLBracket)
 
-			subslice := []lexer.Token {}
+			subslice := []shared.Token {}
 			depth := 1
 			exit := false
 			for _ = i; i < len(tokens); i++ {
 				switch peek(0).Type {
-				case lexer.TokLBracket:
+				case shared.TokLBracket:
 					depth++
 					subslice = append(subslice, peek(0))
-				case lexer.TokRBracket:
+				case shared.TokRBracket:
 					depth--
 					if depth == 0 {
 						exit = true
@@ -1103,7 +1103,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 					break
 				}
 			}
-			expect(lexer.TokRBracket)
+			expect(shared.TokRBracket)
 
 			ParseExpy(subslice, 0, Scope, "e8")
 		}
@@ -1161,20 +1161,20 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			derefs++
 		}
 		Write("mov " + register + ", r2", true)	
-	case lexer.TokNumber:
+	case shared.TokNumber:
 		// Parse expressions
 		// Load it up into r4
 
 		_NUMBER_PARSE("r1")
 		switch peek(0).Type {
-		case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
+		case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash:
 			NUM_DIRECT = true	
 		}	
 		NUM_TRY_DEREF = true	
 	}
 
 	switch peek(0).Type {
-	case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
+	case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash:
 		if NUM_TRY_DEREF == false {
 			Write("mov r5, " + register, true)
 		}
@@ -1200,7 +1200,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			Write("div r1, r5, r6", true)
 		}
 		switch peek(0).Type {
-		case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
+		case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash:
 			Write("mov r5, r1", true)
 			goto OP_TRY
 		}
@@ -1256,17 +1256,17 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 	}
 	
 	CONTINUE:
-	if peek(0).Type != lexer.TokEqual && peek(0).Type != lexer.TokEquality && peek(0).Type != lexer.TokInequality && peek(0).Type != lexer.TokGEqual && peek(0).Type != lexer.TokLEqual && peek(0).Type != lexer.TokLAngle && peek(0).Type != lexer.TokRAngle {
-		// expect(lexer.TokSemi)
+	if peek(0).Type != shared.TokEqual && peek(0).Type != shared.TokEquality && peek(0).Type != shared.TokInequality && peek(0).Type != shared.TokGEqual && peek(0).Type != shared.TokLEqual && peek(0).Type != shared.TokLAngle && peek(0).Type != shared.TokRAngle {
+		// expect(shared.TokSemi)
 		return i
 	}
 	
 	switch peek(0).Type {
-	case lexer.TokEquality, lexer.TokInequality, lexer.TokGEqual, lexer.TokLEqual, lexer.TokLAngle, lexer.TokRAngle:
+	case shared.TokEquality, shared.TokInequality, shared.TokGEqual, shared.TokLEqual, shared.TokLAngle, shared.TokRAngle:
 		cmpopreal := ""
 		expect(peek(0).Type)
 		switch peek(-1).Type {
-		case lexer.TokEquality:
+		case shared.TokEquality:
 			_CMP_MOP = "jnz"
 			_CMP_MOP_REVERSE = "jz"
 			if CMP_OP == "" {
@@ -1274,7 +1274,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			} else {
 				cmpopreal = CMP_OP
 			}
-		case lexer.TokInequality:
+		case shared.TokInequality:
 			_CMP_MOP = "jz"
 			_CMP_MOP_REVERSE = "jnz"
 			if CMP_OP == "" {
@@ -1282,19 +1282,19 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			} else {
 				cmpopreal = CMP_OP
 			}
-		case lexer.TokGEqual:
+		case shared.TokGEqual:
 			cmpopreal = "ilt"
 			_CMP_MOP = "jz"
 			_CMP_MOP_REVERSE = "jnz"
-		case lexer.TokLEqual:
+		case shared.TokLEqual:
 			cmpopreal = "igt"
 			_CMP_MOP = "jz"
 			_CMP_MOP_REVERSE = "jnz"
-		case lexer.TokLAngle:
+		case shared.TokLAngle:
 			cmpopreal = "ilt"
 			_CMP_MOP = "jnz"
 			_CMP_MOP_REVERSE = "jz"
-		case lexer.TokRAngle:
+		case shared.TokRAngle:
 			cmpopreal = "igt"
 			_CMP_MOP = "jnz"
 			_CMP_MOP_REVERSE = "jz"
@@ -1305,7 +1305,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 	
 		Write(cmpopreal + " r11, " + register + ", r5", true)	
 	default:
-		expect(lexer.TokEqual)
+		expect(shared.TokEqual)
 		i = ParseExpy(tokens, i, Scope, "r5")
 
 		if EQU_VAR.Const == true {
@@ -1338,7 +1338,7 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 			}
 		}
 		
-		expect(lexer.TokSemi)	
+		expect(shared.TokSemi)	
 	}
 
 	DONE:
@@ -1346,11 +1346,11 @@ func ParseExpy(tokens []lexer.Token, start int, Scope int, register string) int 
 	return i
 }
 
-func ParseNumberExpyDirect(tokens []lexer.Token, i int, Scope int) (int, int) {
-	expect := func(toktype lexer.TokenType) string {
+func ParseNumberExpyDirect(tokens []shared.Token, i int, Scope int) (int, int) {
+	expect := func(toktype shared.TokenType) string {
 		var value string
 		if i >= len(tokens) {
-			if toktype != lexer.TokSemi {
+			if toktype != shared.TokSemi {
 				error.Error(1, "'<EOF>'", tokens[i - 1], &tokens)
 			} else {
 				error.Error(18, "", tokens[i - 1], &tokens)
@@ -1361,22 +1361,22 @@ func ParseNumberExpyDirect(tokens []lexer.Token, i int, Scope int) (int, int) {
 			value = tokens[i].Value
 			i++
 		} else {
-			if toktype != lexer.TokSemi && tokens[i].Type != lexer.TokIdent {
+			if toktype != shared.TokSemi && tokens[i].Type != shared.TokIdent {
 				error.Error(1, "'" + tokens[i].Value + "'", tokens[i], &tokens)
-			} else if toktype == lexer.TokSemi {
+			} else if toktype == shared.TokSemi {
 				error.Error(18, "", tokens[i - 1], &tokens)
-			} else if tokens[i].Type == lexer.TokIdent {
+			} else if tokens[i].Type == shared.TokIdent {
 				error.Error(35, "", tokens[i], &tokens)
 			}
 			i++
 		}
 		return value
 	}	
-	peek := func(lookahead int) lexer.Token {
+	peek := func(lookahead int) shared.Token {
 		if i + lookahead < len(tokens) && i + lookahead >= 0 {
 			return tokens[i + lookahead]
 		}
-		return lexer.Token{Type: lexer.TokEOF, Value: ""}
+		return shared.Token{Type: shared.TokEOF, Value: ""}
 	}
 	
 	res := 0
@@ -1390,19 +1390,19 @@ func ParseNumberExpyDirect(tokens []lexer.Token, i int, Scope int) (int, int) {
 		exit_nodet := false
 
 		switch peek(0).Type {
-		case lexer.TokAmpersand:
-			expect(lexer.TokAmpersand)
-			label := expect(lexer.TokIdent)
+		case shared.TokAmpersand:
+			expect(shared.TokAmpersand)
+			label := expect(shared.TokIdent)
 			Variable := LookupVariable(label, true, Scope, peek(-1), &tokens)
 			WritePre(".ptr " + Variable.Real, true)
 			return -1, i
 		}
-		num := expect(lexer.TokNumber)
+		num := expect(shared.TokNumber)
 
 		OP_TRY:
 
 		switch peek(0).Type {
-		case lexer.TokPlus, lexer.TokMinus, lexer.TokStar, lexer.TokSlash:
+		case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash:
 		default:
 			exit = true
 		}
@@ -1416,7 +1416,7 @@ func ParseNumberExpyDirect(tokens []lexer.Token, i int, Scope int) (int, int) {
 		
 		op := peek(0).Value	
 		expect(peek(0).Type)
-		num2 := expect(lexer.TokNumber)
+		num2 := expect(shared.TokNumber)
 
 		n1_real, _ := strconv.ParseInt(num, 0, 64)
 		n2_real, _ := strconv.ParseInt(num2, 0, 64)
@@ -1439,7 +1439,7 @@ func ParseNumberExpyDirect(tokens []lexer.Token, i int, Scope int) (int, int) {
 	return res, i 
 }
 
-func LookupVariable(Name string, Enforce bool, Scope int, Token lexer.Token, Tokens *[]lexer.Token) Variable_Static {
+func LookupVariable(Name string, Enforce bool, Scope int, Token shared.Token, Tokens *[]shared.Token) Variable_Static {
 	for {
 		for _, variable := range Variables {
 			if variable.Name == Name && variable.Scope == Scope {	
@@ -1459,7 +1459,7 @@ func LookupVariable(Name string, Enforce bool, Scope int, Token lexer.Token, Tok
 	return Variable_Static{Name: "__ZERO", Type: NULL, Value: 0}
 }
 
-func StringParse(tokens []lexer.Token, start int) (string, int) {
+func StringParse(tokens []shared.Token, start int) (string, int) {
 	// Start would be the first token
 	var str string = ""
 	var loc int = 0
@@ -1488,23 +1488,23 @@ func StringParse(tokens []lexer.Token, start int) (string, int) {
 	return str, loc
 }
 
-func FuncDeclLookup(Name string) (lexer.Token, *[]lexer.Token) {
+func FuncDeclLookup(Name string) (shared.Token, *[]shared.Token) {
 	for _, d := range FunctionDecls {
 		if d.Name == Name {
 			return d.Token, &d.Set
 		}
 	}
-	return lexer.Token{Type: lexer.TokEOF}, &[]lexer.Token {}
+	return shared.Token{Type: shared.TokEOF}, &[]shared.Token {}
 }
 
 var topLevelName string
 var BitPref int = 16
-func Parse(tokens []lexer.Token, Scope int) {
+func Parse(tokens []shared.Token, Scope int) {
 	i := 0
-	expect := func(toktype lexer.TokenType) string {
+	expect := func(toktype shared.TokenType) string {
 		var value string
 		if i >= len(tokens) {
-			if toktype != lexer.TokSemi {
+			if toktype != shared.TokSemi {
 				error.Error(1, "'<EOF>'", tokens[i - 1], &tokens)
 			} else {
 				error.Error(18, "", tokens[i - 1], &tokens)
@@ -1514,7 +1514,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 		if tokens[i].Type == toktype {
 			value = tokens[i].Value
 		} else {
-			if toktype != lexer.TokSemi {
+			if toktype != shared.TokSemi {
 				error.Error(1, "'" + tokens[i].Value + "'", tokens[i], &tokens)
 			} else {
 				error.Error(18, "", tokens[i - 1], &tokens)
@@ -1523,38 +1523,38 @@ func Parse(tokens []lexer.Token, Scope int) {
 		i++
 		return value
 	}	
-	peek := func(lookahead int) lexer.Token {
+	peek := func(lookahead int) shared.Token {
 		if i + lookahead < len(tokens) {
 			return tokens[i + lookahead]
 		}
-		return lexer.Token{Type: lexer.TokEOF, Value: ""}
+		return shared.Token{Type: shared.TokEOF, Value: ""}
 	}
 
 	_PARSE_ATTR := func(name string) []string {
 		var attrs []string
 		var _RETURNS []string
 
-		expect(lexer.TokIdent)
-		expect(lexer.TokLParen)
-		expect(lexer.TokLParen)
+		expect(shared.TokIdent)
+		expect(shared.TokLParen)
+		expect(shared.TokLParen)
 
 		expComma := false
 		for {
 			if expComma == false {
-				attr := expect(lexer.TokIdent)
+				attr := expect(shared.TokIdent)
 				attrs = append(attrs, attr)
 				expComma = true
-				if peek(0).Type == lexer.TokRParen {
+				if peek(0).Type == shared.TokRParen {
 					break
 				}
 			} else {
-				expect(lexer.TokComma)
+				expect(shared.TokComma)
 				expComma = false
 			}
 		}	
 		
-		expect(lexer.TokRParen)
-		expect(lexer.TokRParen)
+		expect(shared.TokRParen)
+		expect(shared.TokRParen)
 
 		for _, attr := range attrs {
 			switch attr {
@@ -1584,8 +1584,8 @@ func Parse(tokens []lexer.Token, Scope int) {
 			if i >= len(tokens) {
 				break
 			}
-			if peek(0).Type == lexer.TokQualifier {	
-				qual := expect(lexer.TokQualifier)	
+			if peek(0).Type == shared.TokQualifier {	
+				qual := expect(shared.TokQualifier)	
 				switch qual {
 				case "short":
 					if long == true {
@@ -1621,7 +1621,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 					constant = true
 				}
 			} else {
-				_type := expect(lexer.TokType)
+				_type := expect(shared.TokType)
 				var rtype int
 				switch _type {
 				case "int":
@@ -1644,7 +1644,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 					rtype = NULL
 				}
 
-				if peek(0).Type == lexer.TokStar {
+				if peek(0).Type == shared.TokStar {
 					ptr = true
 					i++
 				} else {
@@ -1685,16 +1685,16 @@ func Parse(tokens []lexer.Token, Scope int) {
 					break
 				}
 				if peek(0).Value == "asm" || peek(0).Value == "__asm__" {
-					expect(lexer.TokIdent)
+					expect(shared.TokIdent)
 					if peek(0).Value == "volatile" {
-						expect(lexer.TokQualifier)
+						expect(shared.TokQualifier)
 					}
-					expect(lexer.TokLParen)
+					expect(shared.TokLParen)
 					str, end := StringParse(tokens, i)
 					i = end + 1
 					WritePre(str, false)
-					expect(lexer.TokRParen)
-					expect(lexer.TokSemi)
+					expect(shared.TokRParen)
+					expect(shared.TokSemi)
 					continue
 				}
 				if peek(0).Value == "__embed__" {
@@ -1702,7 +1702,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 					static := false
 					name := ""
 
-					expect(lexer.TokIdent)
+					expect(shared.TokIdent)
 
 					arg_parse_top:
 					switch peek(0).Value {
@@ -1716,15 +1716,15 @@ func Parse(tokens []lexer.Token, Scope int) {
 						goto arg_parse_top
 					}	
 
-					name = expect(lexer.TokIdent)
+					name = expect(shared.TokIdent)
 					// __embed__ pre SOUND_LABEL
 
-					expect(lexer.TokLParen)
-					expect(lexer.TokLParen)
-					path := expect(lexer.TokIdent)
-					expect(lexer.TokRParen)
-					expect(lexer.TokRParen)
-					expect(lexer.TokSemi)
+					expect(shared.TokLParen)
+					expect(shared.TokLParen)
+					path := expect(shared.TokIdent)
+					expect(shared.TokRParen)
+					expect(shared.TokRParen)
+					expect(shared.TokSemi)
 
 					if pre == false {
 						Write(name + ":", false)
@@ -1739,12 +1739,12 @@ func Parse(tokens []lexer.Token, Scope int) {
 					continue
 				}
 
-				if peek(0).Type == lexer.TokTypedef {
+				if peek(0).Type == shared.TokTypedef {
 					print("TYPEDEF")
-					expect(lexer.TokTypedef)
+					expect(shared.TokTypedef)
 					
 					switch peek(0).Type {
-					case lexer.TokQualifier, lexer.TokType:
+					case shared.TokQualifier, shared.TokType:
 						Type, Pointer := _PARSE_TYPE()
 						if Pointer == true {
 							error.Warning(41, "", peek(-1), &tokens);
@@ -1753,21 +1753,21 @@ func Parse(tokens []lexer.Token, Scope int) {
 							RefersTo: Type,
 						})
 
-						name := expect(lexer.TokIdent)
-						expect(lexer.TokSemi)
+						name := expect(shared.TokIdent)
+						expect(shared.TokSemi)
 
 						for k := i; k < len(tokens); k++ {
-							if tokens[k].Type == lexer.TokIdent && tokens[k].Value == name {
-								tokens[k].Type = lexer.TokType
+							if tokens[k].Type == shared.TokIdent && tokens[k].Value == name {
+								tokens[k].Type = shared.TokType
 							}
 						}
-					case lexer.TokStruct:
+					case shared.TokStruct:
 						// TODO: add structs	
 					}
 				}
 
-				if peek(0).Type == lexer.TokQualifier {	
-					qual := expect(lexer.TokQualifier)	
+				if peek(0).Type == shared.TokQualifier {	
+					qual := expect(shared.TokQualifier)	
 					switch qual {
 					case "short":
 						if long == true {
@@ -1820,18 +1820,18 @@ func Parse(tokens []lexer.Token, Scope int) {
 				break
 			}
 
-			if peek(0).Type == lexer.TokIdent {
+			if peek(0).Type == shared.TokIdent {
 				error.Error(25, "", peek(0), &tokens)
 			}
 
 			_typetok := tokens[i]
-			_type := expect(lexer.TokType)
-			if peek(0).Type == lexer.TokStar {
+			_type := expect(shared.TokType)
+			if peek(0).Type == shared.TokStar {
 				ptr = true
 				i++
 			}
 
-			name := expect(lexer.TokIdent)
+			name := expect(shared.TokIdent)
 		
 			var rtype int	
 			switch _type {
@@ -1866,27 +1866,27 @@ func Parse(tokens []lexer.Token, Scope int) {
 			allow_nonconst := L1_ALLOW_NONCONST
 
 			switch peek(0).Type {
-			case lexer.TokLParen:
+			case shared.TokLParen:
 				rns := false
 				if name == "main" {
 					rns = true
 					name = "_start"
 				}	
-				expect(lexer.TokLParen)
+				expect(shared.TokLParen)
 				fscope := CreateScope(Scope)	
 		
 				register := 0
 				nargs := 0
 				switch peek(0).Type {
-				case lexer.TokType, lexer.TokQualifier:
+				case shared.TokType, shared.TokQualifier:
 					if name == "_start" {
 						error.Warning(10, "", peek(0), &tokens)
 					}
 					register = 0
 					expComma := false
 					for j := i; j < len(tokens); j++ {
-						if peek(0).Type == lexer.TokRParen {	
-							expect(lexer.TokRParen)
+						if peek(0).Type == shared.TokRParen {	
+							expect(shared.TokRParen)
 							break
 						}
 						if expComma == false {
@@ -1898,7 +1898,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 							__rn := fmt.Sprintf("var_%d", IDCounter)
 							IDCounter++
 							__rtype, __ptr := _PARSE_TYPE()
-							__name := expect(lexer.TokIdent)
+							__name := expect(shared.TokIdent)
 							
 							if extern == true {
 								goto ARG_DECL_DONE
@@ -1935,12 +1935,12 @@ func Parse(tokens []lexer.Token, Scope int) {
 							nargs++
 							expComma = true
 						} else {
-							expect(lexer.TokComma)
+							expect(shared.TokComma)
 							expComma = false
 						}	
 					}	
-				case lexer.TokRParen:
-					expect(lexer.TokRParen)
+				case shared.TokRParen:
+					expect(shared.TokRParen)
 				}
 
 				Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: nil, Scope: Scope, Real: "e6", Extern: extern, ArgNum: nargs})
@@ -1962,8 +1962,8 @@ func Parse(tokens []lexer.Token, Scope int) {
 					}
 				}
 
-				if peek(0).Type == lexer.TokSemi {
-					expect(lexer.TokSemi)
+				if peek(0).Type == shared.TokSemi {
+					expect(shared.TokSemi)
 					continue
 				}
 
@@ -1971,14 +1971,14 @@ func Parse(tokens []lexer.Token, Scope int) {
 					error.Warning(23, "'_start' is not 'void'", _typetok, &tokens)
 					error.Note(24, "'void'", _typetok, &tokens)
 				}
-				expect(lexer.TokLCurly)	
+				expect(shared.TokLCurly)	
 
-				var Children = []lexer.Token {}
+				var Children = []shared.Token {}
 				ending := -1
 
 				depth := 1
 				for j := i; j < len(tokens); j++ {
-					if tokens[j].Type == lexer.TokRCurly {
+					if tokens[j].Type == shared.TokRCurly {
 						depth--
 						if depth == 0 {
 							ending = j
@@ -1986,7 +1986,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 						} else {
 							Children = append(Children, tokens[j])
 						}	
-					} else if tokens[j].Type == lexer.TokLCurly {
+					} else if tokens[j].Type == shared.TokLCurly {
 						depth++
 						Children = append(Children, tokens[j])
 					} else {
@@ -1999,7 +1999,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 					i = ending
 				}
 			
-				expect(lexer.TokRCurly)
+				expect(shared.TokRCurly)
 	
 				Write(name + ":", false)	
 
@@ -2062,7 +2062,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 					topLevelName = ""
 					level = 0
 				}
-			case lexer.TokIdent:
+			case shared.TokIdent:
 				if peek(0).Value == "__attribute__" {
 					attrs = _PARSE_ATTR(name)
 					for _, attr := range attrs {
@@ -2075,11 +2075,11 @@ func Parse(tokens []lexer.Token, Scope int) {
 					}	
 				} else {
 					// Error out
-					expect(lexer.TokEOF)
+					expect(shared.TokEOF)
 				}
 				fallthrough
-			case lexer.TokEqual:	
-				expect(lexer.TokEqual)	
+			case shared.TokEqual:	
+				expect(shared.TokEqual)	
 				switch _type {
 				case "void":
 					error.Error(7, "'void'", _typetoken, &tokens)
@@ -2176,9 +2176,9 @@ func Parse(tokens []lexer.Token, Scope int) {
 					}
 					i = end + 1
 				}
-				expect(lexer.TokSemi)
-			case lexer.TokSemi:
-				expect(lexer.TokSemi)
+				expect(shared.TokSemi)
+			case shared.TokSemi:
+				expect(shared.TokSemi)
 
 				switch _type {
 				case "int":
@@ -2245,12 +2245,12 @@ func Parse(tokens []lexer.Token, Scope int) {
 						}
 					}
 				}
-			case lexer.TokLBracket:
-				expect(lexer.TokLBracket)
+			case shared.TokLBracket:
+				expect(shared.TokLBracket)
 				// Length next
-				length := expect(lexer.TokNumber)
+				length := expect(shared.TokNumber)
 				length_real, _ := strconv.ParseInt(length, 0, 64)
-				expect(lexer.TokRBracket);
+				expect(shared.TokRBracket);
 
 				rn := "var_" + fmt.Sprintf("%d", IDCounter)
 				IDCounter++
@@ -2267,7 +2267,7 @@ func Parse(tokens []lexer.Token, Scope int) {
 
 				WritePre(".pad " + fmt.Sprintf("%d", length_real), true)
 
-				expect(lexer.TokSemi)
+				expect(shared.TokSemi)
 			default:
 				error.Error(1, "'" + peek(0).Value + "'", _typetoken, &tokens)
 			}	
