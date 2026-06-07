@@ -14,7 +14,7 @@ asm (".global enterpass");
 void _cstart() __attribute__((noreturn)) {
     if (fopen("NOTEPAD     SYS", 0) == 0x00000000) {
         fcreate("NOTEPAD     SYS", 256);
-    }
+    } 
 
     puts32("Welcome to ", 0xff, 0);
     puts32("Luna", 0x9b, 0);

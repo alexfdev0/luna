@@ -27,27 +27,27 @@ long int* ffnt(char* filename) {
 
 void fcreate(char* name, long int size) {
     // Load next file pointer
-    long int* nfp = 0x61C;
-    long int* nfl = *nfp;
+    long int** nfl = 0x61C;
 
-    *nfl = 0x4C465346; // Store file header
-    nfl = nfl + 4;
 
-    strcpy(name, nfl); // Transfer name to file
+    **nfl = 0x4C465346; // Store file header
+    *nfl = *nfl + 4;
+
+    strcpy(name, *nfl); // Transfer name to file
     long int name_len = strlen(name);
-    nfl = nfl + name_len; 
-    *nfl = size;
-    nfl = nfl + 4;
+    *nfl = *nfl + name_len; 
+    **nfl = size;
+    *nfl = *nfl + 4;
 
     for (long int i = 0; i < size; i = i + 1) {
-        *nfl = 0x00;
-        nfl = nfl + 1;
+        **nfl = 0x00;
+        *nfl = *nfl + 1;
     }
 
-    long int sector = nfl / 512;
+    long int sector = *nfl / 512;
     save_sector(sector);
 
-    *nfp = *nfp + size;
+    *nfl = *nfl + size;
     save_sector(3);
 }
 

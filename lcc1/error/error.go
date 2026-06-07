@@ -150,7 +150,6 @@ func Error(errno int, args string, token shared.Token, tokens *[]shared.Token) {
 	fmt.Fprintln(os.Stderr, "\033[1;39m" + label + " \033[1;31merror: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
 	Stargaze(tokens, find(token, tokens), errno, 1)
 	Errors = Errors + 1	
-	// os.Exit(1)
 }
 
 func ErrorNoGaze(errno int, args string, token shared.Token) {
@@ -164,7 +163,6 @@ func ErrorNoGaze(errno int, args string, token shared.Token) {
 	}
 	fmt.Fprintln(os.Stderr, "\033[1;39m" + label + " \033[1;31merror: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
 	Errors = Errors + 1
-	// os.Exit(1)
 }
 
 func Warning(errno int, args string, token shared.Token, tokens *[]shared.Token) {
@@ -195,6 +193,9 @@ func Note(errno int, args string, token shared.Token, tokens *[]shared.Token) {
 	}
 	fmt.Println("\033[1;39m" + label + " \033[1;36mnote: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
 	Stargaze(tokens, find(token, tokens), errno, 3)
+}
+func UnimplementedMessage(message string) {
+	fmt.Println("sorry, unimplemented:", message)
 }
 
 func Summary() {

@@ -15,7 +15,6 @@ void shell() {
         readin(buf, 1, 0); 
         if (strcmp("reboot", buf) == 1) {
             puts32("Rebooting...", 255, 0);
-            play_sound(SHUTDOWN_SOUND, 387436, 1);
             asm ("mov r1, 0");
             asm ("int 0xf"); 
         }
@@ -63,7 +62,6 @@ void shell() {
 
         if (strcmp("shutdown", buf) == 1) {
             puts32("Shutting down...\n", 255, 0);
-            play_sound(SHUTDOWN_SOUND, 387436, 1);
             asm ("int 0x11");
         } 
 

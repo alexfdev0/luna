@@ -42,6 +42,7 @@ type Variable_Static struct {
 	Extern bool
 	ArgNum int
 	Register bool
+	PointerLength int
 }
 
 type FunctionDecl struct {
@@ -60,6 +61,7 @@ type UnpackOrder struct {
 	Label string
 	Type int
 	Pointer bool
+	PointerLength int
 }
 
 type TypeMapEntry struct {
@@ -204,6 +206,7 @@ var _BREAK_TOPLEVEL string = ""
 var _CONTINUE_TOPLEVEL string = ""
 var _COERCE_TYPE int = 6
 var _COERCE_PTR bool = false
+var _COERCE_LENGTH int = 0
 func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int {
 	i := start
 	// CMP := false
@@ -419,7 +422,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 			i++
 		}
 	}
-	_PARSE_TYPE := func() (int, bool) {
+	_PARSE_TYPE := func() (int, bool, int) {
 		ptr := false
 		long := false
 		short := false
@@ -492,20 +495,24 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 					rtype = NULL
 				}
 
+				ptr_length := 0
+			_ptrtop:
 				if peek(0).Type == shared.TokStar {
 					ptr = true
 					i++
+					ptr_length++
+					goto _ptrtop
 				} else {
-					if rtype == NULL {
+					if rtype == NULL && ptr_length < 1 {
 						error.Error(7, "'void'", peek(-1), &tokens)	
 					}
 				}
 
-				return rtype, ptr
+				return rtype, ptr, ptr_length
 				break
 			}
 		}
-		return NUMBER16, false
+		return NUMBER16, false, 0
 	}
 	_CMPOP_CLEANUP := func() {
 		CMP_OP = ""
@@ -560,7 +567,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 		goto DONE
 	case shared.TokLParen:
 		expect(shared.TokLParen)
-		_COERCE_TYPE, _COERCE_PTR = _PARSE_TYPE()	
+		_COERCE_TYPE, _COERCE_PTR, _COERCE_LENGTH = _PARSE_TYPE()	
 		expect(shared.TokRParen)
 		goto EXPY_TOP
 	case shared.TokIf:
@@ -1133,15 +1140,16 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 		for x_deref > 0 {
 			x_deref--
 			if variable.Pointer == true {
-				if ((derefs > 0 && Intent == "write") || (Intent == "read")) {
+				fmt.Println(deref, variable.PointerLength)
+				if ((derefs > variable.PointerLength && Intent == "write") || (derefs >= variable.PointerLength - 1 && Intent == "read")) {
 					if PIE == true {
 						Write("add r2, r2, e14", true)
 					}
 					switch variable.Type2 {
 					case NUMBER8, STRING, NULL:
-						Write("lod r2, r2", true)	
+						Write("lod r2, r2", true)
 					case NUMBER16:
-						Write("lod16 r2, r2", true)	
+						Write("lod16 r2, r2", true)
 					case NUMBER32:
 						Write("lod32 r2, r2", true)
 					}
@@ -1219,7 +1227,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 		for x_deref >= 0 {
 			x_deref--
 			if _COERCE_PTR == true {
-				if (derefs > 0 && Intent == "write") || (Intent == "read") {	
+				if (derefs > _COERCE_LENGTH && Intent == "write") || (derefs >= _COERCE_LENGTH - 1 && Intent == "read") {	
 					switch _COERCE_TYPE {
 					case NUMBER8, STRING, NULL:
 						Write("lod r2, r2", true)
@@ -1228,7 +1236,11 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 					case NUMBER32:
 						Write("lod32 r2, r2", true)
 					}
-				}
+				} else {
+					if Intent == "read" {
+						Write("lod_ptr r2, r2", true)
+					}
+				} 
 			} else {
 				switch _COERCE_TYPE {
 				case NUMBER8, STRING, NULL:
@@ -1252,6 +1264,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 		// Unset coerced type
 		_COERCE_TYPE = 6
 		_COERCE_PTR = false
+		_COERCE_LENGTH = 0
 		NUM_TRY_DEREF = false
 	}
 	
@@ -1324,7 +1337,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 				Write("str32 " + register + ", r5", true)
 			}
 		} else {
-			if deref >= 1 {
+			if deref >= EQU_VAR.PointerLength {
 				switch EQU_VAR.Type2 {
 				case NUMBER8, STRING, NULL:
 					Write("str " + register + ", r5", true)
@@ -1571,7 +1584,8 @@ func Parse(tokens []shared.Token, Scope int) {
 		return _RETURNS
 	}
 
-	_PARSE_TYPE := func() (int, bool) {
+	_PARSE_TYPE := func() (int, bool, int) {
+		ptrlen := 0
 		ptr := false
 		long := false
 		short := false
@@ -1644,20 +1658,23 @@ func Parse(tokens []shared.Token, Scope int) {
 					rtype = NULL
 				}
 
+			ptrtop:
 				if peek(0).Type == shared.TokStar {
 					ptr = true
 					i++
+					ptrlen++
+					goto ptrtop
 				} else {
-					if rtype == NULL {
+					if rtype == NULL && ptrlen < 1 {
 						error.Error(7, "'void'", peek(-1), &tokens)	
 					}
 				}
 
-				return rtype, ptr
+				return rtype, ptr, ptrlen
 				break
 			}
 		}
-		return NUMBER16, false
+		return NUMBER16, false, 0
 	}
 	
 	for {
@@ -1745,7 +1762,7 @@ func Parse(tokens []shared.Token, Scope int) {
 					
 					switch peek(0).Type {
 					case shared.TokQualifier, shared.TokType:
-						Type, Pointer := _PARSE_TYPE()
+						Type, Pointer, _ := _PARSE_TYPE()
 						if Pointer == true {
 							error.Warning(41, "", peek(-1), &tokens);
 						}
@@ -1826,10 +1843,16 @@ func Parse(tokens []shared.Token, Scope int) {
 
 			_typetok := tokens[i]
 			_type := expect(shared.TokType)
+			_ptrlen := 0
+		_ptrtop:
 			if peek(0).Type == shared.TokStar {
 				ptr = true
 				i++
+				_ptrlen++
+				goto _ptrtop
 			}
+
+			// TODO: add ampersand as a reverser so we can do &* as a no-op
 
 			name := expect(shared.TokIdent)
 		
@@ -1897,14 +1920,14 @@ func Parse(tokens []shared.Token, Scope int) {
 							__arg_reg := fmt.Sprintf("e%d", register)
 							__rn := fmt.Sprintf("var_%d", IDCounter)
 							IDCounter++
-							__rtype, __ptr := _PARSE_TYPE()
+							__rtype, __ptr, __ptrlen := _PARSE_TYPE()
 							__name := expect(shared.TokIdent)
 							
 							if extern == true {
 								goto ARG_DECL_DONE
 							}
 
-							UnpackOrders = append(UnpackOrders, UnpackOrder{Register: __arg_reg, Label: __rn, Type: __rtype, Pointer: __ptr})
+							UnpackOrders = append(UnpackOrders, UnpackOrder{Register: __arg_reg, Label: __rn, Type: __rtype, Pointer: __ptr, PointerLength: __ptrlen})
 
 							WritePre(__rn + ":", false)
 							switch __rtype {
@@ -1928,7 +1951,7 @@ func Parse(tokens []shared.Token, Scope int) {
 							if __ptr == false {
 								Variables = append(Variables, Variable_Static{Name: __name, Type: __rtype, Value: nil, Scope: fscope, Real: __rn, Pointer: __ptr})
 							} else {
-								Variables = append(Variables, Variable_Static{Name: __name, Type: NUMBER16, Type2: __rtype, Value: nil, Scope: fscope, Real: __rn, Pointer: __ptr})
+								Variables = append(Variables, Variable_Static{Name: __name, Type: NUMBER16, Type2: __rtype, Value: nil, Scope: fscope, Real: __rn, Pointer: __ptr, PointerLength: __ptrlen})
 							}
 							
 							register++
@@ -2148,7 +2171,7 @@ func Parse(tokens []shared.Token, Scope int) {
 
 					var val any
 					if ptr == true {	
-						Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Type2: rtype, Value: val, Pointer: true, Real: rn, Scope: Scope, Const: constant})
+						Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Type2: rtype, Value: val, Pointer: true, PointerLength: _ptrlen, Real: rn, Scope: Scope, Const: constant})
 					} else {
 						Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: val, Pointer: false, Real: rn, Scope: Scope, Const: constant})
 					}
@@ -2159,7 +2182,7 @@ func Parse(tokens []shared.Token, Scope int) {
 						IDCounter++
 						rn2 := "var_" + fmt.Sprintf("%d", IDCounter)
 						IDCounter++
-						Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Value: str, Pointer: true, Real: rn2, Scope: Scope, Const: constant})
+						Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Value: str, Pointer: true, PointerLength: _ptrlen, Real: rn2, Scope: Scope, Const: constant})
 						WritePre(rn + ":", false)
 						WritePre(".asciz \"" + str + "\"", true)
 						WritePre(rn2 + ":", false)
@@ -2195,7 +2218,7 @@ func Parse(tokens []shared.Token, Scope int) {
 							WritePre(".dword 0x00000000", true)
 						}
 
-						Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: 0, Pointer: true, Real: rn, Scope: Scope, Const: constant})
+						Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: 0, Pointer: true, PointerLength: _ptrlen, Real: rn, Scope: Scope, Const: constant})
 					} else {
 						rn := "var_" + fmt.Sprintf("%d", IDCounter)
 						WritePre(rn + ":", false)
@@ -2217,7 +2240,7 @@ func Parse(tokens []shared.Token, Scope int) {
 						IDCounter++
 						rn2 := "var_" + fmt.Sprintf("%d", IDCounter)
 						IDCounter++
-						Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Type2: STRING, Value: "", Pointer: true, Real: rn2, Scope: Scope, Const: constant})
+						Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Type2: STRING, Value: "", Pointer: true, PointerLength: _ptrlen, Real: rn2, Scope: Scope, Const: constant})
 						WritePre(rn + ":", false)
 						WritePre(".asciz \"\"", true)
 						WritePre(rn2 + ":", false)
@@ -2235,7 +2258,7 @@ func Parse(tokens []shared.Token, Scope int) {
 							WritePre(rn2 + ":", false)
 							WritePre(".ptr " + rn, true)
 							WritePre(rn + ":", false)
-							Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Type2: NULL, Value: nil, Pointer: true, Real: rn, Scope: Scope, Const: constant})
+							Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Type2: NULL, Value: nil, Pointer: true, PointerLength: _ptrlen, Real: rn, Scope: Scope, Const: constant})
 						} else {
 							rn := "var_" + fmt.Sprintf("%d", IDCounter)
 							IDCounter++
@@ -2248,9 +2271,15 @@ func Parse(tokens []shared.Token, Scope int) {
 			case shared.TokLBracket:
 				expect(shared.TokLBracket)
 				// Length next
+				if peek(0).Type == shared.TokIdent {
+					i += 2
+					error.UnimplementedMessage("variable-length arrays are not supported.")
+					expect(shared.TokSemi)
+					continue
+				}
 				length := expect(shared.TokNumber)
 				length_real, _ := strconv.ParseInt(length, 0, 64)
-				expect(shared.TokRBracket);
+				expect(shared.TokRBracket)
 
 				rn := "var_" + fmt.Sprintf("%d", IDCounter)
 				IDCounter++
