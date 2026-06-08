@@ -98,21 +98,20 @@ long int fgetsize(char* filename) {
 }
 
 void flist() {
-    long int* fsp = 0x618;
-    long int* fp = *fsp;
+    long int** fp = 0x618;
 
     while (1) {
-        if (*fp != 0x4C465346) {
+        if (**fp != 0x4C465346) {
             break;
         }
         // skip over header
-        fp = fp + 4;
-        ffnt(fp);
+        *fp = *fp + 4;
+        puts32(ffnt(*fp), 255, 0);
         puts32("\n", 255, 0);
-        fp = fp + 16; // skip over name
-        long int size = *fp;
-        fp = fp + 4; // skip over size marker
-        fp = fp + size; // skip over file contents 
+        *fp = *fp + 16; // skip over name
+        long int size = **fp;
+        *fp = *fp + 4; // skip over size marker
+        *fp = *fp + size; // skip over file contents 
     }
 
     return 0; 
