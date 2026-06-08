@@ -1140,8 +1140,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 		for x_deref > 0 {
 			x_deref--
 			if variable.Pointer == true {
-				fmt.Println(deref, variable.PointerLength)
-				if ((derefs > variable.PointerLength && Intent == "write") || (derefs >= variable.PointerLength - 1 && Intent == "read")) {
+				if (derefs > variable.PointerLength - 1 && Intent == "write") || (derefs >= variable.PointerLength - 1 && Intent == "read") {
 					if PIE == true {
 						Write("add r2, r2, e14", true)
 					}
@@ -1201,8 +1200,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 			Write("add r1, r5, r6", true)
 		case "-":
 			Write("sub r1, r5, r6", true)
-		case "*":
-			
+		case "*":	
 			Write("mul r1, r5, r6", true)
 		case "/":
 			Write("div r1, r5, r6", true)

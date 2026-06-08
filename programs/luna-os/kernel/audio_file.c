@@ -2,4 +2,3 @@
 
 __embed__ CRASH_SOUND (("audio/crash.pcm"));
 __embed__ BOOT_SOUND (("audio/boot.pcm"));
-__embed__ SHUTDOWN_SOUND (("audio/shutdown.pcm"));
