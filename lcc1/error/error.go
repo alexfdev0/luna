@@ -141,9 +141,9 @@ func find(token shared.Token, tokens *[]shared.Token) int {
 
 func Error(errno int, args string, token shared.Token, tokens *[]shared.Token) {
 	label := "lcc:"
-	if token.Line != 0 {
+	// if token.Line != 0 {
 		label = token.File + ":" + fmt.Sprintf("%d", token.Line) + ":"
-	}
+	// }
 
 	addtl := " "
 	if errno == 22 {

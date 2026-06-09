@@ -22,7 +22,7 @@ void shell() {
         if (strcmp("about", (char*) buf) == 1) {
             puts32("LunaOS 1.0.0\nBy Alexander Flax\n", 255, 0);
             puts32("Network adapter: ", 255, 0);
-            puts32(0x7001A65A, 255, 0);
+            puts32((char*) 0x7001A65A, 255, 0);
 
             puts32("\n\n", 255, 0);
             continue;
@@ -69,7 +69,7 @@ void shell() {
             save_graphics_buf();
             render_buf(BAYACHAO_IMG);
             wait_for_key();
-            render_buf(0x30303030);
+            render_buf((void*) 0x30303030);
 
             continue;
         }
@@ -81,7 +81,7 @@ void shell() {
         }
         
         if (strcmp("clear", (char*) buf) == 1) {
-            render_buf(0x40404040);
+            render_buf((void*) 0x40404040);
             video_set_cursor(0, 0);
             continue;
         } 

@@ -5,7 +5,7 @@
 
 long int* ffnt(char* filename) {
     short short int* buffer = (short short int*) malloc((long int) strlen(filename));
-    long int bufptr = (long int) buffer;
+    long int* bufptr = (long int*) buffer;
 
     long int seen = 0;
     while (*filename != 0) { 
@@ -27,7 +27,7 @@ long int* ffnt(char* filename) {
 
 void fcreate(char* name, long int size) {
     // Load next file pointer
-    long int** nfl = 0x61C;
+    long int** nfl = (long int**) 0x61C;
 
 
     **nfl = 0x4C465346; // Store file header
@@ -52,7 +52,7 @@ void fcreate(char* name, long int size) {
 }
 
 long int* find_file(char* name) {
-    long int* fsp = 0x618;
+    long int* fsp = (long int*) 0x618;
     long int* fp = *fsp;
 
     while (1) {
@@ -97,7 +97,7 @@ long int fgetsize(char* filename) {
 }
 
 void flist() {
-    long int* fsp = 0x618;
+    long int* fsp = (long int*) 0x618;
     long int* fp = *fsp;
 
     while (1) {

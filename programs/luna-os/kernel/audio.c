@@ -4,7 +4,7 @@ asm (".global play_sound_loc");
 asm ("play_sound_loc:");
 
 void play_sound(void* buffer, long int size, short short int block) {
-    short short int* done_flag = 0x7000FA09;
+    short short int* done_flag = (short short int*) 0x7000FA09;
     *done_flag = 0;
 
     *(long int*) 0x7000FA01 = buffer;

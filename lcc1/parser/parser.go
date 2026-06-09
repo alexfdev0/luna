@@ -1272,6 +1272,39 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		// Parse expressions
 		// Load it up into r4
 
+		var CPTR bool
+		var CLENGTH int
+
+		if _COERCE_TYPE != 6 {
+			CPTR = _COERCE_PTR
+			CLENGTH = _COERCE_LENGTH
+			_COERCE_TYPE = 6
+			_COERCE_PTR = false
+			_COERCE_LENGTH = 0
+		}
+
+		
+		if RequiredType.Type != 999 {
+			required := ""
+			actual := ""
+
+			if RequiredType.Pointer == false {
+				required = "integer"
+			} else {
+				required = "pointer"
+			}
+			
+			if CPTR == false {
+				actual = "integer"
+			} else {
+				actual = "pointer"
+			}
+
+			if (RequiredType.Pointer != CPTR) || (RequiredType.PointerLength != CLENGTH) {
+				error.Error(5, "passing '" + actual + "' to '" + required + "'", peek(0), &tokens)
+			}
+		}
+		
 		_NUMBER_PARSE("r1")
 		switch peek(0).Type {
 		case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash:
