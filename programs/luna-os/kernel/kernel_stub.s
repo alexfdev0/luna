@@ -27,7 +27,7 @@ IDT_SETUP:
 
     mov r1, 0x6FFF0026
     mov r2, kernel_panic
-    strf r1, r2
+    str32 r1, r2
 
     mov r1, 0x6FFF0013
     mov r2, 1
@@ -35,19 +35,19 @@ IDT_SETUP:
 
     mov r1, 0x6FFF0014
     mov r2, syscall_handler
-    strf r1, r2
+    str32 r1, r2
 
     mov r1, 0x6FFF001A
     mov r2, key_click
-    strf r1, r2
+    str32 r1, r2
 
     mov r1, 0x6FFF0020
     mov r2, wait_for_key
-    strf r1, r2
+    str32 r1, r2
 
     mov r1, pit_nxt
     mov r2, 0x6FFF0008
-    strf r2, r1
+    str32 r2, r1
 
     ret
 

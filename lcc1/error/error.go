@@ -10,7 +10,7 @@ import (
 
 var errors = []string {
 	"no input files",
-	"unexpected token",
+	"unexpected token", // 1
 	"expected",
 	"redefinition of",
 	"use of undeclared identifier",
@@ -53,6 +53,7 @@ var errors = []string {
 	"pointers cannot be used with 'typedef'",
 	"invalid preprocessing directive",
 	"invalid number for '#pragma bits'",
+
 }
 
 var Warnings int = 0
@@ -93,11 +94,14 @@ func Stargaze(Tokens *[]shared.Token, where int, errno int, kind int) {
 	}
 
 	words := make([]string, 0, end - start + 1)
-	for j := start; j <= end; j++ {	
-		if (*Tokens)[j].Type != shared.TokType && (*Tokens)[j].Type != shared.TokQualifier {
-			words = append(words, (*Tokens)[j].Value)
-		} else {
+	for j := start; j <= end; j++ {
+		switch (*Tokens)[j].Type {
+		case shared.TokType, shared.TokQualifier:
 			words = append(words, "\033[34m" + (*Tokens)[j].Value + "\033[0m")
+		case shared.TokNumber:
+			words = append(words, "\033[32m" + (*Tokens)[j].Value + "\033[0m")	
+		default:
+			words = append(words, (*Tokens)[j].Value)	
 		}	
 	}
 
@@ -109,8 +113,6 @@ func Stargaze(Tokens *[]shared.Token, where int, errno int, kind int) {
 	text = strings.ReplaceAll(text, " ,", ",")
 	text = strings.ReplaceAll(text, "# ", "#")
 	text = strings.ReplaceAll(text, "* ", "*")
-	text = strings.ReplaceAll(text, "\033[34mchar\033[0m *", "\033[34mchar\033[0m*")
-	text = strings.ReplaceAll(text, "\033[34mint\033[0m *", "\033[34mint\033[0m*")
 	text = strings.ReplaceAll(text, " [ ", "[")
 	text = strings.ReplaceAll(text, " ] ", "] ")
 

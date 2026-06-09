@@ -7,6 +7,7 @@ import (
 	"strings"
 	"os/exec"
 	"runtime"
+	"github.com/alexfdev0/lcc_info"
 )
 
 var SeeInvocation bool
@@ -23,8 +24,8 @@ func execute(command string, displayError bool) bool {
 		flag = "/C"
 	}
 
-	cmd := exec.Command(shell, flag, command)
-	output, err := cmd.CombinedOutput()
+	_cmd := exec.Command(shell, flag, command)
+	output, err := _cmd.CombinedOutput()
 
 	if SeeInvocation == true {
 		fmt.Println(command)
@@ -92,8 +93,7 @@ func main() {
 			output_file = os.Args[i + 1]
 			i++
 		case "-v":
-			fmt.Println("Luna Compiler Collection version 6.1")
-			fmt.Println("Target: luna-l2")
+			lcc_info.PrintVersionInfo()
 			os.Exit(0)
 		case "-si":
 			SeeInvocation = true

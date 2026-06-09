@@ -1,5 +1,7 @@
 module lcc1
 
-go 1.24.5
+go 1.26.1
 
-require github.com/Knetic/govaluate v3.0.0+incompatible
+require github.com/alexfdev0/lcc_info v0.0.0
+
+replace github.com/alexfdev0/lcc_info => ../lcc_info

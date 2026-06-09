@@ -93,7 +93,7 @@ wait_key:
 
     mov r1, 0xFA53
     mov r2, key_inp
-    strf r1, r2  // SET KEY CLICK ADDR
+    str16 r1, r2  // SET KEY CLICK ADDR
 
     mov r1, 0xFA50
     mov r2, 1

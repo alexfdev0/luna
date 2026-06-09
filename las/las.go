@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"unicode"
+	"github.com/alexfdev0/lcc_info"
 )
 
 var section string = "text"
@@ -1260,8 +1261,7 @@ func main() {
 
 		switch arg {
 		case "-v":
-			fmt.Println("Luna Compiler Collection version 6.1")
-			fmt.Println("Target: luna-l2")
+			lcc_info.PrintVersionInfo()	
 			os.Exit(0)
 		case "-o":
 			output_filename = os.Args[i + 1]

@@ -12,7 +12,6 @@ import (
 	"luna_l2/video"
 	"luna_l2/shared"
 	"luna_l2/audio"
-	"luna_l2/network"
 	"luna_l2/rtc"
 	"luna_l2/keyboard"
 	"luna_l2/pit"
@@ -97,7 +96,6 @@ func getRegisterName[T uint32 | byte](address T) string {
 	// 0x70000000 - 0x7000F9FF: video RAM (64 KB)
 	// 0x7000FA00 - 0x7000FA09: audio RAM (9 B)
 	// 0x7000FA0A - 0x7001A643: empty region
-	// 0x7001A644 - 0x7001B65D: network RAM (4.1 KB)
 	// 0x7001B65E - 0x7001B663: clock RAM (6 B)
 
 // Memory map (16 bit mode):
@@ -106,7 +104,6 @@ func getRegisterName[T uint32 | byte](address T) string {
 // Bank map:
 	// 0 - 15: VRAM 
 	// 16: Audio RAM + Mouse RAM + Keyboard RAM + PIT RAM
-	// 17: Network RAM + RTC RAM
 // Size formula
 	// end = start + size - 1
 
@@ -599,6 +596,10 @@ func execute() {
 			setRegister(0x001d, ProgramCounter + 4)
 			Log("mod " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
 			stall(70)
+		case 0x21:
+			shared.LogOn = true
+			shared.Debug = true
+			Log("\033[31m----- BREAKPOINT -----\033[33m")	
 		default:
 			setRegister(0x0001, uint32(op))
 			setRegister(0x0002, getRegister(0x001d))
@@ -634,7 +635,6 @@ func main() {
 	shared.MemoryAudio = &audio.MemoryAudio
 	shared.MemoryMouse = &keyboard.MemoryMouse
 	shared.MemoryKeyboard = &keyboard.MemoryKeyboard
-	shared.MemoryNetwork = &network.MemoryNetwork
 	shared.MemoryRTC = &rtc.MemoryRTC
 	shared.MemoryPIT = &pit.MemoryPIT
 	shared.MemoryPower = &power.MemoryPower
@@ -650,10 +650,6 @@ func main() {
 			}
 		}	
 
-		if bios.CheckArgs() == false {
-			return
-		}	
-	
 		for i := 1; i < len(os.Args); i++ {
 			arg := os.Args[i]
 			switch arg {
@@ -696,30 +692,48 @@ func main() {
 			}
 		}
 
+		
+
 		boot:
 		bios.Splash()
+		boot2:
+
+		RetryBoot := func() {
+			bios.WriteLine("Could not read the boot disk\n", 255, 0)
+			shared.BootDrive++
+		}
 
 		switch shared.BootDrive {
 		case 0:
 			bios.WriteLine("Booting from hard disk...", 255, 0)
-			bios.LoadSector(0, 0, RequireDevicePresent, 0)
+
+			if shared.Filename == "" || bios.LoadSector(0, 0, 0) == false {
+				RetryBoot()
+				goto boot2
+			}
 			shared.DriveNumber = 0
 		case 1:
 			bios.WriteLine("Booting from SD...", 255, 0)
-			bios.LoadSector(1, 0, RequireDevicePresent, 0)
+
+			if shared.SDFilename == "" || bios.LoadSector(1, 0, 0) == false {
+				RetryBoot()
+				goto boot2
+			}
 			shared.DriveNumber = 1
 		case 2:
 			bios.WriteLine("Booting from DVD...", 255, 0)
-			bios.LoadSector(2, 0, RequireDevicePresent, 0)
+
+			if shared.OpticalFilename == "" || bios.LoadSector(2, 0, 0) == false {
+				RetryBoot()
+				goto boot2
+			}
 			shared.DriveNumber = 2
 		default:
 			bios.WriteLine("No bootable device", 255, 0)
 			return
 		}
-		RequireDevicePresent = false
 
 		// Initialize components
-		go network.NetController()
 		go audio.AudioController()
 		go rtc.RTCController()
 		go pit.PITController()

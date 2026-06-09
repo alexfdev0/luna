@@ -32,7 +32,7 @@ func WriteLine(str string, fg uint8, bg uint8) {
 	WriteString(str + "\n", fg, bg)
 }
 
-func LoadSector(drive int, sector int, enforce bool, dest_sector int) {	
+func LoadSector(drive int, sector int, dest_sector int) bool {	
 	var file string
 	switch drive {
 	case 0:
@@ -47,14 +47,9 @@ func LoadSector(drive int, sector int, enforce bool, dest_sector int) {
 	}	
 	f, err := os.OpenFile(file, os.O_RDONLY, 0)
 	if err != nil {
-		if enforce == false {
-			shared.SetRegister(0x0000, 1)
-			fmt.Println("luna-l2: could not load/reload block device: ", err)
-			return
-		} else {
-			fmt.Println("luna-l2: could not open '" + file + "'", err)
-			os.Exit(1)
-		}
+		shared.SetRegister(0x0000, 1)
+		fmt.Println("luna-l2: could not load/reload block device: ", err)
+		return false
 	}
 	defer f.Close()
 	start := sector * 512
@@ -66,6 +61,7 @@ func LoadSector(drive int, sector int, enforce bool, dest_sector int) {
 	} else {
 		shared.SetRegister(0x0000, 0)
 	}
+	return true
 }
 
 func WriteSector(drive int, sector int, dsector int) {
@@ -147,7 +143,7 @@ func IntHandler(code uint32) {
 		sector := shared.GetRegister(0x0001)
 		drive := shared.GetRegister(0x0002)
 		rsector := shared.GetRegister(0x0003)
-		LoadSector(int(drive), int(sector), false, int(rsector))
+		LoadSector(int(drive), int(sector), int(rsector))
 	case 0x0C:
 		video.CursorX = int(shared.GetRegister(0x0001))
 		video.CursorY = int(shared.GetRegister(0x0002))

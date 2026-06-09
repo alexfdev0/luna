@@ -4,18 +4,18 @@
 #include "util.h"
 
 long int* ffnt(char* filename) {
-    short short int* buffer = malloc(strlen(filename));
-    long int bufptr = buffer;
+    short short int* buffer = (short short int*) malloc((long int) strlen(filename));
+    long int bufptr = (long int) buffer;
 
     long int seen = 0;
     while (*filename != 0) { 
         if (*filename != 0x20) {
-            putchar(*filename, buffer); 
+            putchar((char) *filename, (char*) buffer); 
             buffer = buffer + 1;
         } else {
             if (seen == 0) {
                 seen = 1;
-                putchar(46, buffer); // .
+                putchar(46, (char*) buffer); // .
                 buffer = buffer + 1;
             }
         }
@@ -33,8 +33,8 @@ void fcreate(char* name, long int size) {
     **nfl = 0x4C465346; // Store file header
     *nfl = *nfl + 4;
 
-    strcpy(name, *nfl); // Transfer name to file
-    long int name_len = strlen(name);
+    strcpy(name, (char*) *nfl); // Transfer name to file
+    long int name_len = (long int) strlen(name);
     *nfl = *nfl + name_len; 
     **nfl = size;
     *nfl = *nfl + 4;
@@ -44,7 +44,7 @@ void fcreate(char* name, long int size) {
         *nfl = *nfl + 1;
     }
 
-    long int sector = *nfl / 512;
+    long int sector = (long int) *nfl / 512;
     save_sector(sector);
 
     *nfl = *nfl + size;
@@ -62,13 +62,12 @@ long int* find_file(char* name) {
         // skip over header
         fp = fp + 4;
 
-
-        if (strcmp(name, fp) == 1) {
+        if (strcmp(name, (char*) fp) == 1) {
             fp = fp + 20; // skip over name and size
             return fp;
         } else {
             fp = fp + 16; // skip over name
-            long int size = *fp;
+            long int size = (long int) *fp;
             fp = fp + 4; // skip over size marker
             fp = fp + size; // skip over file contents 
         }
@@ -82,7 +81,7 @@ long int* fopen(char* filename, short short int complain_on_not_found) {
     if (faddr == 0x00000000) {
         if (complain_on_not_found) {
             puts32("File '", 0xA0, 0);
-            puts32(ffnt(filename), 0xA0, 0);
+            puts32((char*) ffnt(filename), 0xA0, 0);
             puts32("' not found!\n", 0xA0, 0);
             return 0;
         }
@@ -92,29 +91,30 @@ long int* fopen(char* filename, short short int complain_on_not_found) {
 }
 
 long int fgetsize(char* filename) {
-    long int fptr = fopen(filename, 1);
+    long int* fptr = fopen(filename, 1);
     fptr = fptr - 4;
     return *fptr;
 }
 
 void flist() {
-    long int** fp = 0x618;
+    long int* fsp = 0x618;
+    long int* fp = *fsp;
 
     while (1) {
-        if (**fp != 0x4C465346) {
+        if (*fp != 0x4C465346) {
             break;
         }
         // skip over header
-        *fp = *fp + 4;
-        puts32(ffnt(*fp), 255, 0);
-        puts32("\n", 255, 0);
-        *fp = *fp + 16; // skip over name
-        long int size = **fp;
-        *fp = *fp + 4; // skip over size marker
-        *fp = *fp + size; // skip over file contents 
+        fp = fp + 4;
+        puts32((char*) ffnt((char*) fp), 255, 0);
+        puts32("\n", 255, 0); 
+        fp = fp + 16; // skip over name
+        long int size = (long int) *fp;
+        fp = fp + 4; // skip over size marker
+        fp = fp + size; // skip over file contents 
     }
 
-    return 0; 
+    return 0;
 }
 
 void fwrite(char* name, char* content) {
@@ -123,8 +123,8 @@ void fwrite(char* name, char* content) {
         return;
     }
 
-    strcpy(content, cptr);
-    long int sec = cptr / 512;
+    strcpy(content, (char*) cptr);
+    long int sec = (long int) cptr / 512;
     save_sector(sec);
 }
 

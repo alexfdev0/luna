@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"os/exec"
 	"path/filepath"
+	"github.com/alexfdev0/lcc_info"
 )
 
 func execute(command string) bool {
@@ -50,6 +51,7 @@ func main() {
 	var output_file string = ""
 	var noassemble bool = false
 	var nolink bool = false
+	var errors bool = false
 
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -58,8 +60,7 @@ func main() {
 			output_file = os.Args[i + 1]
 			i++
 		case "-v":
-			fmt.Println("Luna Compiler Collection version 6.1")
-			fmt.Println("Target: luna-l2")
+			lcc_info.PrintVersionInfo()	
 			os.Exit(0)
 		case "-S":
 			noassemble = true
@@ -112,11 +113,14 @@ func main() {
 		// Reset and clean up for the next file
 		error.Summary()
 
+		if error.Errors > 0 {
+			errors = true
+		}
 		error.Errors = 0
 		error.Warnings = 0
 	}	
 
-	if error.Errors > 0 {
+	if error.Errors > 0 || errors == true {
 		os.Exit(1)
 	}
 

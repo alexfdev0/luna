@@ -21,7 +21,7 @@ _stage2:
 
     mov r1, 0xFA53
     mov r2, key_inp
-    strf r1, r2  // SET KEY CLICK ADDR
+    str16 r1, r2  // SET KEY CLICK ADDR
     
     push 0x0F0F
     call screen_draw
@@ -33,7 +33,7 @@ _stage2:
 
     mov r1, 0
     mov r2, next_vol_num
-    strf r2, r1
+    str16 r2, r1
     // Print volumes
     push msg_select_boot_vol
     push 255
@@ -88,7 +88,7 @@ vinp_ai:
     mov e2, PARTITION_TABLE
     add e2, e2, e1
 
-    lodf e2, e3
+    lod16 e2, e3
 
     jz e3, vol_error
 
@@ -109,7 +109,7 @@ list_volumes:
 
     mov e10, pc
 
-    lodf r4, r5 
+    lod16 r4, r5 
     jz r5, list_volumes_ret 
 
     push r4
@@ -146,7 +146,7 @@ list_volumes:
     
     mov e0, next_vol_num
     mov e1, "0"
-    lodf e0, e0
+    lod16 e0, e0
     add r1, e0, e1
     int 1
 
@@ -169,7 +169,7 @@ list_volumes:
 
     inc e0
     mov e1, next_vol_num
-    strf e1, e0
+    str16 e1, e0
 
     pop e10
     pop r6

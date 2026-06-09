@@ -27,7 +27,6 @@ var MemoryVideo *[64000]byte
 var MemoryAudio *[10]byte
 var MemoryMouse *[8]byte
 var MemoryKeyboard *[1]byte
-var MemoryNetwork *[38]byte
 var MemoryRTC *[6]byte
 var MemoryPIT *[8]byte
 var MemoryPower *[4]byte
@@ -46,9 +45,7 @@ func Mapper(address uint32) byte {
 		case address >= 0x7000FA12 && address <= 0x7000FA12:
 			return (*MemoryKeyboard)[address - 0x7000FA12]
 		case address >= 0x7000FA13 && address <= 0x7000FA1A:
-			return (*MemoryPIT)[address - 0x7000FA13]
-		case address >= 0x7001A644 && address <= 0x7001A669:
-			return (*MemoryNetwork)[address - 0x7001A644]
+			return (*MemoryPIT)[address - 0x7000FA13]	
 		case address >= 0x7001B65E && address <= 0x7001B663:
 			return (*MemoryRTC)[address - 0x7001B65E]
 		case address >= 0x7001B664 && address <= 0x7001B667:
@@ -66,8 +63,6 @@ func Mapper(address uint32) byte {
 			return (*MemoryKeyboard)[address - 0xFA12]
 		case address >= 0xFA13 && address <= 0xFA1A:
 			return (*MemoryPIT)[address - 0xFA13]
-		case address >= 0xFD47 && address <= 0xFD6C:
-			return (*MemoryNetwork)[address - 0xFD47]
 		case address >= 0xFD41 && address <= 0xFD46:
 			return (*MemoryRTC)[address - 0xFD41]
 		case address >= 0xFA37 && address <= 0xFC36:
@@ -99,8 +94,6 @@ func MapperWrite(address uint32, content byte) {
 			(*MemoryKeyboard)[address - 0x7000FA12] = content
 		case address >= 0x7000FA13 && address <= 0x7000FA1A:
 			(*MemoryPIT)[address - 0x7000FA13] = content
-		case address >= 0x7001A644 && address <= 0x7001A669:
-			(*MemoryNetwork)[address - 0x7001A644] = content
 		case address >= 0x7001B65E && address <= 0x7001B663:
 			(*MemoryRTC)[address - 0x7001B65E] = content
 		case address >= 0x7001B664 && address <= 0x7001B667:
@@ -118,8 +111,6 @@ func MapperWrite(address uint32, content byte) {
 			(*MemoryKeyboard)[address - 0xFA12] = content
 		case address >= 0xFA13 && address <= 0xFA1A:
 			(*MemoryPIT)[address - 0xFA13] = content
-		case address >= 0xFD47 && address <= 0xFD6C:
-			(*MemoryNetwork)[address - 0xFD47] = content
 		case address >= 0xFD41 && address <= 0xFD46:
 			(*MemoryRTC)[address - 0xFD41] = content
 		case address >= 0xFA37 && address <= 0xFC36:

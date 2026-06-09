@@ -305,7 +305,7 @@ screen_fill:
 
     mov e10, pc
 
-    strf r1, r2
+    str32 r1, r2
 
     inc r1
     inc r1
@@ -336,8 +336,8 @@ render_buf:
 
     mov e10, pc
 
-    lodf r1, r5
-    strf r2, r5 // we'll use fast here :3
+    lod32 r1, r5
+    str32 r2, r5 // we'll use fast here :3
 
     inc r1
     inc r1
@@ -368,8 +368,8 @@ save_graphics_buf:
     mov e10, pc
 
     
-    lodf r2, r5
-    strf r1, r5
+    lod32 r2, r5
+    str32 r1, r5
 
     inc r1
     inc r1
@@ -445,9 +445,9 @@ ASLR_generate_address:
 
     mov r3, 0xFFFFFE00
     mov r1, ASLR_addr
-    lodf r1, r2
+    lod32 r1, r2
     and r2, r2, r3
-    strf r1, r2 // align to 1 sector
+    str32 r1, r2 // align to 1 sector
 
     mov e6, r2
 
@@ -461,7 +461,7 @@ lexec_core:
     pop r1
 
     mov r1, ASLR_addr
-    lodf r1, r1
+    lod32 r1, r1
 
             // at 7f
     inc r1 // l
@@ -477,17 +477,17 @@ lexec_core:
     inc r1 // first byte of program 
     
     mov r6, lexec_raddr
-    strf r6, e11
+    str32 r6, e11
 
     mov r3, ASLR_addr
-    lodf r3, r3
+    lod32 r3, r3
 
     push r1
     push r2
 
     mov r1, 0x6FFF0026
     mov r2, app_error
-    strf r1, r2
+    str32 r1, r2
 
     pop r2
     pop r1
@@ -621,10 +621,10 @@ malloc:
     pop r1 // Size
 
     mov r2, MEM_PTR
-    lodf r2, r3
+    lod32 r2, r3
     mov e6, r3
     sub r3, r3, r1
-    strf r2, r3
+    str32 r2, r3
 
     ret
 
@@ -633,9 +633,9 @@ free:
     pop r1 // Size
 
     mov r2, MEM_PTR
-    lodf r2, r3
+    lod32 r2, r3
     add r3, r3, r1
-    strf r2, r3
+    str32 r2, r3
 
     ret
 

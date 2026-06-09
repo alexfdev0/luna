@@ -43,12 +43,20 @@ type Variable_Static struct {
 	ArgNum int
 	Register bool
 	PointerLength int
+	ArgumentTypeManifest []ArgumentTypeManifestEntry
+}
+
+type ArgumentTypeManifestEntry struct {
+	Type int
+	Type2 int
+	Pointer bool
+	PointerLength int
 }
 
 type FunctionDecl struct {
 	Name string
 	Token shared.Token
-	Set []shared.Token
+	Set []shared.Token	
 }
 
 type Scope struct {
@@ -71,37 +79,39 @@ type TypeMapEntry struct {
 var TypeMap []TypeMapEntry
 
 var Variables = []Variable_Static {
-	Variable_Static{Name: "_r0", Real: "r0", Register: true, Scope: 1},
-	Variable_Static{Name: "_r1", Real: "r1", Register: true, Scope: 1},
-	Variable_Static{Name: "_r2", Real: "r2", Register: true, Scope: 1},
-	Variable_Static{Name: "_r3", Real: "r3", Register: true, Scope: 1},
-	Variable_Static{Name: "_r4", Real: "r4", Register: true, Scope: 1},
-	Variable_Static{Name: "_r5", Real: "r5", Register: true, Scope: 1},
-	Variable_Static{Name: "_r6", Real: "r6", Register: true, Scope: 1},
-	Variable_Static{Name: "_r7", Real: "r7", Register: true, Scope: 1},
-	Variable_Static{Name: "_r8", Real: "r8", Register: true, Scope: 1},
-	Variable_Static{Name: "_r9", Real: "r9", Register: true, Scope: 1},
-	Variable_Static{Name: "_r10", Real: "r10", Register: true, Scope: 1},
-	Variable_Static{Name: "_r11", Real: "r11", Register: true, Scope: 1},
-	Variable_Static{Name: "_r12", Real: "r12", Register: true, Scope: 1},
-	Variable_Static{Name: "_e0", Real: "e0", Register: true, Scope: 1},
-	Variable_Static{Name: "_e1", Real: "e1", Register: true, Scope: 1},
-	Variable_Static{Name: "_e2", Real: "e2", Register: true, Scope: 1},
-	Variable_Static{Name: "_e3", Real: "e3", Register: true, Scope: 1},
-	Variable_Static{Name: "_e4", Real: "e4", Register: true, Scope: 1},
-	Variable_Static{Name: "_e5", Real: "e5", Register: true, Scope: 1},
-	Variable_Static{Name: "_e6", Real: "e6", Register: true, Scope: 1},
-	Variable_Static{Name: "_e7", Real: "e7", Register: true, Scope: 1},
-	Variable_Static{Name: "_e8", Real: "e8", Register: true, Scope: 1},
-	Variable_Static{Name: "_e9", Real: "e9", Register: true, Scope: 1},
-	Variable_Static{Name: "_e10", Real: "e10", Register: true, Scope: 1},
-	Variable_Static{Name: "_e11", Real: "e11", Register: true, Scope: 1},
-	Variable_Static{Name: "_e12", Real: "e12", Register: true, Scope: 1},
-	Variable_Static{Name: "_sp", Real: "sp", Register: true, Scope: 1},
-	Variable_Static{Name: "_pc", Real: "pc", Register: true, Scope: 1},
-	Variable_Static{Name: "_irv", Real: "irv", Register: true, Scope: 1},
-	Variable_Static{Name: "_ir", Real: "ir", Register: true, Scope: 1},
-	Variable_Static{Name: "_b", Real: "b", Register: true, Scope: 1},	
+	Variable_Static{Name: "_r0", Real: "r0", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_r1", Real: "r1", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_r2", Real: "r2", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_r3", Real: "r3", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_r4", Real: "r4", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_r5", Real: "r5", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_r6", Real: "r6", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_r7", Real: "r7", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_r8", Real: "r8", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_r9", Real: "r9", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_r10", Real: "r10", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_r11", Real: "r11", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_r12", Real: "r12", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_e0", Real: "e0", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_e1", Real: "e1", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_e2", Real: "e2", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_e3", Real: "e3", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_e4", Real: "e4", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_e5", Real: "e5", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_e6", Real: "e6", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_e7", Real: "e7", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_e8", Real: "e8", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_e9", Real: "e9", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_e10", Real: "e10", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_e11", Real: "e11", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_e12", Real: "e12", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_e13", Real: "e13", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_e14", Real: "e14", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_sp", Real: "sp", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_pc", Real: "pc", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_irv", Real: "irv", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_ir", Real: "ir", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_b", Real: "b", Register: true, Scope: 1, Type: NUMBER32},	
 }
 
 var FunctionDecls = []FunctionDecl {}
@@ -188,12 +198,39 @@ func ReturnIntType(i int) string {
 	return "unsigned short int"
 }
 
+func TypeToString(Type int, Type2 int, Pointer bool, PointerLength int) string {
+	out := ""
+	using := Type
+	if Pointer == true {
+		using = Type2
+	}
+	
+	switch using {
+	case NUMBER8:
+		out += "short short int"
+	case NUMBER16:
+		out += "int"
+	case NUMBER32:
+		out += "long int"
+	case STRING:
+		out += "char"
+	case NULL:
+		out += "void"
+	}
+
+	for i := 0; i < PointerLength; i++ {
+		out += "*"
+	}
+
+	return out
+}
+
 func ParseExpyL1(tokens []shared.Token, i int, Scope int) int {
 	for {
 		if i >= len(tokens) {
 			break
 		}
-		i = ParseExpy(tokens, i, Scope, "r4")
+		i = ParseExpy(tokens, i, Scope, "r4", ArgumentTypeManifestEntry{Type: 999})
 	}
 	return i
 }
@@ -207,7 +244,7 @@ var _CONTINUE_TOPLEVEL string = ""
 var _COERCE_TYPE int = 6
 var _COERCE_PTR bool = false
 var _COERCE_LENGTH int = 0
-func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int {
+func ParseExpy(tokens []shared.Token, start int, Scope int, register string, RequiredType ArgumentTypeManifestEntry) int {
 	i := start
 	// CMP := false
 	expect := func(toktype shared.TokenType) string {
@@ -280,11 +317,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 			Write("mov " + register + ", " + fmt.Sprintf("%d", val), true)
 		default:
 			NF_NOPARSE := false
-			Function_Variable := LookupVariable(label, false, Scope, peek(-2), &tokens)
-			if Function_Variable.Name == "__ZERO" {
-				NF_NOPARSE = true
-				error.Error(19, "'" + label + "'; ISO C99 and later do not support implicit function declarations", peek(-2), &tokens)	
-			}
+			Function_Variable := LookupVariable(label, false, Scope, peek(-2), &tokens)	
 			// Parse arguments
 			depth := 1
 			pushed := 0
@@ -298,7 +331,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 				switch tokens[j].Type {
 				case shared.TokComma:
 					if depth == 1 {
-						ParseExpy(CurrentTokens, 0, Scope, "r7")
+						ParseExpy(CurrentTokens, 0, Scope, "r7", Function_Variable.ArgumentTypeManifest[pushed])
 						Write("push r7", true)
 						CurrentTokens = []shared.Token{}
 						pushed++
@@ -323,7 +356,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 
 			// Push last args 
 			if len(CurrentTokens) > 0 {
-				ParseExpy(CurrentTokens, 0, Scope, "r7")
+				ParseExpy(CurrentTokens, 0, Scope, "r7", Function_Variable.ArgumentTypeManifest[pushed])
 				Write("push r7", true)
 				pushed++
 			}
@@ -415,7 +448,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 					fl_exit = true
 				}
 			}
-			ParseExpy(subslice, 0, Scope, register)
+			ParseExpy(subslice, 0, Scope, register, ArgumentTypeManifestEntry{Type: 999})
 		case shared.TokNumber:
 
 			Write("mov " + register + ", " + peek(0).Value, true)
@@ -519,6 +552,19 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 		_CMP_MOP_REVERSE = ""
 		_CMP_MOP = ""
 	}
+	CheckRequiredType := func(CTYPE int, CPTR bool, CLENGTH int) {
+		if RequiredType.Type != 999 {
+			if CPTR == false {
+				if CTYPE != RequiredType.Type || CPTR != RequiredType.Pointer || CLENGTH != RequiredType.PointerLength {
+					error.Error(5, "passing '" + TypeToString(CTYPE, 0, CPTR, CLENGTH) + "' to type of '" + TypeToString(RequiredType.Type, RequiredType.Type2, RequiredType.Pointer, RequiredType.PointerLength) + "'", peek(-1), &tokens)
+				}
+			} else {
+				if CTYPE != RequiredType.Type2 || CPTR != RequiredType.Pointer || CLENGTH != RequiredType.PointerLength {
+					error.Error(5, "passing '" + TypeToString(0, CTYPE, CPTR, CLENGTH) + "' to type of '" + TypeToString(RequiredType.Type, RequiredType.Type2, RequiredType.Pointer, RequiredType.PointerLength) + "'", peek(-1), &tokens)
+				}
+			}
+		}
+	}
 
 	deref := 0
 	EQU_VT := NULL
@@ -604,7 +650,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 				break
 			}
 		}
-		ParseExpy(exp_tokens, 0, Scope, "r11") // r12 and r5 clobbered
+		ParseExpy(exp_tokens, 0, Scope, "r11", ArgumentTypeManifestEntry{Type: 999}) // r12 and r5 clobbered
 											   // r11 result
 
 		expect(shared.TokRParen)
@@ -749,7 +795,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 		// Write check portion
 		
 		Write(top_label + ":", false)
-		ParseExpy(subslice, 0, Scope, "r11")
+		ParseExpy(subslice, 0, Scope, "r11", ArgumentTypeManifestEntry{Type: 999})
 
 		cmop := ""
 		if _CMP_MOP == "" {
@@ -876,7 +922,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 		DScope := CreateScope(Scope)
 		ParseExpyL1(subslice, 0, DScope)
 		Write(middle_label + ":", false)
-		ParseExpy(subslice2, 0, DScope, "r11")
+		ParseExpy(subslice2, 0, DScope, "r11", ArgumentTypeManifestEntry{Type: 999})
 
 		cmop := ""
 		if _CMP_MOP == "" {
@@ -945,7 +991,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 		ParseExpyL1(subslice, 0, FScope) // Initialize variable
 
 		Write(top_label + ":", false)
-		ParseExpy(subslice2, 0, FScope, "r11")
+		ParseExpy(subslice2, 0, FScope, "r11", ArgumentTypeManifestEntry{Type: 999})
 
 		cmopr := ""
 		if _CMP_MOP_REVERSE == "" {
@@ -1046,7 +1092,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 		case shared.TokSemi:
 			
 		default:
-			i = ParseExpy(tokens, i, Scope, "e6")
+			i = ParseExpy(tokens, i, Scope, "e6", ArgumentTypeManifestEntry{Type: 999})
 		}	
 		expect(shared.TokSemi)
 		Write("pop e11", true)
@@ -1057,6 +1103,10 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 		var variable Variable_Static
 
 		// NUM_VAR_OVERRIDE = true
+
+		var CTYPE int
+		var CPTR bool
+		var CLENGTH int
 
 		if label[0] == '"' {
 			LTL := IDENT_STRING(label)
@@ -1070,6 +1120,34 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 		switch peek(0).Type {
 		case shared.TokLParen:
 			// TODO: allow comma arbitration
+			// TODO: refactor this
+
+			variable = LookupVariable(peek(-1).Value, false, Scope, peek(-1), &tokens)
+			if variable.Name == "__ZERO" && peek(-1).Value != "asm" && peek(-1).Value != "sizeof" {
+				error.Error(19, "'" + label + "'; ISO C99 and later do not support implicit function declarations", peek(-2), &tokens)	
+			}
+
+			if _COERCE_TYPE != 6 {
+				CTYPE = _COERCE_TYPE
+				CPTR = _COERCE_PTR
+				CLENGTH = _COERCE_LENGTH
+				_COERCE_TYPE = 6
+				_COERCE_PTR = false
+				_COERCE_LENGTH = 0
+			} else {
+				if variable.Pointer == false {
+					CTYPE = variable.Type
+					CPTR = variable.Pointer
+					CLENGTH = variable.PointerLength
+				} else {
+					CTYPE = variable.Type2
+					CPTR = variable.Pointer
+					CLENGTH = variable.PointerLength
+				}
+			}
+
+			CheckRequiredType(CTYPE, CPTR, CLENGTH)	
+
 			IDENT_FUNC(label)	
 			goto CONTINUE
 		case shared.TokColon:
@@ -1079,6 +1157,28 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 		}	
 
 		variable = LookupVariable(label, true, Scope, peek(-1), &tokens)
+
+		if _COERCE_TYPE != 6 {
+			CTYPE = _COERCE_TYPE
+			CPTR = _COERCE_PTR
+			CLENGTH = _COERCE_LENGTH
+			_COERCE_TYPE = 6
+			_COERCE_PTR = false
+			_COERCE_LENGTH = 0
+		} else {
+			if variable.Pointer == false {
+				CTYPE = variable.Type
+				CPTR = variable.Pointer
+				CLENGTH = variable.PointerLength
+			} else {
+				// If encountering problems then come back and add variable.Type = _COERCE_TYPE
+				CTYPE = variable.Type2
+				CPTR = variable.Pointer
+				CLENGTH = variable.PointerLength
+			}
+		}
+
+		CheckRequiredType(CTYPE, CPTR, CLENGTH)
 
 		switch peek(0).Type {
 		case shared.TokLBracket:
@@ -1112,7 +1212,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 			}
 			expect(shared.TokRBracket)
 
-			ParseExpy(subslice, 0, Scope, "e8")
+			ParseExpy(subslice, 0, Scope, "e8", ArgumentTypeManifestEntry{Type: 999})
 		}
 
 		EQU_VT = variable.Type
@@ -1256,7 +1356,12 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 
 		// Construct fake variable
 		// Removed the pointer variant because causing issues.
-		EQU_VAR = Variable_Static {Pointer: _COERCE_PTR, Type: _COERCE_TYPE, Type2: _COERCE_TYPE}
+		if _COERCE_PTR == false {
+			EQU_VAR = Variable_Static {Pointer: _COERCE_PTR, Type: _COERCE_TYPE}
+		} else {
+			EQU_VAR = Variable_Static {Pointer: _COERCE_PTR, Type2: _COERCE_TYPE}
+		}
+		
 		EQU_VT = _COERCE_TYPE
 		
 		// Unset coerced type
@@ -1311,13 +1416,13 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 			_CMP_MOP_REVERSE = "jz"
 		}
 
-		i = ParseExpy(tokens, i, Scope, "r5")
+		i = ParseExpy(tokens, i, Scope, "r5", ArgumentTypeManifestEntry{Type: 999})
 		// Universal IF register = r11
 	
 		Write(cmpopreal + " r11, " + register + ", r5", true)	
 	default:
 		expect(shared.TokEqual)
-		i = ParseExpy(tokens, i, Scope, "r5")
+		i = ParseExpy(tokens, i, Scope, "r5", ArgumentTypeManifestEntry{Type: 999})
 
 		if EQU_VAR.Const == true {
 			error.Error(33, "'" + EQU_VAR.Name + "' with const-qualified type", peek(-1), &tokens)
@@ -1353,7 +1458,9 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string) int
 	}
 
 	DONE:
-
+	_COERCE_TYPE = 6
+	_COERCE_PTR = false
+	_COERCE_LENGTH = 0
 	return i
 }
 
@@ -1839,7 +1946,7 @@ func Parse(tokens []shared.Token, Scope int) {
 				error.Error(25, "", peek(0), &tokens)
 			}
 
-			_typetok := tokens[i]
+			// _typetok := tokens[i]
 			_type := expect(shared.TokType)
 			_ptrlen := 0
 		_ptrtop:
@@ -1879,10 +1986,16 @@ func Parse(tokens []shared.Token, Scope int) {
 				error.Error(3, "'" + name + "'", tokens[i - 1], &tokens)
 			}
 
-			FunctionDecls = append(FunctionDecls, FunctionDecl{Name: name, Token: peek(-1), Set: tokens})	
+			FunctionDecls = append(FunctionDecls, 
+				FunctionDecl {
+					Name: name, 
+					Token: peek(-1), 
+					Set: tokens,
+				})	
 
 			var attrs []string
 			var UnpackOrders []UnpackOrder
+			var ManifestEntries []ArgumentTypeManifestEntry
 
 			allow_nonconst := L1_ALLOW_NONCONST
 
@@ -1921,6 +2034,20 @@ func Parse(tokens []shared.Token, Scope int) {
 							__rtype, __ptr, __ptrlen := _PARSE_TYPE()
 							__name := expect(shared.TokIdent)
 							
+							if __ptr == false {
+								ManifestEntries = append(ManifestEntries, ArgumentTypeManifestEntry{
+									Type: __rtype,
+									Pointer: false,
+									PointerLength: __ptrlen,
+								})
+							} else {
+								ManifestEntries = append(ManifestEntries, ArgumentTypeManifestEntry{
+									Type2: __rtype,
+									Pointer: true,
+									PointerLength: __ptrlen,
+								})
+							}
+
 							if extern == true {
 								goto ARG_DECL_DONE
 							}
@@ -1964,7 +2091,32 @@ func Parse(tokens []shared.Token, Scope int) {
 					expect(shared.TokRParen)
 				}
 
-				Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: nil, Scope: Scope, Real: "e6", Extern: extern, ArgNum: nargs})
+				if ptr == false {
+					Variables = append(Variables, Variable_Static{
+						Name: name, 
+						Type: rtype, 
+						Value: nil, 
+						Scope: Scope, 
+						Real: "e6", 
+						Extern: extern, 
+						ArgNum: nargs,
+						ArgumentTypeManifest: ManifestEntries,
+					})
+				} else {
+					Variables = append(Variables, Variable_Static{
+						Name: name, 
+						Type: NUMBER16,
+						Type2: rtype,
+						Pointer: true,
+						PointerLength: _ptrlen,
+						Value: nil, 
+						Scope: Scope, 
+						Real: "e6", 
+						Extern: extern, 
+						ArgNum: nargs,
+						ArgumentTypeManifest: ManifestEntries,
+					})
+				}
 
 				noreturn := false
 				if peek(0).Value == "__attribute__" {
@@ -1987,11 +2139,7 @@ func Parse(tokens []shared.Token, Scope int) {
 					expect(shared.TokSemi)
 					continue
 				}
-
-				if name == "_start" && _type != "void" {
-					error.Warning(23, "'_start' is not 'void'", _typetok, &tokens)
-					error.Note(24, "'void'", _typetok, &tokens)
-				}
+	
 				expect(shared.TokLCurly)	
 
 				var Children = []shared.Token {}
@@ -2141,7 +2289,17 @@ func Parse(tokens []shared.Token, Scope int) {
 						EQU_RTYPE_DONE:
 					} else {
 						WritePre(rn + ":", false)
-						_i = ParseExpy(tokens, i, Scope, "r4")
+						var ATMEntry ArgumentTypeManifestEntry
+						if ptr == false {
+							ATMEntry.Type = rtype
+							ATMEntry.Pointer = ptr
+							ATMEntry.PointerLength = _ptrlen
+						} else {
+							ATMEntry.Type2 = rtype
+							ATMEntry.Pointer = ptr
+							ATMEntry.PointerLength = _ptrlen
+						}
+						_i = ParseExpy(tokens, i, Scope, "r4", ATMEntry)
 
 						if ptr == false {
 							switch rtype {
@@ -2180,7 +2338,7 @@ func Parse(tokens []shared.Token, Scope int) {
 						IDCounter++
 						rn2 := "var_" + fmt.Sprintf("%d", IDCounter)
 						IDCounter++
-						Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Value: str, Pointer: true, PointerLength: _ptrlen, Real: rn2, Scope: Scope, Const: constant})
+						Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Value: str, Type2: STRING, Pointer: true, PointerLength: _ptrlen, Real: rn2, Scope: Scope, Const: constant})
 						WritePre(rn + ":", false)
 						WritePre(".asciz \"" + str + "\"", true)
 						WritePre(rn2 + ":", false)
@@ -2262,7 +2420,7 @@ func Parse(tokens []shared.Token, Scope int) {
 							IDCounter++
 							WritePre(rn + ":", false)
 							WritePre(".ptr " + name, true)
-							Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Value: nil, Pointer: true, Real: rn, Scope: Scope, Const: constant})	
+							Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Type2: NULL, Value: nil, Pointer: true, Real: rn, PointerLength: _ptrlen, Scope: Scope, Const: constant})	
 						}
 					}
 				}

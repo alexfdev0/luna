@@ -5,7 +5,7 @@
 
 void tohex(long int number, short short int capitalized) {
     puts32("0x", 255, 0);
-    puts32(itoa(number, capitalized, malloc(11)), 255, 0);
+    puts32((char*) itoa(number, capitalized, (char*) malloc(11)), 255, 0);
     puts32("\n", 255, 0);
     free(11);
 }
@@ -26,12 +26,12 @@ void kernel_panic() __attribute__((noreturn)) {
     
     puts32("Instruction: 0x", 255, 0xA0);
     asm ("pop e9");
-    puts32(itoa(_e9, 1, malloc(11)), 255, 0xA0);
+    puts32((char*) itoa(_e9, 1, (char*) malloc(11)), 255, 0xA0);
     puts32("\n", 255, 0xA0);
 
     puts32("Location: 0x", 255, 0xA0);
     asm ("pop e9");
-    puts32(itoa(_e9, 1, malloc(11)), 255, 0xA0);
+    puts32((char*) itoa(_e9, 1, (char*) malloc(11)), 255, 0xA0);
     puts32("\n", 255, 0xA0);
 
 
@@ -59,7 +59,7 @@ void reboot() {
     asm ("int 0xf");
 }
 
-void load_sector(short short int drive, long int dest_sector, long int real_sector) {
+void load_sector(short short int drive, long int* dest_sector, long int real_sector) {
     asm ("mov r2, e0");
     asm ("mov r1, e1");
     asm ("mov r3, e2");
@@ -73,7 +73,7 @@ void load_executable() {
         return;
     }
 
-    long int* address = ASLR_generate_address();
+    long int* address = (long int*) ASLR_generate_address();
     address = address + 1;
 
     load_sector(2, address / 512, 0);
@@ -85,7 +85,7 @@ void load_executable() {
         puts32("Invalid executable file format.\n", 255, 0);
         return;
     }
-    lexec_core(address);
+    lexec_core((long int) address);
 }
 
 void app_error() __attribute__((noreturn)) {
