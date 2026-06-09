@@ -6,7 +6,7 @@ extern void render(char* buffer);
 extern void screen_fill(long int col);
 extern void render_buf(void* img_buf);
 extern void save_graphics_buf();
-extern void wait_for_key();
+extern short short int wait_for_key();
 extern int strcmp(char* buf1, char* buf2);
 extern int strlen(char* str);
 extern long int* malloc(long int size);

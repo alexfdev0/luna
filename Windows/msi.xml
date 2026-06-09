@@ -21,7 +21,6 @@
         <!-- Luna L2 install directory -->
         <Directory Id="INSTALLFOLDER" Name="Luna L2">
           
-          <!-- Component that installs your EXE -->
           <Component Id="LunaExeComponent" Guid="ca84310e-1542-41bc-bbdc-6401b3149080">
             <File Id="l2" Source="luna-l2.exe" />
           </Component>

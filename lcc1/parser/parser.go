@@ -244,6 +244,8 @@ var _CONTINUE_TOPLEVEL string = ""
 var _COERCE_TYPE int = 6
 var _COERCE_PTR bool = false
 var _COERCE_LENGTH int = 0
+var _CURRENT_INFUNCTION Variable_Static
+
 func ParseExpy(tokens []shared.Token, start int, Scope int, register string, RequiredType ArgumentTypeManifestEntry) int {
 	i := start
 	// CMP := false
@@ -1089,12 +1091,15 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		expect(shared.TokReturn)
 
 		switch peek(0).Type {
-		case shared.TokSemi:
-			
+		case shared.TokSemi:		
 		default:
+			if _CURRENT_INFUNCTION.Pointer == false && _CURRENT_INFUNCTION.Type == NULL {
+				error.Error(44, "'" + _CURRENT_INFUNCTION.Name + "' should not return a value", peek(-1), &tokens)	
+			}
 			i = ParseExpy(tokens, i, Scope, "e6", ArgumentTypeManifestEntry{Type: 999})
 		}	
 		expect(shared.TokSemi)
+
 		Write("pop e11", true)
 		Write("ret", true)
 		goto DONE
@@ -1178,7 +1183,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			}
 		}
 
-		CheckRequiredType(CTYPE, CPTR, CLENGTH)
+		
 
 		switch peek(0).Type {
 		case shared.TokLBracket:
@@ -1238,6 +1243,13 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		x_deref := deref
 		derefs := 0
 		for x_deref > 0 {
+			if RequiredType.Type != 999 {
+				if CLENGTH > 0 {
+					CLENGTH--
+				} else {
+					CPTR = false
+				}
+			}
 			x_deref--
 			if variable.Pointer == true {
 				if (derefs > variable.PointerLength - 1 && Intent == "write") || (derefs >= variable.PointerLength - 1 && Intent == "read") {
@@ -1267,44 +1279,13 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			}
 			derefs++
 		}
+
+		CheckRequiredType(CTYPE, CPTR, CLENGTH)
 		Write("mov " + register + ", r2", true)	
 	case shared.TokNumber:
 		// Parse expressions
 		// Load it up into r4
 
-		var CPTR bool
-		var CLENGTH int
-
-		if _COERCE_TYPE != 6 {
-			CPTR = _COERCE_PTR
-			CLENGTH = _COERCE_LENGTH
-			_COERCE_TYPE = 6
-			_COERCE_PTR = false
-			_COERCE_LENGTH = 0
-		}
-
-		
-		if RequiredType.Type != 999 {
-			required := ""
-			actual := ""
-
-			if RequiredType.Pointer == false {
-				required = "integer"
-			} else {
-				required = "pointer"
-			}
-			
-			if CPTR == false {
-				actual = "integer"
-			} else {
-				actual = "pointer"
-			}
-
-			if (RequiredType.Pointer != CPTR) || (RequiredType.PointerLength != CLENGTH) {
-				error.Error(5, "passing '" + actual + "' to '" + required + "'", peek(0), &tokens)
-			}
-		}
-		
 		_NUMBER_PARSE("r1")
 		switch peek(0).Type {
 		case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash:
@@ -1352,10 +1333,30 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 	if NUM_TRY_DEREF == true {
 		Intent := _IDENT_INTENT(_COERCE_PTR, _COERCE_TYPE, deref, true, Variable_Static{Name: "__FAKE__"})
 
+		var CPTR bool
+		var CLENGTH int
+
+		if _COERCE_TYPE != 6 {
+			CPTR = _COERCE_PTR
+			CLENGTH = _COERCE_LENGTH
+			_COERCE_TYPE = 6
+			_COERCE_PTR = false
+			_COERCE_LENGTH = 0
+		}
+
+		
+		
+
 		// deref--
 		derefs := 0
 		x_deref := deref - 1
 		for x_deref >= 0 {
+			if CLENGTH > 0 {
+				CLENGTH--
+			} else {
+				CPTR = false
+			}
+
 			x_deref--
 			if _COERCE_PTR == true {
 				if (derefs > _COERCE_LENGTH && Intent == "write") || (derefs >= _COERCE_LENGTH - 1 && Intent == "read") {	
@@ -1389,6 +1390,28 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 
 		// Construct fake variable
 		// Removed the pointer variant because causing issues.
+
+		if RequiredType.Type != 999 {
+			required := ""
+			actual := ""
+
+			if RequiredType.Pointer == false {
+				required = "integer"
+			} else {
+				required = "pointer"
+			}
+			
+			if CPTR == false {
+				actual = "integer"
+			} else {
+				actual = "pointer"
+			}
+
+			if (RequiredType.Pointer != CPTR) || (RequiredType.PointerLength != CLENGTH) {
+				error.Error(5, "passing '" + actual + "' to '" + required + "'", peek(0), &tokens)
+			}
+		}
+
 		if _COERCE_PTR == false {
 			EQU_VAR = Variable_Static {Pointer: _COERCE_PTR, Type: _COERCE_TYPE}
 		} else {
@@ -2012,6 +2035,11 @@ func Parse(tokens []shared.Token, Scope int) {
 					error.Error(14, "for type 'char'", peek(-2), &tokens)
 				}
 				rtype = STRING
+			case "void":
+				if long == true || short == true || unsigned == true {
+					error.Error(14, "for type 'void'", peek(-2), &tokens)
+				}
+				rtype = NULL
 			}	
 
 			_variable := LookupVariable(name, false, Scope, tokens[i - 1], &tokens) 
@@ -2124,8 +2152,9 @@ func Parse(tokens []shared.Token, Scope int) {
 					expect(shared.TokRParen)
 				}
 
+				var FuncVar Variable_Static
 				if ptr == false {
-					Variables = append(Variables, Variable_Static{
+					FuncVar = Variable_Static{
 						Name: name, 
 						Type: rtype, 
 						Value: nil, 
@@ -2134,9 +2163,9 @@ func Parse(tokens []shared.Token, Scope int) {
 						Extern: extern, 
 						ArgNum: nargs,
 						ArgumentTypeManifest: ManifestEntries,
-					})
+					}	
 				} else {
-					Variables = append(Variables, Variable_Static{
+					FuncVar = Variable_Static{
 						Name: name, 
 						Type: NUMBER16,
 						Type2: rtype,
@@ -2148,8 +2177,9 @@ func Parse(tokens []shared.Token, Scope int) {
 						Extern: extern, 
 						ArgNum: nargs,
 						ArgumentTypeManifest: ManifestEntries,
-					})
+					}	
 				}
+				Variables = append(Variables, FuncVar)
 
 				noreturn := false
 				if peek(0).Value == "__attribute__" {
@@ -2253,7 +2283,8 @@ func Parse(tokens []shared.Token, Scope int) {
 							Write("str32 r1, " + __arg_reg, true)
 						}	
 					}
-	
+
+					_CURRENT_INFUNCTION = FuncVar
 					ParseExpyL1(Children, 0, fscope)
 
 					if noreturn == false {

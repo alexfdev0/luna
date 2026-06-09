@@ -53,7 +53,7 @@ var errors = []string {
 	"pointers cannot be used with 'typedef'",
 	"invalid preprocessing directive",
 	"invalid number for '#pragma bits'",
-
+	"void function",
 }
 
 var Warnings int = 0

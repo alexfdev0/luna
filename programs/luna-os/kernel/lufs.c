@@ -27,32 +27,32 @@ long int* ffnt(char* filename) {
 
 void fcreate(char* name, long int size) {
     // Load next file pointer
-    long int** nfl = (long int**) 0x61C;
+    long int** nfp = (long int**) 0x61C;
+    long int* nfl = *nfp;
 
+    *nfl = 0x4C465346; // Store file header
+    nfl = nfl + 4;
 
-    **nfl = 0x4C465346; // Store file header
-    *nfl = *nfl + 4;
-
-    strcpy(name, (char*) *nfl); // Transfer name to file
+    strcpy(name, (char*) nfl); // Transfer name to file
     long int name_len = (long int) strlen(name);
-    *nfl = *nfl + name_len; 
-    **nfl = size;
-    *nfl = *nfl + 4;
+    nfl = nfl + name_len; 
+    *nfl = size;
+    nfl = nfl + 4;
 
     for (long int i = 0; i < size; i = i + 1) {
-        **nfl = 0x00;
-        *nfl = *nfl + 1;
+        *nfl = 0x00;
+        nfl = nfl + 1;
     }
 
-    long int sector = (long int) *nfl / 512;
+    long int sector = (long int) nfl / 512;
     save_sector(sector);
 
-    *nfl = *nfl + size;
+    *nfp = *nfp + size;
     save_sector(3);
 }
 
 long int* find_file(char* name) {
-    long int* fsp = (long int*) 0x618;
+    long int** fsp = (long int**) 0x618;
     long int* fp = *fsp;
 
     while (1) {
@@ -97,7 +97,7 @@ long int fgetsize(char* filename) {
 }
 
 void flist() {
-    long int* fsp = (long int*) 0x618;
+    long int** fsp = (long int**) 0x618;
     long int* fp = *fsp;
 
     while (1) {
@@ -114,7 +114,7 @@ void flist() {
         fp = fp + size; // skip over file contents 
     }
 
-    return 0;
+    return;
 }
 
 void fwrite(char* name, char* content) {
@@ -127,5 +127,3 @@ void fwrite(char* name, char* content) {
     long int sec = (long int) cptr / 512;
     save_sector(sec);
 }
-
-asm (".dword 0x4a41414d");
