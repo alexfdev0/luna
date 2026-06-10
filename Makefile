@@ -14,13 +14,13 @@ all: bin/luna-l2 bin/las bin/l2ld bin/lcc bin/lcc1
 bin/luna-l2: $(SRC)/l2/*
 	cd l2 && go build -o ../bin/luna-l2 ./luna_l2.go	
 
-bin/las: $(SRC)/las/*
+bin/las: $(SRC)/las/* $(SRC)/lcc_info/*
 	cd las && go build -o ../bin/las ./las.go
 
-bin/lcc1: $(SRC)/lcc1/*
+bin/lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
 	cd lcc1 && go build -o ../bin/lcc1 ./lcc1.go
 
-bin/lcc: $(SRC)/lcc/*
+bin/lcc: $(SRC)/lcc/* $(SRC)/lcc_info/*
 	cd lcc && go build -o ../bin/lcc ./lcc.go
 
 bin/l2ld: $(SRC)/l2ld/*	

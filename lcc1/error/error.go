@@ -54,6 +54,7 @@ var errors = []string {
 	"invalid preprocessing directive",
 	"invalid number for '#pragma bits'",
 	"void function",
+	"expression is not assignable",
 }
 
 var Warnings int = 0

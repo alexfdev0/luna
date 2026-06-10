@@ -33,6 +33,17 @@
 .global save_sector
 .global strlen
 .global putchar
+.global printchar
+
+printchar:
+    pop e11
+    pop r1
+
+    mov r2, 255
+    mov r3, 0
+    int 1
+
+    ret
 
 readin:
     pop e11

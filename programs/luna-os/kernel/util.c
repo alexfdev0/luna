@@ -11,7 +11,7 @@ void tohex(long int number, short short int capitalized) {
 }
 
 short short int pause() {
-    puts32("Press any key to continue...\n\n", 255, 0);
+    puts32("Press any key to continue...\n\n", COLOR_GRAY, COLOR_BLACK);
     short short int code = wait_for_key();
     return code;
 }
@@ -21,18 +21,18 @@ void kernel_panic() __attribute__((noreturn)) {
     asm ("push r1");
 
     play_sound(CRASH_SOUND, 164352, 0);
-    screen_fill(0xA0A0A0A0);
-    puts32("System error\n\nYour PC ran into an error and needs to\nbe restarted.\n\nPress any key to reboot.\n\n\n", 255, 0xA0);
+    screen_fill(0x80808080);
+    puts32("System error\n\nYour PC ran into an error and needs to\nbe restarted.\n\nPress any key to reboot.\n\n\n", COLOR_WHITE, COLOR_RED);
     
-    puts32("Instruction: 0x", 255, 0xA0);
+    puts32("Instruction: 0x", COLOR_WHITE, COLOR_RED);
     asm ("pop e9");
-    puts32((char*) itoa(_e9, 1, (char*) malloc(11)), 255, 0xA0);
-    puts32("\n", 255, 0xA0);
+    puts32((char*) itoa(_e9, 1, (char*) malloc(11)), COLOR_WHITE, COLOR_RED);
+    puts32("\n", COLOR_WHITE, COLOR_RED);
 
-    puts32("Location: 0x", 255, 0xA0);
+    puts32("Location: 0x", COLOR_WHITE, COLOR_RED);
     asm ("pop e9");
-    puts32((char*) itoa(_e9, 1, (char*) malloc(11)), 255, 0xA0);
-    puts32("\n", 255, 0xA0);
+    puts32((char*) itoa(_e9, 1, (char*) malloc(11)), COLOR_WHITE, COLOR_RED);
+    puts32("\n", COLOR_WHITE, COLOR_RED);
 
 
     wait_for_key();
@@ -69,7 +69,7 @@ void load_sector(short short int drive, long int* dest_sector, long int real_sec
 void load_executable() {
     if (query_drive_inserted(2) == 0) {
         puts32("Error! ", 0xA0, 0);
-        puts32("Please insert a disc into the DVD\ndrive and try again.\n", 255, 0);
+        puts32("Please insert a disc into the DVD\ndrive and try again.\n", COLOR_GRAY, COLOR_BLACK);
         return;
     }
 
@@ -81,15 +81,15 @@ void load_executable() {
     load_sector(2, address / 512 + 2, 2);
 
     if (*address != 0x4C325049) {   
-        puts32("Error! ", 0xA0, 0);
-        puts32("Invalid executable file format.\n", 255, 0);
+        puts32("Error! ", COLOR_WHITE, COLOR_BLACK);
+        puts32("Invalid executable file format.\n", COLOR_WHITE, COLOR_BLACK);
         return;
     }
     lexec_core((long int) address);
 }
 
 void app_error() __attribute__((noreturn)) {
-    puts32("Error! ", 0xA0, 0);
-    puts32("Executable automatically\nterminated due to instruction fault.\n", 255, 0);
+    puts32("Error! ", COLOR_LRED, COLOR_BLACK);
+    puts32("Executable automatically\nterminated due to instruction fault.\n", COLOR_WHITE, COLOR_BLACK);
     goto lexec_done; 
 }

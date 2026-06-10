@@ -257,10 +257,37 @@ func Tokenize (text string, filename string) []SmallToken {
 	return tokens
 }
 
+type DefineEntry struct {
+	Name string
+	ReplacementList []SmallToken
+}
+
+var Defines = []DefineEntry {
+	DefineEntry { 
+		Name: "__LCC__", 
+		ReplacementList: []SmallToken { 
+			SmallToken { 
+				Value: "1", 
+				Filename: "__DEFAULT__",
+			}, 
+		},
+	},
+}
+
+func CheckDefined(Name string) (DefineEntry, bool) {
+	for _, Entry := range Defines {
+		if Entry.Name == Name {
+			return Entry, true
+		}
+	}
+	return DefineEntry{Name: "__NOTFOUND__"}, false
+}
+
 func Preprocessor(text string, filename string) []SmallToken {
 	var out []SmallToken
-	defines := make(map[string][]SmallToken)
-	defines["__LCC__"] = []SmallToken{SmallToken{Value: "1", Line: 0}}
+
+	
+
 	again := false
 
 	var pragma_once_files []string
@@ -278,7 +305,75 @@ func Preprocessor(text string, filename string) []SmallToken {
 	tokens := Tokenize(text, filename)
 PREPROCESSOR_TOP:
 	for i := 0; i < len(tokens); i++ {
-		switch tokens[i].Value {	
+		switch tokens[i].Value {
+		case "#define":
+			var Define DefineEntry
+			i++
+
+			Define.Name = tokens[i].Value
+			i++
+
+			for j := i; j < len(tokens); j++ {
+				t := tokens[j]
+				if t.Value == "\n" {
+					i = j
+					break
+				}
+				Define.ReplacementList = append(Define.ReplacementList, t)
+			}
+			Defines = append(Defines, Define)
+			again = true
+		case "#ifdef", "#ifndef":
+			var FakeStream []shared.Token
+			for j := i; j < len(tokens); j++ {
+				t := tokens[j]
+				if t.Value == "\n" {
+					break
+				}
+				FakeStream = append(FakeStream, shared.Token{
+					Type: shared.TokIdent,
+					Value: t.Value,
+					Line: t.Line,
+					File: t.Filename,
+				})
+			}
+			origin := FakeStream[0]
+
+			dir := tokens[i].Value
+			i++
+			look_for := tokens[i].Value
+			_, Found := CheckDefined(look_for)
+			i++
+			if (Found == true && dir == "#ifdef") || (Found == false && dir == "#ifndef") {
+				end := 0
+				for j := i; j < len(tokens); j++ {
+					t := tokens[j]
+					if t.Value == "#endif" {
+						i = j
+						end = j
+						break
+					}
+					out = append(out, t)
+				}
+				if end == 0 {
+					error.Error(29, "", origin, &FakeStream)
+				}
+				again = true
+			} else {
+				// TODO: add #else
+				end := 0
+				for j := i; j < len(tokens); j++ {
+					t := tokens[j]
+					if t.Value == "#endif" {
+						i = j
+						end = j
+						break
+					}
+				}
+				if end == 0 {
+					error.Error(29, "", origin, &FakeStream)
+				}
+			}
 		case "#error":
 			var FakeStream []shared.Token
 			for j := i; j < len(tokens); j++ {
@@ -445,7 +540,16 @@ PREPROCESSOR_TOP:
 				origin := FakeStream[0]
 				error.Error(42, "\"" + token.Value + "\"", origin, &FakeStream)
 			} else {
-				out = append(out, token)
+				Entry, Found := CheckDefined(token.Value)
+				if Found == true {
+					for _, Token := range Entry.ReplacementList {
+						Token.Line = token.Line
+						Token.Filename = token.Filename
+						out = append(out, Token)
+					}
+				} else {
+					out = append(out, token)
+				}
 			}
 		}	
 	}	

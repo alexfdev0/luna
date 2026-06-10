@@ -2,19 +2,20 @@
 
 #include "stdlib.h"
 #include "util.h"
+#include "stdbool.h"
 
 long int* ffnt(char* filename) {
     short short int* buffer = (short short int*) malloc((long int) strlen(filename));
     long int* bufptr = (long int*) buffer;
 
-    long int seen = 0;
+    bool seen = false;
     while (*filename != 0) { 
         if (*filename != 0x20) {
             putchar((char) *filename, (char*) buffer); 
             buffer = buffer + 1;
         } else {
-            if (seen == 0) {
-                seen = 1;
+            if (seen == false) {
+                seen = true;
                 putchar(46, (char*) buffer); // .
                 buffer = buffer + 1;
             }
@@ -23,6 +24,35 @@ long int* ffnt(char* filename) {
     }
     
     return bufptr;
+}
+
+long int* fntf(char* name) {
+    short short int* buffer = (short short int*) malloc(16);
+    short short int* ogbufptr = buffer; 
+    bool seen = false;
+    int copied = 0;
+
+    while (*name != 0) {
+        if (*name == 0x2e) {
+            if (seen == false) {
+                seen = true;
+                int initial = 12;
+                int toput = initial - copied;
+                for (int i = 0; i < toput; i = i + 1) {
+                    putchar(0x20, (char*) buffer);
+                    buffer = buffer + 1;
+                }
+                name = name + 1;
+            } 
+        } else {
+            putchar(*name, (char*) buffer);
+            copied = copied + 1;
+            name = name + 1;
+            buffer = buffer + 1;
+        }
+    }
+
+    return (long int*) ogbufptr;
 }
 
 void fcreate(char* name, long int size) {
@@ -51,7 +81,7 @@ void fcreate(char* name, long int size) {
     save_sector(3);
 }
 
-long int* find_file(char* name) {
+long int* find_file(char* name) { 
     long int** fsp = (long int**) 0x618;
     long int* fp = *fsp;
 
@@ -80,9 +110,9 @@ long int* fopen(char* filename, short short int complain_on_not_found) {
     long int* faddr = find_file(filename);
     if (faddr == 0x00000000) {
         if (complain_on_not_found) {
-            puts32("File '", 0xA0, 0);
-            puts32((char*) ffnt(filename), 0xA0, 0);
-            puts32("' not found!\n", 0xA0, 0);
+            puts32("File '", COLOR_LRED, COLOR_BLACK);
+            puts32((char*) ffnt(filename), COLOR_LRED, COLOR_BLACK);
+            puts32("' not found!\n", COLOR_LRED, COLOR_BLACK);
             return 0;
         }
     }
@@ -106,8 +136,8 @@ void flist() {
         }
         // skip over header
         fp = fp + 4;
-        puts32((char*) ffnt((char*) fp), 255, 0);
-        puts32("\n", 255, 0); 
+        puts32((char*) ffnt((char*) fp), COLOR_GRAY, COLOR_BLACK);
+        puts32("\n", COLOR_GRAY, COLOR_BLACK); 
         fp = fp + 16; // skip over name
         long int size = (long int) *fp;
         fp = fp + 4; // skip over size marker

@@ -198,14 +198,10 @@ func ReturnIntType(i int) string {
 	return "unsigned short int"
 }
 
-func TypeToString(Type int, Type2 int, Pointer bool, PointerLength int) string {
+func TypeToString(Type int, Pointer bool, PointerLength int) string {
 	out := ""
-	using := Type
-	if Pointer == true {
-		using = Type2
-	}
-	
-	switch using {
+
+	switch Type {
 	case NUMBER8:
 		out += "short short int"
 	case NUMBER16:
@@ -319,7 +315,16 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			Write("mov " + register + ", " + fmt.Sprintf("%d", val), true)
 		default:
 			NF_NOPARSE := false
-			Function_Variable := LookupVariable(label, false, Scope, peek(-2), &tokens)	
+			Function_Variable := LookupVariable(label, false, Scope, peek(-2), &tokens)
+			if Function_Variable.Name == "__ZERO" {
+				// Do a fallback to prevent a panic from Go
+				NF_NOPARSE = true
+				for i := 0; i < 6; i++ {
+					Function_Variable.ArgumentTypeManifest = append(Function_Variable.ArgumentTypeManifest, ArgumentTypeManifestEntry{
+						Type: 999,
+					})
+				}
+			}
 			// Parse arguments
 			depth := 1
 			pushed := 0
@@ -556,15 +561,21 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 	}
 	CheckRequiredType := func(CTYPE int, CPTR bool, CLENGTH int) {
 		if RequiredType.Type != 999 {
-			if CPTR == false {
-				if CTYPE != RequiredType.Type || CPTR != RequiredType.Pointer || CLENGTH != RequiredType.PointerLength {
-					error.Error(5, "passing '" + TypeToString(CTYPE, 0, CPTR, CLENGTH) + "' to type of '" + TypeToString(RequiredType.Type, RequiredType.Type2, RequiredType.Pointer, RequiredType.PointerLength) + "'", peek(-1), &tokens)
-				}
+			var RTYPE int
+			var RPTR bool
+			var RLENGTH int
+			
+			if RequiredType.Pointer == false {
+				RTYPE = RequiredType.Type
 			} else {
-				if CTYPE != RequiredType.Type2 || CPTR != RequiredType.Pointer || CLENGTH != RequiredType.PointerLength {
-					error.Error(5, "passing '" + TypeToString(0, CTYPE, CPTR, CLENGTH) + "' to type of '" + TypeToString(RequiredType.Type, RequiredType.Type2, RequiredType.Pointer, RequiredType.PointerLength) + "'", peek(-1), &tokens)
-				}
+				RTYPE = RequiredType.Type2
 			}
+			RPTR = RequiredType.Pointer
+			RLENGTH = RequiredType.PointerLength
+
+			if CTYPE != RTYPE || CPTR != RPTR || CLENGTH != RLENGTH {
+				error.Error(5, "passing '" + TypeToString(CTYPE, CPTR, CLENGTH) + "' to type of '" + TypeToString(RTYPE, RPTR, RLENGTH) + "'", peek(-1), &tokens)
+			}	
 		}
 	}
 
@@ -1129,7 +1140,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 
 			variable = LookupVariable(peek(-1).Value, false, Scope, peek(-1), &tokens)
 			if variable.Name == "__ZERO" && peek(-1).Value != "asm" && peek(-1).Value != "sizeof" {
-				error.Error(19, "'" + label + "'; ISO C99 and later do not support implicit function declarations", peek(-2), &tokens)	
+				error.Error(19, "'" + label + "'; ISO C99 and later do not support implicit function declarations", peek(-1), &tokens)
 			}
 
 			if _COERCE_TYPE != 6 {
@@ -1182,8 +1193,6 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 				CLENGTH = variable.PointerLength
 			}
 		}
-
-		
 
 		switch peek(0).Type {
 		case shared.TokLBracket:
@@ -1246,6 +1255,9 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			if RequiredType.Type != 999 {
 				if CLENGTH > 0 {
 					CLENGTH--
+					if CLENGTH == 0 {
+						CPTR = false
+					}
 				} else {
 					CPTR = false
 				}
@@ -1289,12 +1301,18 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		_NUMBER_PARSE("r1")
 		switch peek(0).Type {
 		case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash:
+			NUM_DIRECT = true
+		default:
 			NUM_DIRECT = true	
 		}	
 		NUM_TRY_DEREF = true	
 	}
 
 	switch peek(0).Type {
+	default:
+		if NUM_DIRECT == true {
+			Write("mov " + register + ", r1", true)
+		}
 	case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash:
 		if NUM_TRY_DEREF == false {
 			Write("mov r5, " + register, true)
@@ -1330,50 +1348,42 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		NUM_DIRECT = false
 	}
 
-	if NUM_TRY_DEREF == true {
-		Intent := _IDENT_INTENT(_COERCE_PTR, _COERCE_TYPE, deref, true, Variable_Static{Name: "__FAKE__"})
-
+	if NUM_TRY_DEREF == true && _COERCE_PTR == true {
 		var CPTR bool
 		var CLENGTH int
 
 		if _COERCE_TYPE != 6 {
 			CPTR = _COERCE_PTR
-			CLENGTH = _COERCE_LENGTH
-			_COERCE_TYPE = 6
-			_COERCE_PTR = false
-			_COERCE_LENGTH = 0
+			CLENGTH = _COERCE_LENGTH	
 		}
 
-		
-		
+		FakeVar := Variable_Static {
+			Name: "__FAKE__",
+			Pointer: true,
+			PointerLength: _COERCE_LENGTH,
+			Type2: _COERCE_TYPE,
+		}
 
-		// deref--
+		Intent := _IDENT_INTENT(_COERCE_PTR, _COERCE_TYPE, deref, true, FakeVar)
+
+		x_deref := deref
 		derefs := 0
-		x_deref := deref - 1
-		for x_deref >= 0 {
-			if CLENGTH > 0 {
-				CLENGTH--
-			} else {
-				CPTR = false
-			}
-
-			x_deref--
-			if _COERCE_PTR == true {
-				if (derefs > _COERCE_LENGTH && Intent == "write") || (derefs >= _COERCE_LENGTH - 1 && Intent == "read") {	
-					switch _COERCE_TYPE {
-					case NUMBER8, STRING, NULL:
-						Write("lod r2, r2", true)
-					case NUMBER16:
-						Write("lod16 r2, r2", true)
-					case NUMBER32:
-						Write("lod32 r2, r2", true)
+		for x_deref - 1 > 0 {
+			if RequiredType.Type != 999 {
+				if CLENGTH > 0 {
+					CLENGTH--
+					if CLENGTH == 0 {
+						CPTR = false
 					}
 				} else {
-					if Intent == "read" {
-						Write("lod_ptr r2, r2", true)
-					}
-				} 
-			} else {
+					CPTR = false
+				}
+			}
+			x_deref--
+			if (derefs > _COERCE_LENGTH - 1 && Intent == "write") || (derefs >= _COERCE_LENGTH - 1 && Intent == "read") {
+				if PIE == true {
+					Write("add r2, r2, e14", true)
+				}
 				switch _COERCE_TYPE {
 				case NUMBER8, STRING, NULL:
 					Write("lod r2, r2", true)
@@ -1382,7 +1392,9 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 				case NUMBER32:
 					Write("lod32 r2, r2", true)
 				}
-			}
+			} else {
+				Write("lod_ptr r2, r2", true)
+			}	
 			derefs++
 		}
 
@@ -1419,13 +1431,20 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		}
 		
 		EQU_VT = _COERCE_TYPE
-		
-		// Unset coerced type
 		_COERCE_TYPE = 6
 		_COERCE_PTR = false
 		_COERCE_LENGTH = 0
-		NUM_TRY_DEREF = false
 	}
+
+	if NUM_TRY_DEREF == true && deref < 1 && peek(0).Type == shared.TokEqual {
+		error.Error(45, "", peek(0), &tokens)
+	}
+
+	_COERCE_TYPE = 6
+	_COERCE_PTR = false
+	_COERCE_LENGTH = 0
+	NUM_TRY_DEREF = false
+
 	
 	CONTINUE:
 	if peek(0).Type != shared.TokEqual && peek(0).Type != shared.TokEquality && peek(0).Type != shared.TokInequality && peek(0).Type != shared.TokGEqual && peek(0).Type != shared.TokLEqual && peek(0).Type != shared.TokLAngle && peek(0).Type != shared.TokRAngle {
