@@ -6,7 +6,6 @@ import (
 	"strings"
 	"fmt"	
 	"strconv"
-	// "os"
 	"math"
 )
 
@@ -79,7 +78,7 @@ type TypeMapEntry struct {
 var TypeMap []TypeMapEntry
 
 var Variables = []Variable_Static {
-	Variable_Static{Name: "_r0", Real: "r0", Register: true, Scope: 1, Type: NUMBER32},
+	Variable_Static{Name: "_r0", Real: "r0", Register: true, Scope: 1, Type: NUMBER32},	
 	Variable_Static{Name: "_r1", Real: "r1", Register: true, Scope: 1, Type: NUMBER32},
 	Variable_Static{Name: "_r2", Real: "r2", Register: true, Scope: 1, Type: NUMBER32},
 	Variable_Static{Name: "_r3", Real: "r3", Register: true, Scope: 1, Type: NUMBER32},
@@ -403,7 +402,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		return __label
 	}
 	_IDENT_INTENT := func(pointer bool, _type int, deref int, register bool, variable Variable_Static) string {	
-		if peek(0).Type == shared.TokEqual {
+		if peek(0).Type == shared.TokEqual || peek(0).Type == shared.TokIncrement || peek(0).Type == shared.TokDecrement {
 			// Write intent (NEVER give one free dereference)
 			Write("mov r2, r1", true)
 			return "write"
@@ -1300,7 +1299,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 
 		_NUMBER_PARSE("r1")
 		switch peek(0).Type {
-		case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash:
+		case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash, shared.TokPercent:
 			NUM_DIRECT = true
 		default:
 			NUM_DIRECT = true	
@@ -1313,7 +1312,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		if NUM_DIRECT == true {
 			Write("mov " + register + ", r1", true)
 		}
-	case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash:
+	case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash, shared.TokPercent:
 		if NUM_TRY_DEREF == false {
 			Write("mov r5, " + register, true)
 		}
@@ -1336,6 +1335,8 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			Write("mul r1, r5, r6", true)
 		case "/":
 			Write("div r1, r5, r6", true)
+		case "%":
+			Write("mod r1, r5, r6", true)
 		}
 		switch peek(0).Type {
 		case shared.TokPlus, shared.TokMinus, shared.TokStar, shared.TokSlash:
@@ -1397,7 +1398,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			}	
 			derefs++
 		}
-
+	
 		Write("mov " + register + ", r2", true)
 
 		// Construct fake variable
@@ -1447,9 +1448,11 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 
 	
 	CONTINUE:
-	if peek(0).Type != shared.TokEqual && peek(0).Type != shared.TokEquality && peek(0).Type != shared.TokInequality && peek(0).Type != shared.TokGEqual && peek(0).Type != shared.TokLEqual && peek(0).Type != shared.TokLAngle && peek(0).Type != shared.TokRAngle {
+	if peek(0).Type != shared.TokEqual && peek(0).Type != shared.TokEquality && peek(0).Type != shared.TokInequality && peek(0).Type != shared.TokGEqual && peek(0).Type != shared.TokLEqual && peek(0).Type != shared.TokLAngle && peek(0).Type != shared.TokRAngle && peek(0).Type != shared.TokIncrement && peek(0).Type != shared.TokDecrement {
 		// expect(shared.TokSemi)
 		return i
+	} else {
+
 	}
 	
 	switch peek(0).Type {
@@ -1496,9 +1499,59 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 	
 		Write(cmpopreal + " r11, " + register + ", r5", true)	
 	default:
-		expect(shared.TokEqual)
-		i = ParseExpy(tokens, i, Scope, "r5", ArgumentTypeManifestEntry{Type: 999})
+		switch peek(0).Type {
+		default:
+			expect(shared.TokEqual)
+			i = ParseExpy(tokens, i, Scope, "r5", ArgumentTypeManifestEntry{Type: 999})
+		case shared.TokIncrement, shared.TokDecrement:
+			ParseExpy([]shared.Token{
+				shared.Token {
+					Type: shared.TokIdent,
+					Value: EQU_VAR.Name,	
+				},
+			}, 0, Scope, "r0", ArgumentTypeManifestEntry{Type: 999})
 
+			Write("mov r3, " + register, true)
+
+			Write("mov " + register + ", r0", true)
+
+			Write("mov r5, r0", true);
+
+			if peek(0).Type == shared.TokIncrement {
+				Write("inc r0", true)
+			} else {
+				Write("dec r0", true)
+			}
+
+			// ALERT FOR FUTURE ALEX: if the derefs behave then change this
+			if EQU_VAR.Pointer == false {	
+				switch EQU_VT {
+				case NUMBER8, STRING, NULL:
+					Write("str r3, r0", true)
+				case NUMBER16:
+					Write("str16 r3, r0", true)	
+				case NUMBER32:
+					Write("str32 r3, r0", true)
+				}
+			} else {
+				if deref >= EQU_VAR.PointerLength {
+					switch EQU_VAR.Type2 {
+					case NUMBER8, STRING, NULL:
+						Write("str r3, r0", true)
+					case NUMBER16:
+						Write("str16 r3, r0", true)
+					case NUMBER32:
+						Write("str32 r3, r0", true)
+					}
+				} else {
+					Write("str_ptr r3, r0", true)
+				}
+			}
+
+			expect(peek(0).Type)
+			return i
+		}
+		
 		if EQU_VAR.Const == true {
 			error.Error(33, "'" + EQU_VAR.Name + "' with const-qualified type", peek(-1), &tokens)
 			token, stream := FuncDeclLookup(EQU_VAR.Name)
@@ -1528,8 +1581,10 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 				Write("str_ptr " + register + ", r5", true)
 			}
 		}
-		
-		expect(shared.TokSemi)	
+	
+		if peek(-1).Type == shared.TokEqual {
+			expect(shared.TokSemi)
+		}
 	}
 
 	DONE:

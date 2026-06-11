@@ -56,7 +56,7 @@ var Registers = []shared.Register {
 		
 }
 
-var Memory [0x70000000]byte
+var Memory []byte 
 const (
 	MEMSIZE uint32 = 0x70000000
 	MEMCAP uint32 = 0x6FFFFFFF
@@ -599,7 +599,8 @@ func execute() {
 		case 0x21:
 			shared.LogOn = true
 			shared.Debug = true
-			Log("\033[31m----- BREAKPOINT -----\033[33m")	
+			Log("\033[31m----- BREAKPOINT -----\033[33m")
+			setRegister(0x001d, ProgramCounter + 1)
 		default:
 			setRegister(0x0001, uint32(op))
 			setRegister(0x0002, getRegister(0x001d))
@@ -628,16 +629,19 @@ func execute() {
 var RequireDevicePresent bool = true
 func main() {
 	runtime.LockOSThread()
-
+ 
 	shared.Registers = &Registers
 	shared.Memory = &Memory
-	shared.MemoryVideo = &video.MemoryVideo
 	shared.MemoryAudio = &audio.MemoryAudio
 	shared.MemoryMouse = &keyboard.MemoryMouse
 	shared.MemoryKeyboard = &keyboard.MemoryKeyboard
 	shared.MemoryRTC = &rtc.MemoryRTC
 	shared.MemoryPIT = &pit.MemoryPIT
 	shared.MemoryPower = &power.MemoryPower
+	shared.WriteVideoMemory = video.WriteVideoMemory
+	shared.ReadVideoMemory = video.ReadVideoMemory
+
+	var MemorySetting uint32 = 0x70000000
 
 	go func() {
 		if video.Ready == false {	
@@ -692,7 +696,7 @@ func main() {
 			}
 		}
 
-		
+		Memory = make([]byte, MemorySetting)	
 
 		boot:
 		bios.Splash()

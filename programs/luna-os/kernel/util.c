@@ -11,7 +11,7 @@ void tohex(long int number, short short int capitalized) {
 }
 
 short short int pause() {
-    puts32("Press any key to continue...\n\n", COLOR_GRAY, COLOR_BLACK);
+    puts32("Press any key to continue...\n\n", COLOR_WHITE, COLOR_BLACK);
     short short int code = wait_for_key();
     return code;
 }
@@ -69,7 +69,7 @@ void load_sector(short short int drive, long int* dest_sector, long int real_sec
 void load_executable() {
     if (query_drive_inserted(2) == 0) {
         puts32("Error! ", 0xA0, 0);
-        puts32("Please insert a disc into the DVD\ndrive and try again.\n", COLOR_GRAY, COLOR_BLACK);
+        puts32("Please insert a disc into the DVD\ndrive and try again.\n", COLOR_WHITE, COLOR_BLACK);
         return;
     }
 

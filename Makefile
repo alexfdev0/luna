@@ -11,7 +11,8 @@ SRC=./
 all: bin/luna-l2 bin/las bin/l2ld bin/lcc bin/lcc1
 .PHONY: clean install
 
-bin/luna-l2: $(SRC)/l2/*
+bin/luna-l2: $(SRC)/l2/* $(SRC)/l2/video/hardware/*
+	cd l2 && go build -buildmode=plugin -o ../components/g1x.so ./video/hardware/g1x.go
 	cd l2 && go build -o ../bin/luna-l2 ./luna_l2.go	
 
 bin/las: $(SRC)/las/* $(SRC)/lcc_info/*
@@ -68,6 +69,8 @@ windows-installer:
 	cd Windows && wixl -v msi.xml -o "../build/Luna L2.msi"
 
 install:
+	mkdir -p /usr/local/lib/l2/
+	sudo cp components/* /usr/local/lib/l2
 	sudo cp bin/* /usr/local/bin/
 
 clean:

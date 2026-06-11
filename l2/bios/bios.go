@@ -54,7 +54,7 @@ func LoadSector(drive int, sector int, dest_sector int) bool {
 	defer f.Close()
 	start := sector * 512
 	rstart := dest_sector * 512
-	_, err = f.ReadAt(shared.Memory[start:start + 512], int64(rstart))
+	_, err = f.ReadAt((*shared.Memory)[start:start + 512], int64(rstart))
 	if err != nil && err.Error() != "EOF" {
 		shared.SetRegister(0x0000, 1)
 		fmt.Println("luna-l2: could not read from disk: ", err)
@@ -88,7 +88,7 @@ func WriteSector(drive int, sector int, dsector int) {
 
 	start := sector * 512
 	_content_start := dsector * 512
-	_, err = f.WriteAt(shared.Memory[start:start + 512], int64(_content_start))
+	_, err = f.WriteAt((*shared.Memory)[start:start + 512], int64(_content_start))
 	if err != nil {
 		shared.SetRegister(0x0000, 1)
 		fmt.Println("luna-l2: could not write to block device: ", err)
@@ -145,26 +145,27 @@ func IntHandler(code uint32) {
 		rsector := shared.GetRegister(0x0003)
 		LoadSector(int(drive), int(sector), int(rsector))
 	case 0x0C:
-		video.CursorX = int(shared.GetRegister(0x0001))
-		video.CursorY = int(shared.GetRegister(0x0002))
+		video.SetCursor(int(shared.GetRegister(0x0001)), int(shared.GetRegister(0x0002)))
 	case 0x0D:
 		sector := shared.GetRegister(0x0001)
 		drive := shared.GetRegister(0x0002)
 		rsector := shared.GetRegister(0x0003)
 		WriteSector(int(drive), int(sector), int(rsector))
 	case 0x0E:
-		shared.SetRegister(0x0001, uint32(video.CursorX))
-		shared.SetRegister(0x0002, uint32(video.CursorY))
+		x, y := video.GetCursor()
+		shared.SetRegister(0x0001, uint32(x))
+		shared.SetRegister(0x0002, uint32(y))
 	case 0x0F:
 		shared.BootDrive = int(shared.GetRegister(0x0001))
 		for i, _ := range (*shared.Registers) {
 			(*shared.Registers)[i].Value = uint32(0)
 		}
-		shared.Bits32 = false	
-		(*shared.Memory) = [0x70000000]byte {}
-		video.MemoryVideo = [64000]byte {}
-		video.CursorX = 0
-		video.CursorY = 0
+		shared.Bits32 = false
+		for i := 0; i < len((*shared.Memory)); i++ {
+			(*shared.Memory)[i] = 0x00
+		}
+		video.ClearVideoMemory()
+		video.SetCursor(0, 0)
 	case 0x10:
 		shared.SetRegister(0x0001, uint32(shared.DriveNumber))
 	case 0x11:
@@ -190,9 +191,9 @@ func CheckArgs() bool {
 func IntWrapper(code uint32, next uint32) {
 	// shared.SetRegister(0x001e, code)
 	var mem_location uint32 = 0x6FFF0000 + uint32(((code - 1) * 6))	
-	loc := uint32(shared.Memory[mem_location + 2]) << 24 | uint32(shared.Memory[mem_location + 3]) << 16 | uint32(shared.Memory[mem_location + 4]) << 8 | uint32(shared.Memory[mem_location + 5])
+	loc := uint32((*shared.Memory)[mem_location + 2]) << 24 | uint32((*shared.Memory)[mem_location + 3]) << 16 | uint32((*shared.Memory)[mem_location + 4]) << 8 | uint32((*shared.Memory)[mem_location + 5])
 	
-	switch shared.Memory[mem_location + 1] {
+	switch (*shared.Memory)[mem_location + 1] {
 	case 0x00:
 		IntHandler(code)
 	case 0x01:

@@ -66,7 +66,9 @@ func Lex(code []SmallToken, filename string) []shared.Token {
 		case "*":
 			Add(shared.TokStar, content, SToken)
 		case "/":	
-			Add(shared.TokSlash, content, SToken)	
+			Add(shared.TokSlash, content, SToken)
+		case "%":
+			Add(shared.TokPercent, content, SToken)
 		case "=":
 			Add(shared.TokEqual, content, SToken)
 		case "==":
@@ -107,6 +109,10 @@ func Lex(code []SmallToken, filename string) []shared.Token {
 			Add(shared.TokTypedef, content, SToken)
 		case "struct":
 			Add(shared.TokStruct, content, SToken)
+		case "++":
+			Add(shared.TokIncrement, content, SToken)
+		case "--":
+			Add(shared.TokDecrement, content, SToken)
 		default:
 			num, err := strconv.ParseInt(content, 0, 64)
 			if err == nil {
@@ -233,6 +239,20 @@ func Tokenize (text string, filename string) []SmallToken {
 			i += 2
 			continue
 		}
+
+		if r == '+' && peek(1) == '+' {
+			emit("++")
+			i += 2
+			continue
+		}
+
+		if r == '-' && peek(1) == '-' {
+			emit("--")
+			i += 2
+			continue
+		}
+
+
 
 		if strings.ContainsRune("+-*/%&|^~<>=!?:;.,()[]{}@", r) {
 			emit(string(r))

@@ -12,15 +12,15 @@ long int* ffnt(char* filename) {
     while (*filename != 0) { 
         if (*filename != 0x20) {
             putchar((char) *filename, (char*) buffer); 
-            buffer = buffer + 1;
+            buffer++;
         } else {
             if (seen == false) {
                 seen = true;
                 putchar(46, (char*) buffer); // .
-                buffer = buffer + 1;
+                buffer++;
             }
         }
-        filename = filename + 1;
+        filename++;
     }
     
     return bufptr;
@@ -38,17 +38,17 @@ long int* fntf(char* name) {
                 seen = true;
                 int initial = 12;
                 int toput = initial - copied;
-                for (int i = 0; i < toput; i = i + 1) {
+                for (int i = 0; i < toput; i++) {
                     putchar(0x20, (char*) buffer);
-                    buffer = buffer + 1;
+                    buffer++;
                 }
-                name = name + 1;
+                name++;
             } 
         } else {
             putchar(*name, (char*) buffer);
-            copied = copied + 1;
-            name = name + 1;
-            buffer = buffer + 1;
+            copied++;
+            name++;
+            buffer++;
         }
     }
 
@@ -69,9 +69,9 @@ void fcreate(char* name, long int size) {
     *nfl = size;
     nfl = nfl + 4;
 
-    for (long int i = 0; i < size; i = i + 1) {
+    for (long int i = 0; i < size; i++) {
         *nfl = 0x00;
-        nfl = nfl + 1;
+        nfl++;
     }
 
     long int sector = (long int) nfl / 512;
@@ -131,6 +131,7 @@ void flist() {
     long int* fp = *fsp;
 
     while (1) {
+        tohex((long int) *fp, 1);
         if (*fp != 0x4C465346) {
             break;
         }
@@ -142,6 +143,8 @@ void flist() {
         long int size = (long int) *fp;
         fp = fp + 4; // skip over size marker
         fp = fp + size; // skip over file contents 
+        puts32("After:", COLOR_RED, COLOR_BLACK);
+        tohex((long int) fp, 1);
     }
 
     return;

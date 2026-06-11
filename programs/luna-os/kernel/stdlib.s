@@ -34,6 +34,7 @@
 .global strlen
 .global putchar
 .global printchar
+.global render_picture
 
 printchar:
     pop e11
@@ -71,7 +72,7 @@ readin:
     mov e11, e8
 readin_rdy:
     mov r2, 255
-    mov r3, 0
+    mov r3, 0x00
     mov r5, 0x0a
     mov r7, 0xc3
 
@@ -144,8 +145,8 @@ readin_bksp:
     int 0x0c
 
     mov r1, 65
-    mov r2, 0
-    mov r3, 0
+    mov r2, 0x00
+    mov r3, 0x00
     int 1
 
     int 0x0e
@@ -160,6 +161,7 @@ readin_done:
     mov r2, 0
     str r1, r2 // DISABLE KEYBOARD INTERRUPT
 
+    mov r3, 0
     str r4, r3
     pop e11
     ret
@@ -344,24 +346,16 @@ render_buf:
     mov r2, 0x70000000
     mov r3, 0
     mov r4, 64000
+    mov r12, 4
 
     mov e10, pc
 
     lod32 r1, r5
     str32 r2, r5 // we'll use fast here :3
 
-    inc r1
-    inc r1
-    inc r1
-    inc r1
-    inc r3
-    inc r3
-    inc r3
-    inc r3
-    inc r2
-    inc r2
-    inc r2
-    inc r2
+    add r1, r1, r12
+    add r3, r3, r12
+    add r2, r2, r12
 
     cmp r6, r3, r4
     jz r6, e10
@@ -511,20 +505,8 @@ lexec_raddr:
     .dword 0x00000000
 lexec_done:
     popa
-
     call IDT_SETUP
-
     jmp shell
-    
-
-sectorize:
-    pop e11
-    pop r1
-    
-    mov r2, 512
-    div e6, r1, r2
-
-    ret
 
 syscall_handler:
     pusha
@@ -559,7 +541,6 @@ sleep:
     pop e11
     ret
 
-
 pit_handler:
     pop e11
 
@@ -575,9 +556,6 @@ pit_nxt:
     str r1, r2 // DISABLE PIT
 
     ret
-
-// 1 - 6 destroyed
-// 
 
 itoa:
     pop e11
@@ -622,10 +600,6 @@ itoa_after:
     mov e6, e12
 
     ret
-ITOA_LETTERS_U:
-    .asciz "0123456789ABCDEF"
-ITOA_LETTERS_L:
-    .asciz "0123456789abcdef"
 
 malloc:
     pop e11
@@ -650,12 +624,12 @@ free:
 
     ret
 
-PASS_KEY_ENCRYPT:
-    .pad 1
-
+ITOA_LETTERS_U:
+    .asciz "0123456789ABCDEF"
+ITOA_LETTERS_L:
+    .asciz "0123456789abcdef"
 PROMPTBUF:
     .asciz "> "
     .pad 5
-
 MEM_PTR:
     .dword 0x50505050

@@ -3,6 +3,7 @@ package shared
 import (
 	"math/rand"
 	"cmp"
+	
 )
 /* 
 shared.go:
@@ -22,14 +23,15 @@ type Register struct {
 }
 
 var Registers *[]Register
-var Memory *[0x70000000]byte
-var MemoryVideo *[64000]byte
+var Memory *[]byte
 var MemoryAudio *[10]byte
 var MemoryMouse *[8]byte
 var MemoryKeyboard *[1]byte
 var MemoryRTC *[6]byte
 var MemoryPIT *[8]byte
 var MemoryPower *[4]byte
+var WriteVideoMemory = func(addr uint32, content byte) {}
+var ReadVideoMemory = func(addr uint32) byte { return 0x00 }
 
 func Mapper(address uint32) byte {
 	if Bits32 == true {
@@ -37,7 +39,7 @@ func Mapper(address uint32) byte {
 		case address >= 0x00000000 && address <= MEMCAP:
 			return (*Memory)[address]
 		case address >= 0x70000000 && address <= 0x7000F9FF:
-			return (*MemoryVideo)[address - MEMSIZE]
+			return ReadVideoMemory(address - 0x70000000)
 		case address >= 0x7000FA00 && address <= 0x7000FA09:
 			return (*MemoryAudio)[address - 0x7000FA00]
 		case address >= 0x7000FA0A && address <= 0x7000FA11:
@@ -72,7 +74,7 @@ func Mapper(address uint32) byte {
 			return (*MemoryPower)[address - 0xFC37]
 		case address >= 0xFE00 && address <= 0xFFFF:
 			if GetRegister(0x001F) <= 124 {
-				return (*MemoryVideo)[Clamp((GetRegister(0x0020) * 0x200) + (address - 0xFE00), 0, 63999)]
+				return ReadVideoMemory(Clamp((GetRegister(0x0020) * 0x200) + (address - 0xFE00), 0, 63999))
 			}
 		}
 	}
@@ -85,7 +87,7 @@ func MapperWrite(address uint32, content byte) {
 		case address >= 0x00000000 && address <= MEMCAP:
 			(*Memory)[address] = content
 		case address >= 0x70000000 && address <= 0x7000F9FF:
-			(*MemoryVideo)[address - MEMSIZE] = content
+			WriteVideoMemory(address - 0x70000000, content)
 		case address >= 0x7000FA00 && address <= 0x7000FA09:
 			(*MemoryAudio)[address - 0x7000FA00] = content
 		case address >= 0x7000FA0A && address <= 0x7000FA11:
@@ -120,7 +122,7 @@ func MapperWrite(address uint32, content byte) {
 			(*MemoryPower)[address - 0xFC37] = content
 		case address >= 0xFE00 && address <= 0xFFFF:
 			if GetRegister(0x001F) <= 124 {
-				(*MemoryVideo)[(GetRegister(0x0020) * 0x200) + (address - 0xFE00)] = content
+				WriteVideoMemory((GetRegister(0x0020) * 0x200) + (address - 0xFE00), content)
 			}
 		}
 	}	

@@ -1,2 +1,2 @@
-extern void* BAYACHAO_IMG;
 extern void* BOOT_IMG;
+extern void* DESKTOP_IMG;

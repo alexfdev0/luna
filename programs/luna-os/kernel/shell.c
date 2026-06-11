@@ -11,29 +11,29 @@ char* notepad_file = "NOTEPAD.SYS";
 void shell() {
     while (1) {
         long int* buf = malloc(256);
-        puts32((char*) PROMPTBUF, COLOR_GRAY, COLOR_BLACK);
+        puts32((char*) PROMPTBUF, COLOR_WHITE, COLOR_BLACK);
         readin((char*) buf, 1, 0); 
         if (strcmp("reboot", (char*) buf) == 1) {
-            puts32("Rebooting...", COLOR_GRAY, COLOR_BLACK);
+            puts32("Rebooting...", COLOR_WHITE, COLOR_BLACK);
             asm ("mov r1, 0");
             asm ("int 0xf"); 
         }
 
         if (strcmp("about", (char*) buf) == 1) {
-            puts32("LunaOS 1.0.0\nBy Alexander Flax\n", COLOR_GRAY, COLOR_BLACK);
-            puts32("Network adapter: ", COLOR_GRAY, COLOR_BLACK);
-            puts32((char*) 0x7001A65A, COLOR_GRAY, COLOR_BLACK);
+            puts32("LunaOS 1.0.0\nBy Alexander Flax\n", COLOR_WHITE, COLOR_BLACK);
+            puts32("Network adapter: ", COLOR_WHITE, COLOR_BLACK);
+            puts32((char*) 0x7001A65A, COLOR_WHITE, COLOR_BLACK);
 
-            puts32("\n\n", COLOR_GRAY, COLOR_BLACK);
+            puts32("\n\n", COLOR_WHITE, COLOR_BLACK);
             continue;
         }
 
         if (strcmp("promptedit", (char*) buf) == 1) {
-            puts32("Enter terminal prompt: ", COLOR_GRAY, COLOR_BLACK);
+            puts32("Enter terminal prompt: ", COLOR_WHITE, COLOR_BLACK);
             readin((char*) PROMPTBUF, 0, 0);
             save_buffer((char*) PROMPTBUF, 0);
 
-            puts32("\n", COLOR_GRAY, COLOR_BLACK);
+            puts32("\n", COLOR_WHITE, COLOR_BLACK);
             continue;
         }
         
@@ -50,29 +50,20 @@ void shell() {
             readin((char*) buf, 0, 0);
             fwrite((char*) fntf(notepad_file), (char*) buf);
 
-            puts32("\n", COLOR_GRAY, COLOR_BLACK);
+            puts32("\n", COLOR_WHITE, COLOR_BLACK);
             continue;
         }
 
         if (strcmp("files", (char*) buf) == 1) {
             flist();
-            puts32("\n", COLOR_GRAY, COLOR_BLACK);
+            puts32("\n", COLOR_WHITE, COLOR_BLACK);
             continue;
         }
 
         if (strcmp("shutdown", (char*) buf) == 1) {
-            puts32("Shutting down...\n", COLOR_GRAY, COLOR_BLACK);
+            puts32("Shutting down...\n", COLOR_WHITE, COLOR_BLACK);
             asm ("int 0x11");
         } 
-
-        if (strcmp("bc", (char*) buf) == 1) {
-            save_graphics_buf();
-            render_buf(BAYACHAO_IMG);
-            wait_for_key();
-            render_buf((void*) 0x30303030);
-
-            continue;
-        }
 
         if (strcmp("testfault", (char*) buf) == 1) { 
             asm ("mov r1, 4");

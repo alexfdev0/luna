@@ -41,6 +41,9 @@ const (
 	TokBreak
 	TokContinue
 	TokStruct
+	TokIncrement
+	TokDecrement
+	TokPercent
 )
 
 type Token struct {

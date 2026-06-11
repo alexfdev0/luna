@@ -19,6 +19,7 @@ extern void strcpy(char* b1, char* b2);
 extern void save_sector(long int sector);
 extern void putchar(char c, char* dest);
 extern void printchar(char c);
+extern void render_picture(void* framebuffer);
 extern void* PROMPTBUF;
 extern void* renderbuf_loc;
 extern void* sleep_loc;
@@ -39,3 +40,4 @@ extern void* sleep_loc;
 #define COLOR_LMAGENT 0xEB
 #define COLOR_YELLOW  0xFD
 #define COLOR_WHITE   0xFF
+#define TRANSPARENT   0xE3
