@@ -3,6 +3,7 @@ package shared
 import (
 	"math/rand"
 	"cmp"
+	"luna_l2/proxy"
 )
 /* 
 shared.go:
@@ -29,8 +30,6 @@ var MemoryKeyboard *[1]byte
 var MemoryRTC *[6]byte
 var MemoryPIT *[8]byte
 var MemoryPower *[4]byte
-var WriteVideoMemory = func(addr uint32, content byte) {}
-var ReadVideoMemory = func(addr uint32) byte { return 0x00 }
 
 func Mapper(address uint32) byte {
 	if Bits32 == true {
@@ -38,9 +37,9 @@ func Mapper(address uint32) byte {
 		case address >= 0x00000000 && address <= MEMCAP:
 			return (*Memory)[address]
 		case address >= 0x70000000 && address <= 0x7000F9FF:
-			return ReadVideoMemory(address - 0x70000000)
+			return proxy.VideoReadVideoMemory(address - 0x70000000)
 		case address >= 0x7000FA00 && address <= 0x7000FA09:
-			return (*MemoryAudio)[address - 0x7000FA00]
+			return proxy.AudioReadAudioMemory(address - 0x7000FA00)
 		case address >= 0x7000FA0A && address <= 0x7000FA11:
 			return (*MemoryMouse)[address - 0x7000FA0A]
 		case address >= 0x7000FA12 && address <= 0x7000FA12:
@@ -57,7 +56,7 @@ func Mapper(address uint32) byte {
 		case address >= 0x0000 && address <= 0xEFFF:
 			return (*Memory)[address]
 		case address >= 0xF000 && address <= 0xF009:
-			return (*MemoryAudio)[address - 0xF000]
+			return proxy.AudioReadAudioMemory(address - 0xF000)
 		case address >= 0xFA0A && address <= 0xFA11:
 			return (*MemoryMouse)[address - 0xFA0A]
 		case address == 0xFA12:
@@ -73,7 +72,7 @@ func Mapper(address uint32) byte {
 			return (*MemoryPower)[address - 0xFC37]
 		case address >= 0xFE00 && address <= 0xFFFF:
 			if GetRegister(0x001F) <= 124 {
-				return ReadVideoMemory(Clamp((GetRegister(0x0020) * 0x200) + (address - 0xFE00), 0, 63999))
+				return proxy.VideoReadVideoMemory(Clamp((GetRegister(0x0020) * 0x200) + (address - 0xFE00), 0, 63999))
 			}
 		}
 	}
@@ -86,9 +85,9 @@ func MapperWrite(address uint32, content byte) {
 		case address >= 0x00000000 && address <= MEMCAP:
 			(*Memory)[address] = content
 		case address >= 0x70000000 && address <= 0x7000F9FF:
-			WriteVideoMemory(address - 0x70000000, content)
+			proxy.VideoWriteVideoMemory(address - 0x70000000, content)
 		case address >= 0x7000FA00 && address <= 0x7000FA09:
-			(*MemoryAudio)[address - 0x7000FA00] = content
+			proxy.AudioWriteAudioMemory(address - 0x7000FA00, content)
 		case address >= 0x7000FA0A && address <= 0x7000FA11:
 			(*MemoryMouse)[address - 0x7000FA0A] = content
 		case address >= 0x7000FA12 && address <= 0x7000FA12:
@@ -105,7 +104,7 @@ func MapperWrite(address uint32, content byte) {
 		case address >= 0x0000 && address <= 0xEFFF:
 			(*Memory)[address] = content
 		case address >= 0xF000 && address <= 0xF009:
-			(*MemoryAudio)[address - 0xF000] = content
+			proxy.AudioWriteAudioMemory(address - 0xF000, content)
 		case address >= 0xFA0A && address <= 0xFA11:
 			(*MemoryMouse)[address - 0xFA0A] = content
 		case address == 0xFA12:
@@ -121,7 +120,7 @@ func MapperWrite(address uint32, content byte) {
 			(*MemoryPower)[address - 0xFC37] = content
 		case address >= 0xFE00 && address <= 0xFFFF:
 			if GetRegister(0x001F) <= 124 {
-				WriteVideoMemory((GetRegister(0x0020) * 0x200) + (address - 0xFE00), content)
+				proxy.VideoWriteVideoMemory((GetRegister(0x0020) * 0x200) + (address - 0xFE00), content)
 			}
 		}
 	}	

@@ -8,23 +8,25 @@
 #
 SRC=./
 
-all: bin/luna-l2 bin/las bin/l2ld bin/lcc bin/lcc1
+all: luna-l2 las l2ld lcc lcc1
 .PHONY: clean install
 
-bin/luna-l2: $(SRC)/l2/* $(SRC)/l2/video/hardware/*
-	cd l2 && go build -buildmode=plugin -o ../components/g1x.so ./video/hardware/g1x.go
+luna-l2: $(SRC)/l2/*
+	cd l2 && go build -buildmode=plugin -o ../components/audio/s1.so ./audio/hardware/s1.go
+	cd l2 && go build -buildmode=plugin -o ../components/video/g1.so ./video/hardware/g1.go
+	cd l2 && go build -buildmode=plugin -o ../components/video/g1x.so ./video/hardware/g1x.go
 	cd l2 && go build -o ../bin/luna-l2 ./luna_l2.go	
 
-bin/las: $(SRC)/las/* $(SRC)/lcc_info/*
+las: $(SRC)/las/* $(SRC)/lcc_info/*
 	cd las && go build -o ../bin/las ./las.go
 
-bin/lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
+lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
 	cd lcc1 && go build -o ../bin/lcc1 ./lcc1.go
 
-bin/lcc: $(SRC)/lcc/* $(SRC)/lcc_info/*
+lcc: $(SRC)/lcc/* $(SRC)/lcc_info/*
 	cd lcc && go build -o ../bin/lcc ./lcc.go
 
-bin/l2ld: $(SRC)/l2ld/*	
+l2ld: $(SRC)/l2ld/*	
 	cd l2ld && go build -o ../bin/l2ld ./l2ld.go	
 
 macos-installer:
@@ -74,7 +76,7 @@ windows-installer:
 
 install:
 	mkdir -p /usr/local/lib/l2/
-	sudo cp components/* /usr/local/lib/l2
+	sudo cp -r components/* /usr/local/lib/l2
 	sudo cp bin/* /usr/local/bin/
 
 clean:

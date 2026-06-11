@@ -7,13 +7,23 @@ import (
 	"time"
 	"luna_l2/shared"
 	"luna_l2/keyboard"
+	"luna_l2/component"
+	"luna_l2/proxy"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/ncruces/zenity"
+	"image"
 )
 
 var CommonComponentPathPrefix string = "/usr/local/lib/l2/video/"
 var WindowsComponentPathPrefix string = "C:\\Program Files (x86)\\Luna L2\\lib\\l2\\video\\"
+var VideoComponent component.Component
+
+
+// Function definitions
+var ReturnFramebuffer func() *image.RGBA
+
+
 
 const VertexShaderSrc = `
 #version 150
@@ -182,7 +192,17 @@ func InitializeWindow(ComponentName string) {
 		prefix = WindowsComponentPathPrefix
 		ext = ".dll"
 	}
-	InitializeComponent(prefix + ComponentName + ext)
+	VideoComponent = component.InitializeComponent(prefix + ComponentName + ext)
+	component.ReturnComponentFunction(VideoComponent, "InitializePalette").(func())()
+
+	ReturnFramebuffer = component.ReturnComponentFunction(VideoComponent, "ReturnFramebuffer").(func() *image.RGBA)
+	proxy.VideoPrintChar = component.ReturnComponentFunction(VideoComponent, "PrintChar").(func(rune, byte, byte))
+	proxy.VideoSetCursor = component.ReturnComponentFunction(VideoComponent, "SetCursor").(func(int, int))
+	proxy.VideoGetCursor = component.ReturnComponentFunction(VideoComponent, "GetCursor").(func() (int, int))
+	proxy.VideoClearVideoMemory = component.ReturnComponentFunction(VideoComponent, "ClearVideoMemory").(func())
+	proxy.VideoReadVideoMemory = component.ReturnComponentFunction(VideoComponent, "ReadVideoMemory").(func(uint32) byte)
+	proxy.VideoWriteVideoMemory = component.ReturnComponentFunction(VideoComponent, "WriteVideoMemory").(func(uint32, byte))
+
 	err := glfw.Init()
 	if err != nil {
 		fmt.Println("luna-l2: could not initialize window: ", err)

@@ -632,17 +632,15 @@ func main() {
  
 	shared.Registers = &Registers
 	shared.Memory = &Memory
-	shared.MemoryAudio = &audio.MemoryAudio
 	shared.MemoryMouse = &keyboard.MemoryMouse
 	shared.MemoryKeyboard = &keyboard.MemoryKeyboard
 	shared.MemoryRTC = &rtc.MemoryRTC
 	shared.MemoryPIT = &pit.MemoryPIT
 	shared.MemoryPower = &power.MemoryPower
-	shared.WriteVideoMemory = video.WriteVideoMemory
-	shared.ReadVideoMemory = video.ReadVideoMemory
 
 	var MemorySetting uint32 = 0x70000000
 	var GPU string = "g1x"
+	var APU string = "s1"
 
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -694,12 +692,7 @@ func main() {
 		case "-gpu":
 			if i + 1 >= len(os.Args) { fmt.Println("Not enough args to -gpu"); i++; continue; }
 			i++
-			switch os.Args[i] {
-			case "g1", "g1x":
-				GPU = os.Args[i]
-			default:
-				fmt.Println("luna-l2: invalid video component")
-			}
+			GPU = os.Args[i]	
 		default:
 			shared.Filename = arg
 		}
@@ -707,6 +700,12 @@ func main() {
 
 	Memory = make([]byte, MemorySetting)
 	shared.MEMCAP = MemorySetting - 1
+
+	// Initialize components
+	audio.AudioController(APU)
+	go rtc.RTCController()
+	go pit.PITController()
+	go power.PowerController()	
 
 	go func() {
 		if video.Ready == false {	
@@ -756,13 +755,7 @@ func main() {
 		default:
 			bios.WriteLine("No bootable device", 255, 0)
 			return
-		}
-
-		// Initialize components
-		go audio.AudioController()
-		go rtc.RTCController()
-		go pit.PITController()
-		go power.PowerController()
+		}	
 		// IDT increments of +6 for every interrupt, starting at 0	
 
 		// Execute

@@ -1,7 +1,7 @@
 package bios
 import (
-	"luna_l2/video"
 	"luna_l2/shared"
+	"luna_l2/proxy"
 	"time"	
 	"os"
 	"fmt"
@@ -19,7 +19,7 @@ const (
 	// 3: Dual handle (Software first)
 
 func WriteChar(char string, fg uint8, bg uint8) {
-	video.PrintChar(rune(char[0]), byte(fg), byte(bg))
+	proxy.VideoPrintChar(rune(char[0]), byte(fg), byte(bg))
 }
 
 func WriteString(str string, fg uint8, bg uint8) {
@@ -145,14 +145,14 @@ func IntHandler(code uint32) {
 		rsector := shared.GetRegister(0x0003)
 		LoadSector(int(drive), int(sector), int(rsector))
 	case 0x0C:
-		video.SetCursor(int(shared.GetRegister(0x0001)), int(shared.GetRegister(0x0002)))
+		proxy.VideoSetCursor(int(shared.GetRegister(0x0001)), int(shared.GetRegister(0x0002)))
 	case 0x0D:
 		sector := shared.GetRegister(0x0001)
 		drive := shared.GetRegister(0x0002)
 		rsector := shared.GetRegister(0x0003)
 		WriteSector(int(drive), int(sector), int(rsector))
 	case 0x0E:
-		x, y := video.GetCursor()
+		x, y := proxy.VideoGetCursor()
 		shared.SetRegister(0x0001, uint32(x))
 		shared.SetRegister(0x0002, uint32(y))
 	case 0x0F:
@@ -164,8 +164,8 @@ func IntHandler(code uint32) {
 		for i := 0; i < len((*shared.Memory)); i++ {
 			(*shared.Memory)[i] = 0x00
 		}
-		video.ClearVideoMemory()
-		video.SetCursor(0, 0)
+		proxy.VideoClearVideoMemory()
+		proxy.VideoSetCursor(0, 0)
 	case 0x10:
 		shared.SetRegister(0x0001, uint32(shared.DriveNumber))
 	case 0x11:
