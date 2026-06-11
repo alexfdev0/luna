@@ -642,6 +642,71 @@ func main() {
 	shared.ReadVideoMemory = video.ReadVideoMemory
 
 	var MemorySetting uint32 = 0x70000000
+	var GPU string = "g1x"
+
+	for i := 1; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		switch arg {
+		case "--speed":
+			if i + 1 >= len(os.Args) { fmt.Println("Not enough arguments to --speed"); i++; continue }
+			speed, err := strconv.ParseInt(os.Args[i + 1], 0, 64)
+			if err != nil {
+				fmt.Println("Invalid clock speed")
+				i++
+				continue
+			}
+			ClockSpeed = int64(speed)
+			i++
+		case "-ram":
+			if i + 1 >= len(os.Args) { fmt.Println("Not enough arguments to -ram"); i++; continue }
+			memset, err := strconv.ParseInt(os.Args[i + 1], 0, 32)
+			if err != nil && memset > 0x70000000 {
+				fmt.Println("Invalid RAM amount")
+				i++
+				continue
+			}
+			MemorySetting = uint32(memset)
+			i++
+		case "--log":
+			shared.LogOn = true
+		case "--debug":
+			shared.Debug = true
+			shared.LogOn = true
+		case "-sd":
+			shared.SDFilename = os.Args[i + 1]
+			i++
+		case "-dvd":
+			shared.OpticalFilename = os.Args[i + 1]
+			i++	
+		case "-boot":
+			next := os.Args[i + 1]
+			switch next {
+			case "hdd":
+				shared.BootDrive = 0
+			case "sd":
+				shared.BootDrive = 1
+			case "dvd":
+				shared.BootDrive = 2
+			default:
+				fmt.Println("luna-l2: invalid boot drive")
+			}
+			i++
+		case "-gpu":
+			if i + 1 >= len(os.Args) { fmt.Println("Not enough args to -gpu"); i++; continue; }
+			i++
+			switch os.Args[i] {
+			case "g1", "g1x":
+				GPU = os.Args[i]
+			default:
+				fmt.Println("luna-l2: invalid video component")
+			}
+		default:
+			shared.Filename = arg
+		}
+	}
+
+	Memory = make([]byte, MemorySetting)
+	shared.MEMCAP = MemorySetting - 1
 
 	go func() {
 		if video.Ready == false {	
@@ -653,50 +718,6 @@ func main() {
 				}
 			}
 		}	
-
-		for i := 1; i < len(os.Args); i++ {
-			arg := os.Args[i]
-			switch arg {
-			case "--speed":
-				if i + 1 >= len(os.Args) { fmt.Println("Not enough arguments to --speed"); i++; continue }
-				speed, err := strconv.ParseInt(os.Args[i + 1], 0, 64)
-				if err != nil {
-					fmt.Println("Invalid clock speed")
-					i++
-					continue
-				}
-				ClockSpeed = int64(speed)
-				i++
-			case "--log":
-				shared.LogOn = true
-			case "--debug":
-				shared.Debug = true
-				shared.LogOn = true
-			case "-sd":
-				shared.SDFilename = os.Args[i + 1]
-				i++
-			case "-dvd":
-				shared.OpticalFilename = os.Args[i + 1]
-				i++	
-			case "-boot":
-				next := os.Args[i + 1]
-				switch next {
-				case "hdd":
-					shared.BootDrive = 0
-				case "sd":
-					shared.BootDrive = 1
-				case "dvd":
-					shared.BootDrive = 2
-				default:
-					fmt.Println("luna-l2: invalid boot drive")
-				}
-				i++
-			default:
-				shared.Filename = arg
-			}
-		}
-
-		Memory = make([]byte, MemorySetting)	
 
 		boot:
 		bios.Splash()
@@ -754,5 +775,5 @@ func main() {
 			os.Exit(0)
 		}
 	}()	
-	video.InitializeWindow()
+	video.InitializeWindow(GPU)
 }

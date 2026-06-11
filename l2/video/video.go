@@ -1,7 +1,6 @@
 package video
 
 import (
-	"image"
 	"runtime"
 	"fmt"
 	"os"
@@ -13,9 +12,8 @@ import (
 	"github.com/ncruces/zenity"
 )
 
-var ComponentList = map[string]string {
-	"g1x": "/usr/local/lib/l2/g1x.so",
-} 
+var CommonComponentPathPrefix string = "/usr/local/lib/l2/video/"
+var WindowsComponentPathPrefix string = "C:\\Program Files (x86)\\Luna L2\\lib\\l2\\video\\"
 
 const VertexShaderSrc = `
 #version 150
@@ -92,7 +90,7 @@ func CreateProgram() uint32 {
 
 // Frontend code
 var Ready bool
-var img = image.NewRGBA(image.Rect(0, 0, 320, 200))
+
 var Vertices = []float32 {
 	-1, -1, 0, 1,
      1, -1, 1, 1,
@@ -176,9 +174,15 @@ func ToggleFullscreen(window *glfw.Window) {
 }
 
 var Grab bool
-func InitializeWindow() {
+func InitializeWindow(ComponentName string) {
 	wd, _ := os.Getwd()
-	InitializeComponent(ComponentList["g1x"])
+	prefix := CommonComponentPathPrefix
+	ext := ".so"
+	if runtime.GOOS == "windows" {
+		prefix = WindowsComponentPathPrefix
+		ext = ".dll"
+	}
+	InitializeComponent(prefix + ComponentName + ext)
 	err := glfw.Init()
 	if err != nil {
 		fmt.Println("luna-l2: could not initialize window: ", err)
@@ -393,7 +397,7 @@ func InitializeWindow() {
 	next := time.Now()	
 	for !window.ShouldClose() {
 		Ready = true
-    	UpdateFramebuffer(img)
+		img := ReturnFramebuffer() 
 
 		gl.ActiveTexture(gl.TEXTURE0)
 		gl.BindTexture(gl.TEXTURE_2D, texture)

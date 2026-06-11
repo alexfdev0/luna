@@ -21,6 +21,7 @@ var CursorX int = 0
 var CursorY int = 0
 var MemoryVideo = make([]byte, 64000)
 var Palette = make([]color.NRGBA, 256)
+var img = image.NewRGBA(image.Rect(0, 0, 320, 200))
 
 func scrollUp() {
     const (
@@ -136,12 +137,16 @@ func ReadVideoMemory(addr uint32) byte {
 	return MemoryVideo[addr]
 }
 
-func UpdateFramebuffer(img *image.RGBA) {
+func ReturnFramebuffer() *image.RGBA {
 	i := 0
 	for y := 0; y < 200; y++ {
 		for x := 0; x < 320; x++ {
-			img.Set(x, y, Palette[MemoryVideo[i]])
+			if MemoryVideo[i] != 0xE3 {
+				img.Set(x, y, Palette[MemoryVideo[i]])
+			}
 			i++
 		}
 	}
+
+	return img
 }

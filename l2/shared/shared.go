@@ -3,7 +3,6 @@ package shared
 import (
 	"math/rand"
 	"cmp"
-	
 )
 /* 
 shared.go:
@@ -11,7 +10,7 @@ main functions that are exported so other independent libraries can use them
 
 */
 
-const (
+var (
 	MEMSIZE uint32 = 0x70000000
 	MEMCAP uint32 = 0x6FFFFFFF
 )

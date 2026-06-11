@@ -28,14 +28,14 @@ func InitializeComponent(Path string) {
 	InitializePalette.(func())()
 }
 
-func UpdateFramebuffer(Image *image.RGBA) {
-	UFB, err := VideoComponent.Lookup("UpdateFramebuffer")
+func ReturnFramebuffer() *image.RGBA {
+	RFB, err := VideoComponent.Lookup("ReturnFramebuffer")
 	if err != nil {
 		fmt.Println("luna-l2: failed to send signal to video component with name 'UpdateFramebuffer':", err)
-		return
+		return &image.RGBA{}
 	}
 
-	UFB.(func(*image.RGBA))(Image)
+	return RFB.(func() *image.RGBA)()
 }
 
 func PrintChar(ch rune, fg byte, bg byte) {
@@ -90,12 +90,11 @@ func WriteVideoMemory(addr uint32, content byte) {
 }
 
 func ReadVideoMemory(addr uint32) byte {
-	GC, err := VideoComponent.Lookup("ReadVideoMemory")
+	RVM, err := VideoComponent.Lookup("ReadVideoMemory")
 	if err != nil {
 		fmt.Println("luna-l2: failed to send signal to video component with name 'ReadVideoMemory':", err)
 		return 0
 	}
 
-	content := GC.(func(uint32) byte)(addr)
-	return content
+	return RVM.(func(uint32) byte)(addr)
 }

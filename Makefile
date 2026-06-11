@@ -54,6 +54,10 @@ macos-installer:
 		build/"Luna L2 (arm64).pkg"
 
 mac_qmake:
+	mkdir -p /usr/local/lib/l2/
+	cd l2 && go build -buildmode=plugin -o ../components/video/g1x.so ./video/hardware/g1x.go
+	cd l2 && go build -buildmode=plugin -o ../components/video/g1.so ./video/hardware/g1.go
+	sudo cp -r components/* /usr/local/lib/l2/
 	cd l2 && CGO_ENABLED=1 GOOS=darwin go build -o /Applications/"Luna L2.app"/Contents/MacOS/luna-l2 luna_l2.go
 	cd lcc && GOOS=darwin go build -o /usr/local/bin/lcc lcc.go
 	cd las && GOOS=darwin go build -o /usr/local/bin/las las.go
