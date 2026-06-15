@@ -1,15 +1,7 @@
-#
-# NOTE:
-#
-# The Makefile is legacy and should not be used for building;
-# instead, use the installer delegated for your OS in the build directory.
-#
-# The Makefile should only be used for building legacy Luna L1 software OR to build the MacOS installer
-#
 SRC=./
 
-all: luna-l2 las l2ld lcc lcc1
-.PHONY: clean install
+all: luna-l2 las lcc lcc1 l2ld
+.PHONY: clean install l2ld
 
 luna-l2: $(SRC)/l2/*
 	cd l2 && go build -buildmode=plugin -o ../components/audio/s1.so ./audio/hardware/s1.go
@@ -26,7 +18,7 @@ lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
 lcc: $(SRC)/lcc/* $(SRC)/lcc_info/*
 	cd lcc && go build -o ../bin/lcc ./lcc.go
 
-l2ld: $(SRC)/l2ld/*	
+l2ld:
 	cd l2ld && go build -o ../bin/l2ld ./l2ld.go	
 
 macos-installer:

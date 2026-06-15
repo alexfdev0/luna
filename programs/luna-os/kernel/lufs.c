@@ -131,7 +131,6 @@ void flist() {
     long int* fp = *fsp;
 
     while (1) {
-        tohex((long int) *fp, 1);
         if (*fp != 0x4C465346) {
             break;
         }
@@ -143,8 +142,6 @@ void flist() {
         long int size = (long int) *fp;
         fp = fp + 4; // skip over size marker
         fp = fp + size; // skip over file contents 
-        puts32("After:", COLOR_RED, COLOR_BLACK);
-        tohex((long int) fp, 1);
     }
 
     return;

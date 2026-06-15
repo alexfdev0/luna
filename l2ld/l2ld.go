@@ -44,12 +44,11 @@ var errors = []string {
 	"no object files specified",
 	"file cannot be open()ed, errno=2",
 	"multiple definitions of",
-	"Undefined symbol for architecture luna-l2:",
+	"Undefined symbol(s) for architecture luna-l2:",
 	"File size exceeds padding directive:",
 }
 func error(errno int, args string) {
 	fmt.Fprintln(os.Stderr, "l2ld: " + errors[errno] + " " + args)
-	os.Exit(1)
 }
 
 func write(content byte) {
@@ -258,7 +257,7 @@ func main() {
 		switch arg {
 		case "-v":
 			fmt.Println("@(#)PROGRAM:l2ld PROJECT:l2ld-2.3")
-			fmt.Println("BUILD 08:20 Mar 23 2026")
+			fmt.Println("BUILD 08:20 Jun 13 2026")
 			fmt.Println("configured to support archs: luna-l2")	
 			os.Exit(0)
 		case "-o":
@@ -279,6 +278,7 @@ func main() {
 
 	if len(input_files) < 1 {
 		error(0, "")
+		os.Exit(1)
 	}
 	if output_filename == "" {
 		output_filename = "a.bin"
@@ -337,6 +337,7 @@ func main() {
 		data, err := os.ReadFile(file)
 		if err != nil {
 			error(1, "path=" + file)
+			os.Exit(1)
 		}	
 		Filter(data, file)		
 	}	
@@ -344,7 +345,8 @@ func main() {
 	done:
 
 	var buffer = []byte{}	
-	buffer = append(buffer, Buffer...)	
+	buffer = append(buffer, Buffer...)
+	var UnsolvedUnresolvedBindings []unresolvedBinding
 
 	for _, ub := range unresolvedBindings {
 		if ub.Solved == false {
@@ -353,13 +355,22 @@ func main() {
 				data, err := os.ReadFile(file)
 				if err != nil {
 					error(1, "path=" + file + " (in libs.conf)")
+					os.Exit(1)
 				}
 				Filter(data, file)
 				goto done
 			}
-			error(3, "\n  \"" + ub.Name + "\", referenced from\n    " + ub.File)
+			UnsolvedUnresolvedBindings = append(UnsolvedUnresolvedBindings, ub)
 		}
-	}	
+	}
+
+	if len(UnsolvedUnresolvedBindings) > 0 {
+		error(3, "")
+		for _, ub := range UnsolvedUnresolvedBindings {
+			fmt.Println("  \"" + ub.Name + "\", referenced from:\n    " + ub.File) 
+		}
+		os.Exit(1)
+	}
 
 	if FillSize > 0 {	
 		if len(buffer) > FillSize {

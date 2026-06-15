@@ -25,8 +25,6 @@ const (
 	STRING             // unsigned char
 	POINT              // goto labels
 	NULL               // void / void*
-	POINTER            // any kind of pointer; used because pointers need their own compatibility
-					   // mode with the new 16/32 bit ops distinction
 )
 
 type Variable_Static struct {
@@ -1992,7 +1990,6 @@ func Parse(tokens []shared.Token, Scope int) {
 				}
 
 				if peek(0).Type == shared.TokTypedef {
-					print("TYPEDEF")
 					expect(shared.TokTypedef)
 					
 					switch peek(0).Type {

@@ -5,12 +5,12 @@ extern void sleep(int seconds);
 extern void* flags_start;
 
 void render_flags() {
-    short short int* fptr = flags_start;
+    short short int* fptr = (short short int*) flags_start;
     while (*fptr != 0xFE) {
-        for (int i = 0; i < 40; i = i + 1) {
+        for (int i = 0; i < 40; i++) {
             putc(0x20, *fptr);
         }
-        fptr = fptr + 1;
+        fptr++;
         if (*fptr == 0x00) {
             sleep(1);
         }
@@ -21,14 +21,10 @@ void _start() {
     asm ("mov sp, 0xEFFF");
 
     // Load the next sectors on the disk
-    
-    asm ("mov r1, 1"); // sector 1
+    asm ("int 0x10");
+    asm ("mov r2, r1");
+    asm ("mov r1, 1");
     asm ("mov r3, r1");
-    asm ("mov r2, 0");
-    asm ("int 11");
-    asm ("mov r1, 2"); // sector 2
-    asm ("mov r3, r1");
-    asm ("mov r2, 0");
     asm ("int 11");
 
     // Set up PIT

@@ -12,7 +12,7 @@ void shell() {
     while (1) {
         long int* buf = malloc(256);
         puts32((char*) PROMPTBUF, COLOR_WHITE, COLOR_BLACK);
-        readin((char*) buf, 1, 0); 
+        readin((char*) buf, 1, 0);
         if (strcmp("reboot", (char*) buf) == 1) {
             puts32("Rebooting...", COLOR_WHITE, COLOR_BLACK);
             asm ("mov r1, 0");
@@ -82,8 +82,15 @@ void shell() {
             continue;
         }
 
+        if (strcmp("battery", (char*) buf) == 1) {
+            puts32("Battery level: ", COLOR_WHITE, COLOR_BLACK);
+            short short int* bat_ptr = 0x80000026;
+            tohex((long int) *bat_ptr, 1);
+            continue;
+        }
+
         puts32("Bad command '", COLOR_LRED, COLOR_BLACK);
-        puts32((char*) buf, COLOR_LRED, COLOR_BLACK);
+        puts32((char*) get_first_word((char*) buf), COLOR_LRED, COLOR_BLACK);
         puts32("'\n", COLOR_LRED, COLOR_BLACK);
     }
     return;

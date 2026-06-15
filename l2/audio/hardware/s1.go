@@ -5,6 +5,7 @@ import (
 	"github.com/gopxl/beep/speaker"
 	"time"
 	"luna_l2/shared"
+	"math/rand"
 )
 
 var MemoryAudio [10]byte
@@ -60,9 +61,11 @@ func AudioController() {
 }
 
 func WriteAudioMemory(addr uint32, content byte) {
+	if addr >= uint32(len(MemoryAudio)) { return }
 	MemoryAudio[addr] = content
 }
 
 func ReadAudioMemory(addr uint32) byte {
+	if addr >= uint32(len(MemoryAudio)) { return byte(rand.Intn(0xFF)) }
 	return MemoryAudio[addr]
 }

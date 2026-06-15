@@ -5,11 +5,6 @@ import (
 	"cmp"
 	"luna_l2/proxy"
 )
-/* 
-shared.go:
-main functions that are exported so other independent libraries can use them
-
-*/
 
 var (
 	MEMSIZE uint32 = 0x70000000
@@ -24,32 +19,31 @@ type Register struct {
 
 var Registers *[]Register
 var Memory *[]byte
-var MemoryAudio *[10]byte
 var MemoryMouse *[8]byte
 var MemoryKeyboard *[1]byte
 var MemoryRTC *[6]byte
 var MemoryPIT *[8]byte
-var MemoryPower *[4]byte
+var MemoryPower *[1]byte
 
 func Mapper(address uint32) byte {
 	if Bits32 == true {
 		switch {
 		case address >= 0x00000000 && address <= MEMCAP:
 			return (*Memory)[address]
-		case address >= 0x70000000 && address <= 0x7000F9FF:
+		case address >= 0x70000000 && address <= 0x7FFFFFFF:
 			return proxy.VideoReadVideoMemory(address - 0x70000000)
-		case address >= 0x7000FA00 && address <= 0x7000FA09:
-			return proxy.AudioReadAudioMemory(address - 0x7000FA00)
-		case address >= 0x7000FA0A && address <= 0x7000FA11:
-			return (*MemoryMouse)[address - 0x7000FA0A]
-		case address >= 0x7000FA12 && address <= 0x7000FA12:
-			return (*MemoryKeyboard)[address - 0x7000FA12]
-		case address >= 0x7000FA13 && address <= 0x7000FA1A:
-			return (*MemoryPIT)[address - 0x7000FA13]	
-		case address >= 0x7001B65E && address <= 0x7001B663:
-			return (*MemoryRTC)[address - 0x7001B65E]
-		case address >= 0x7001B664 && address <= 0x7001B667:
-			return (*MemoryPower)[address - 0x7001B664]
+		case address >= 0x80000000 && address <= 0x80000009:
+			return proxy.AudioReadAudioMemory(address - 0x80000000)
+		case address >= 0x8000000A && address <= 0x80000011:
+			return (*MemoryMouse)[address - 0x8000000A]
+		case address >= 0x80000012 && address <= 0x80000012:
+			return (*MemoryKeyboard)[address - 0x80000012]
+		case address >= 0x80000013 && address <= 0x8000001A:
+			return (*MemoryPIT)[address - 0x80000013]	
+		case address >= 0x80000020 && address <= 0x80000025:
+			return (*MemoryRTC)[address - 0x80000020]
+		case address >= 0x80000026 && address <= 0x80000026:
+			return (*MemoryPower)[address - 0x80000026]
 		}
 	} else {
 		switch {
@@ -68,7 +62,7 @@ func Mapper(address uint32) byte {
 		case address >= 0xFA37 && address <= 0xFC36:
 			// IDT
 			return (*Memory)[0x6FFF0000 + (address - 0xFA37)]
-		case address >= 0xFC37 && address <= 0xFC3A:
+		case address >= 0xFC37 && address <= 0xFC37:
 			return (*MemoryPower)[address - 0xFC37]
 		case address >= 0xFE00 && address <= 0xFFFF:
 			if GetRegister(0x001F) <= 124 {
@@ -84,20 +78,20 @@ func MapperWrite(address uint32, content byte) {
 		switch {
 		case address >= 0x00000000 && address <= MEMCAP:
 			(*Memory)[address] = content
-		case address >= 0x70000000 && address <= 0x7000F9FF:
+		case address >= 0x70000000 && address <= 0x7FFFFFFF:
 			proxy.VideoWriteVideoMemory(address - 0x70000000, content)
-		case address >= 0x7000FA00 && address <= 0x7000FA09:
-			proxy.AudioWriteAudioMemory(address - 0x7000FA00, content)
-		case address >= 0x7000FA0A && address <= 0x7000FA11:
-			(*MemoryMouse)[address - 0x7000FA0A] = content
-		case address >= 0x7000FA12 && address <= 0x7000FA12:
-			(*MemoryKeyboard)[address - 0x7000FA12] = content
-		case address >= 0x7000FA13 && address <= 0x7000FA1A:
-			(*MemoryPIT)[address - 0x7000FA13] = content
-		case address >= 0x7001B65E && address <= 0x7001B663:
-			(*MemoryRTC)[address - 0x7001B65E] = content
-		case address >= 0x7001B664 && address <= 0x7001B667:
-			(*MemoryPower)[address - 0x7001B664] = content
+		case address >= 0x80000000 && address <= 0x80000009:
+			proxy.AudioWriteAudioMemory(address - 0x80000000, content)
+		case address >= 0x8000000A && address <= 0x80000011:
+			(*MemoryMouse)[address - 0x8000000A] = content
+		case address >= 0x80000012 && address <= 0x80000012:
+			(*MemoryKeyboard)[address - 0x80000012] = content
+		case address >= 0x80000013 && address <= 0x8000001A:
+			(*MemoryPIT)[address - 0x80000013] = content	
+		case address >= 0x80000020 && address <= 0x80000025:
+			(*MemoryRTC)[address - 0x80000020] = content
+		case address >= 0x80000026 && address <= 0x80000026:
+			(*MemoryPower)[address - 0x80000026] = content
 		}
 	} else {
 		switch {
@@ -116,7 +110,7 @@ func MapperWrite(address uint32, content byte) {
 		case address >= 0xFA37 && address <= 0xFC36:
 			// IDT
 			(*Memory)[0x6FFF0000 + (address - 0xFA37)] = content
-		case address >= 0xFC37 && address <= 0xFC3A:
+		case address >= 0xFC37 && address <= 0xFC37:
 			(*MemoryPower)[address - 0xFC37] = content
 		case address >= 0xFE00 && address <= 0xFFFF:
 			if GetRegister(0x001F) <= 124 {

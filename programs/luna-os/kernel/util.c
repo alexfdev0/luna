@@ -93,3 +93,19 @@ void app_error() __attribute__((noreturn)) {
     puts32("Executable automatically\nterminated due to instruction fault.\n", COLOR_WHITE, COLOR_BLACK);
     goto lexec_done; 
 }
+
+short short int* get_first_word(char* string) {
+    short short int* buffer = (short short int*) malloc(1024);
+    short short int* ogbuf = buffer;
+
+    while (*string != 0x00) {
+        if (*string == 0x20) {
+            break;
+        }
+        putchar(*string, (char*) buffer);
+        buffer++;
+        string++;
+    }
+    free(1024);
+    return ogbuf;
+}

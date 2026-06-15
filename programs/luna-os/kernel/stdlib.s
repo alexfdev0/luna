@@ -415,7 +415,7 @@ wfk_ret:
 key_click:
     push r2
 
-    mov r2, 0x7000FA12
+    mov r2, 0x80000012
     lod r2, r1
 
     pop r2

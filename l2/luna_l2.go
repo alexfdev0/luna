@@ -692,7 +692,11 @@ func main() {
 		case "-gpu":
 			if i + 1 >= len(os.Args) { fmt.Println("Not enough args to -gpu"); i++; continue; }
 			i++
-			GPU = os.Args[i]	
+			GPU = os.Args[i]
+		case "-apu":
+			if i + 1 >= len(os.Args) { fmt.Println("Not enough args to -apu"); i++; continue; }
+			i++
+			APU = os.Args[i]
 		default:
 			shared.Filename = arg
 		}

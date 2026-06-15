@@ -15,6 +15,7 @@ import (
 	"image/color"
 	"luna_l2/font"
 	"luna_l2/shared"
+	"math/rand"
 )
 
 var CursorX int = 0
@@ -130,10 +131,12 @@ func ClearVideoMemory() {
 }
 
 func WriteVideoMemory(addr uint32, content byte) {
+	if addr >= uint32(len(MemoryVideo)) { return }
 	MemoryVideo[addr] = content
 }
 
 func ReadVideoMemory(addr uint32) byte {
+	if addr >= uint32(len(MemoryVideo)) { return byte(rand.Intn(0xFF)) }
 	return MemoryVideo[addr]
 }
 

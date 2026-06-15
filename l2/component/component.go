@@ -4,8 +4,8 @@ package component
 
 import (
 	"plugin"
-	"os"
 	"fmt"
+	"os"
 )
 
 type Component *plugin.Plugin
