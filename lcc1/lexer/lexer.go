@@ -113,6 +113,10 @@ func Lex(code []SmallToken, filename string) []shared.Token {
 			Add(shared.TokIncrement, content, SToken)
 		case "--":
 			Add(shared.TokDecrement, content, SToken)
+		case ".":
+			Add(shared.TokPeriod, content, SToken)
+		case "->":
+			Add(shared.TokArrow, content, SToken)
 		default:
 			num, err := strconv.ParseInt(content, 0, 64)
 			if err == nil {
@@ -252,7 +256,11 @@ func Tokenize (text string, filename string) []SmallToken {
 			continue
 		}
 
-
+		if r == '-' && peek(1) == '>' {
+			emit("->")
+			i += 2
+			continue
+		}
 
 		if strings.ContainsRune("+-*/%&|^~<>=!?:;.,()[]{}@", r) {
 			emit(string(r))

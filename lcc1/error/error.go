@@ -55,6 +55,9 @@ var errors = []string {
 	"invalid number for '#pragma bits'",
 	"void function",
 	"expression is not assignable",
+	"unknown type name",
+	"type name requires a specifier or qualifier",
+	"duplicate member",
 }
 
 var Warnings int = 0
@@ -78,6 +81,7 @@ func Stargaze(Tokens *[]shared.Token, where int, errno int, kind int) {
 	// 3: note
 
 	line := (*Tokens)[where].Line
+	file := (*Tokens)[where].File
 
 	OGTVAL := (*Tokens)[where].Value
 
@@ -86,11 +90,11 @@ func Stargaze(Tokens *[]shared.Token, where int, errno int, kind int) {
 	}
 
 	start := where
-	for start > 0 && (*Tokens)[start - 1].Line == line {
+	for start > 0 && (*Tokens)[start - 1].Line == line && (*Tokens)[start - 1].File == file {
 		start--
 	}
 	end := where
-	for end < len(*Tokens) - 1 && (*Tokens)[end + 1].Line == line {
+	for end < len(*Tokens) - 1 && (*Tokens)[end + 1].Line == line && (*Tokens)[end + 1].File == file {
 		end++
 	}
 

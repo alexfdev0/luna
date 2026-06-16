@@ -18,7 +18,6 @@ import (
 	"luna_l2/power"	
 )
 
-// Basic elements of CPU
 var Registers = []shared.Register {
 	{0x0000, "R0", 0},
 	{0x0001, "R1", 0},
@@ -62,7 +61,6 @@ const (
 	MEMCAP uint32 = 0x6FFFFFFF
 )
 
-// Register controls
 func setRegister(address uint32, value uint32) {
 	if address < uint32(len(Registers)) {
 		if shared.Bits32 == false && address != 0x001f {
@@ -90,24 +88,6 @@ func getRegisterName[T uint32 | byte](address T) string {
 	return ""
 }
 
-// Memory map (32 bit mode):
-	// 0x00000000 - 0x6FFEFFFF: general purpose RAM (1.7499 GiB)
-	// 0x6FFF0000 - 0x6FFFFFFF: reserved region for IDT (65 KB)
-	// 0x70000000 - 0x7000F9FF: video RAM (64 KB)
-	// 0x7000FA00 - 0x7000FA09: audio RAM (9 B)
-	// 0x7000FA0A - 0x7001A643: empty region
-	// 0x7001B65E - 0x7001B663: clock RAM (6 B)
-
-// Memory map (16 bit mode):
-	// 0x0000 - 0xEFFF - general purpose RAM (61.4KB)
-	// 0xF000 - 0xFFFF - MMIO device (accessible via bank)
-// Bank map:
-	// 0 - 15: VRAM 
-	// 16: Audio RAM + Mouse RAM + Keyboard RAM + PIT RAM
-// Size formula
-	// end = start + size - 1
-
-// Meta-code
 var ClockSpeed int64 = 33000000
 var BIOS_REBOOT bool = false
 var BIOS_SHUTDOWN bool = false
@@ -118,7 +98,6 @@ func Log(text string) {
 	}	
 }
 
-// CPU code
 var accumulated int64
 func stall(cycles int64) { 
 	cycleTime := int64(int(time.Second)) / ClockSpeed

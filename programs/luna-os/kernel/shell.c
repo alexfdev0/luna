@@ -20,10 +20,7 @@ void shell() {
         }
 
         if (strcmp("about", (char*) buf) == 1) {
-            puts32("LunaOS 1.0.0\nBy Alexander Flax\n", COLOR_WHITE, COLOR_BLACK);
-            puts32("Network adapter: ", COLOR_WHITE, COLOR_BLACK);
-            puts32((char*) 0x7001A65A, COLOR_WHITE, COLOR_BLACK);
-
+            puts32("LunaOS 2.0.0\nBy Alexander Flax\n", COLOR_WHITE, COLOR_BLACK);
             puts32("\n\n", COLOR_WHITE, COLOR_BLACK);
             continue;
         }

@@ -44,6 +44,8 @@ const (
 	TokIncrement
 	TokDecrement
 	TokPercent
+	TokPeriod
+	TokArrow
 )
 
 type Token struct {

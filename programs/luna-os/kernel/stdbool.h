@@ -4,4 +4,5 @@
 #define false 0
 
 // Replacement for typedef
-#define bool int
+typedef short short int bool;
+

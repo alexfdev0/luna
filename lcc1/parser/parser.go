@@ -23,7 +23,7 @@ const (
 	NUMBER16		   // unsigned short int / unsigned int
 	NUMBER32           // unsigned long int
 	STRING             // unsigned char
-	POINT              // goto labels
+	STRUCT              // structs
 	NULL               // void / void*
 )
 
@@ -41,6 +41,14 @@ type Variable_Static struct {
 	Register bool
 	PointerLength int
 	ArgumentTypeManifest []ArgumentTypeManifestEntry
+	StructTotalSize int
+	StructMemberList []StructMemberListEntry
+}
+
+type StructMemberListEntry struct {
+	Name string
+	Offset int
+	RequiredType ArgumentTypeManifestEntry
 }
 
 type ArgumentTypeManifestEntry struct {
@@ -70,7 +78,12 @@ type UnpackOrder struct {
 }
 
 type TypeMapEntry struct {
-	RefersTo int
+	Name string
+	ReferralType int
+	Pointer bool
+	PointerLength int
+	Const bool
+	EmbeddedStruct Variable_Static
 }
 
 var TypeMap []TypeMapEntry
@@ -226,6 +239,15 @@ func ParseExpyL1(tokens []shared.Token, i int, Scope int) int {
 		i = ParseExpy(tokens, i, Scope, "r4", ArgumentTypeManifestEntry{Type: 999})
 	}
 	return i
+}
+
+func LookupType(name string) (TypeMapEntry, bool) {
+	for _, Type := range TypeMap {
+		if Type.Name == name {
+			return Type, true
+		}
+	}
+	return TypeMapEntry{ }, false
 }
 
 // Some globals (i know its bad practice but it works so....)
@@ -575,6 +597,21 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			}	
 		}
 	}
+	_TYPE_QUAL_DEFINE := func() {
+		bodytokens := []shared.Token {}
+		for j := i; j < len(tokens); j++ {
+			bodytokens = append(bodytokens, tokens[j])
+			if tokens[j].Type == shared.TokSemi {
+				i = j + 1
+				break
+			}
+		}
+		level = 0
+		L1_ALLOW_NONCONST = true
+		Parse(bodytokens, Scope)
+		L1_ALLOW_NONCONST = true
+		level = 1
+	}
 
 	deref := 0
 	EQU_VT := NULL
@@ -607,19 +644,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		Write("jmp " + label, true)
 		goto DONE
 	case shared.TokType, shared.TokQualifier:
-		bodytokens := []shared.Token {}
-		for j := i; j < len(tokens); j++ {
-			bodytokens = append(bodytokens, tokens[j])
-			if tokens[j].Type == shared.TokSemi {
-				i = j + 1
-				break
-			}
-		}
-		level = 0
-		L1_ALLOW_NONCONST = true
-		Parse(bodytokens, Scope)
-		L1_ALLOW_NONCONST = true
-		level = 1
+		_TYPE_QUAL_DEFINE()
 		goto DONE
 	case shared.TokLParen:
 		expect(shared.TokLParen)
@@ -1112,6 +1137,18 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		Write("ret", true)
 		goto DONE
 	case shared.TokIdent:
+		found := false
+		for _, Type := range TypeMap {
+			if Type.Name == peek(0).Value {
+				found = true
+				break
+			}
+		}
+		if found == true {	
+			_TYPE_QUAL_DEFINE()
+			goto DONE
+		}
+
 		label := expect(shared.TokIdent)
 		var variable Variable_Static
 
@@ -1171,6 +1208,8 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 
 		variable = LookupVariable(label, true, Scope, peek(-1), &tokens)
 
+		Write("mov r1, " + variable.Real, true)
+
 		if _COERCE_TYPE != 6 {
 			CTYPE = _COERCE_TYPE
 			CPTR = _COERCE_PTR
@@ -1189,6 +1228,26 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 				CPTR = variable.Pointer
 				CLENGTH = variable.PointerLength
 			}
+		}
+
+		if variable.Type == STRUCT {
+			fmt.Println("Struct")
+			expect(shared.TokPeriod)
+			identifier := expect(shared.TokIdent)
+			Write("mov e8, " + variable.Real, true)
+
+			for _, Member := range variable.StructMemberList {
+				if Member.Name == identifier {
+					Write("mov e9, " + fmt.Sprintf("%d", Member.Offset), true)
+					Write("add e8, e8, e9", true)
+					RequiredType = Member.RequiredType
+					break
+				}
+			}
+
+			fmt.Println("Added")
+
+			Write("add r1, r1, e8", true)
 		}
 
 		switch peek(0).Type {
@@ -1227,8 +1286,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		}
 
 		EQU_VT = variable.Type
-		EQU_VAR = variable
-		Write("mov r1, " + variable.Real, true)
+		EQU_VAR = variable	
 		if array == true {
 			switch variable.Type {
 			case NUMBER8:
@@ -1401,6 +1459,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 
 		// Construct fake variable
 		// Removed the pointer variant because causing issues.
+		// ^ I added it back
 
 		if RequiredType.Type != 999 {
 			required := ""
@@ -1994,25 +2053,110 @@ func Parse(tokens []shared.Token, Scope int) {
 					
 					switch peek(0).Type {
 					case shared.TokQualifier, shared.TokType:
-						Type, Pointer, _ := _PARSE_TYPE()
+						Type, Pointer, PointerLength := _PARSE_TYPE()
 						if Pointer == true {
 							error.Warning(41, "", peek(-1), &tokens);
 						}
-						TypeMap = append(TypeMap, TypeMapEntry{
-							RefersTo: Type,
-						})
+						
 
 						name := expect(shared.TokIdent)
 						expect(shared.TokSemi)
 
-						for k := i; k < len(tokens); k++ {
-							if tokens[k].Type == shared.TokIdent && tokens[k].Value == name {
-								tokens[k].Type = shared.TokType
+						TypeMap = append(TypeMap, TypeMapEntry {
+							Name: name,
+							ReferralType: Type,
+							Pointer: Pointer,
+							PointerLength: PointerLength,
+
+						})	
+					case shared.TokStruct:
+						expect(shared.TokStruct)
+						expect(shared.TokLCurly)
+
+						var MemberList []StructMemberListEntry	
+						size_accumulator := 0;
+
+						CheckMemberOfStruct := func(name string) bool {
+							for _, Member := range MemberList {
+								if Member.Name == name {
+									fmt.Println(Member.Name)
+									return true
+								}
+							}
+							return false
+						}
+
+						for {
+							_, IsType := LookupType(peek(0).Value)
+							if peek(0).Type == shared.TokQualifier || peek(0).Type == shared.TokType || IsType == true {
+								Type, Pointer, PtrLen := _PARSE_TYPE()
+								_size := 0
+								
+								if Pointer == false {
+									switch Type {
+									case NUMBER8, STRING, NULL:
+										_size += 1
+									case NUMBER16:
+										_size += 2
+									case NUMBER32:
+										_size += 4
+									}
+								} else {
+									switch shared.Bits {
+									case 32:
+										_size += 4
+									default:
+										_size += 2
+									}
+								}
+								
+								member_name := expect(shared.TokIdent)
+
+								if CheckMemberOfStruct(member_name) == true {
+									error.Error(48, "'" + member_name + "'", peek(-1), &tokens)
+								}
+
+								MemberList = append(MemberList, StructMemberListEntry {
+									Name: member_name,
+									Offset: size_accumulator,
+									RequiredType: ArgumentTypeManifestEntry {
+										Type: Type,
+										Pointer: Pointer,
+										PointerLength: PtrLen,
+									},
+								})
+								
+								size_accumulator += _size
+								expect(shared.TokSemi)
+							} else {
+								if peek(0).Type == shared.TokRCurly {
+									i++
+									break
+								}
+								error.Error(47, "", peek(0), &tokens)
+								i++
 							}
 						}
-					case shared.TokStruct:
-						// TODO: add structs	
+						struct_name := expect(shared.TokIdent)
+						expect(shared.TokSemi)
+
+						StructVariable := Variable_Static {
+							Name: struct_name,
+							Type: STRUCT,
+							StructTotalSize: size_accumulator,
+							StructMemberList: MemberList,
+						}
+
+						Variables = append(Variables, StructVariable)	
+						IDCounter++
+
+						TypeMap = append(TypeMap, TypeMapEntry {
+							ReferralType: STRUCT,
+							EmbeddedStruct: StructVariable,
+							Name: struct_name,
+						})
 					}
+					continue
 				}
 
 				if peek(0).Type == shared.TokQualifier {	
@@ -2069,12 +2213,19 @@ func Parse(tokens []shared.Token, Scope int) {
 				break
 			}
 
-			if peek(0).Type == shared.TokIdent {
-				error.Error(25, "", peek(0), &tokens)
-			}
+			// if peek(0).Type == shared.TokIdent  {
+				// error.Error(25, "", peek(0), &tokens)
+			// }
 
 			// _typetok := tokens[i]
-			_type := expect(shared.TokType)
+			_type := ""
+			_type_tok := peek(0)
+			switch peek(0).Type {
+			case shared.TokType, shared.TokIdent:
+				_type = expect(peek(0).Type)
+			default:
+				_type = expect(shared.TokType)
+			}
 			_ptrlen := 0
 		_ptrtop:
 			if peek(0).Type == shared.TokStar {
@@ -2405,19 +2556,19 @@ func Parse(tokens []shared.Token, Scope int) {
 						case NUMBER8, STRING:
 							r_res := uint8(res)
 							if res > math.MaxUint8 || res < 0 {
-								error.Warning(36, "'" + ReturnIntType(res) + "' to 'unsigned short short int' changes value from '" + fmt.Sprintf("%d", res) + "' to '" + fmt.Sprintf("%d", r_res) + "'", peek(-1), &tokens)
+								error.Warning(36, "'" + ReturnIntType(res) + "' to 'unsigned short short int' changes value from '" + fmt.Sprintf("%d", res) + "' to '" + fmt.Sprintf("%d", r_res) + "'", peek(0), &tokens)
 							}
 							WritePre(".byte " + fmt.Sprintf("0x%02x", r_res), true)
 						case NUMBER16:
 							r_res := uint16(res)
 							if res > math.MaxUint16 || res < 0 {
-								error.Warning(36, "'" + ReturnIntType(res) + "' to 'unsigned short int' changes value from '" + fmt.Sprintf("%d", res) + "' to '" + fmt.Sprintf("%d", r_res) + "'", peek(-1), &tokens)
+								error.Warning(36, "'" + ReturnIntType(res) + "' to 'unsigned short int' changes value from '" + fmt.Sprintf("%d", res) + "' to '" + fmt.Sprintf("%d", r_res) + "'", peek(0), &tokens)
 							}
 							WritePre(".word " + fmt.Sprintf("0x%04x", r_res), true)
 						case NUMBER32:
 							r_res := uint32(res)
 							if res > math.MaxUint32 || res < 0 {
-								error.Warning(36, "'" + ReturnIntType(res) + "' to 'unsigned long int' changes value from '" + fmt.Sprintf("%d", res) + "' to '" + fmt.Sprintf("%d", r_res) + "'", peek(-1), &tokens)
+								error.Warning(36, "'" + ReturnIntType(res) + "' to 'unsigned long int' changes value from '" + fmt.Sprintf("%d", res) + "' to '" + fmt.Sprintf("%d", r_res) + "'", peek(0), &tokens)
 							}
 							WritePre(".dword " + fmt.Sprintf("0x%08x", r_res), true)
 						}	
@@ -2467,6 +2618,7 @@ func Parse(tokens []shared.Token, Scope int) {
 						Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: val, Pointer: false, Real: rn, Scope: Scope, Const: constant})
 					}
 				case "char":
+					// TODO: add inetgers to this as well
 					str, end := StringParse(tokens, i)	
 					if ptr == true {
 						rn := "var_" + fmt.Sprintf("%d", IDCounter)
@@ -2489,7 +2641,131 @@ func Parse(tokens []shared.Token, Scope int) {
 						Variables = append(Variables, Variable_Static{Name: name, Type: STRING, Value: str, Pointer: false, Scope: Scope, Const: constant, Real: rn})
 					}
 					i = end + 1
+				default:
+					fmt.Println("HI")
+					// Search up type
+					var TypeEntry TypeMapEntry
+					found := false
+					for _, Type := range TypeMap {
+						if Type.Name == _type {
+							found = true
+							TypeEntry = Type
+							break
+						}
+					}
+					if found == false {
+						error.Error(46, "'" + _type + "'", _type_tok, &tokens)
+						for j := i; j < len(tokens); j++ {
+							if tokens[j].Type == shared.TokSemi {
+								i = j + 1
+								break
+							}
+						}
+						continue
+					}
+					rtype = TypeEntry.ReferralType
+
+
+
+					switch TypeEntry.ReferralType {
+					case STRUCT:
+						if ptr == false {
+							fmt.Println("hi")
+							rn := "var_" + fmt.Sprintf("%d", IDCounter)
+							IDCounter++
+
+							WritePre(rn + ":", false)
+							WritePre(".pad " + fmt.Sprintf("%d", TypeEntry.EmbeddedStruct.StructTotalSize), true)
+
+							StructVar := TypeEntry.EmbeddedStruct
+
+							StructVar.Name = name
+
+							Variables = append(Variables, StructVar)
+						}
+					case NUMBER8, NUMBER16, NUMBER32, STRING, NULL:
+						_i := 0
+						rn := "var_" + fmt.Sprintf("%d", IDCounter)
+						IDCounter++	
+
+						if allow_nonconst == false {
+							res := 0
+							WritePre(rn + ":", false)
+							res, _i = ParseNumberExpyDirect(tokens, i, Scope)
+
+							if res == -1 {
+								goto EQU_RTYPE_DONE2
+							}
+
+							switch rtype {
+							case NUMBER8, STRING:
+								r_res := uint8(res)
+								if res > math.MaxUint8 || res < 0 {
+									error.Warning(36, "'" + ReturnIntType(res) + "' to 'unsigned short short int' changes value from '" + fmt.Sprintf("%d", res) + "' to '" + fmt.Sprintf("%d", r_res) + "'", peek(-1), &tokens)
+								}
+								WritePre(".byte " + fmt.Sprintf("0x%02x", r_res), true)
+							case NUMBER16:
+								r_res := uint16(res)
+								if res > math.MaxUint16 || res < 0 {
+									error.Warning(36, "'" + ReturnIntType(res) + "' to 'unsigned short int' changes value from '" + fmt.Sprintf("%d", res) + "' to '" + fmt.Sprintf("%d", r_res) + "'", peek(-1), &tokens)
+								}
+								WritePre(".word " + fmt.Sprintf("0x%04x", r_res), true)
+							case NUMBER32:
+								r_res := uint32(res)
+								if res > math.MaxUint32 || res < 0 {
+									error.Warning(36, "'" + ReturnIntType(res) + "' to 'unsigned long int' changes value from '" + fmt.Sprintf("%d", res) + "' to '" + fmt.Sprintf("%d", r_res) + "'", peek(-1), &tokens)
+								}
+								WritePre(".dword " + fmt.Sprintf("0x%08x", r_res), true)
+							}	
+							EQU_RTYPE_DONE2:
+						} else {
+							WritePre(rn + ":", false)
+							var ATMEntry ArgumentTypeManifestEntry
+							if ptr == false {
+								ATMEntry.Type = rtype
+								ATMEntry.Pointer = ptr
+								ATMEntry.PointerLength = _ptrlen
+							} else {
+								ATMEntry.Type2 = rtype
+								ATMEntry.Pointer = ptr
+								ATMEntry.PointerLength = _ptrlen
+							}
+							_i = ParseExpy(tokens, i, Scope, "r4", ATMEntry)
+
+							if ptr == false {
+								switch rtype {
+								case NUMBER8, STRING:
+									WritePre(".byte 0x00", true)
+									Write("mov r7, " + rn, true)
+									Write("str r7, r4", true)
+								case NUMBER16:
+									WritePre(".word 0x0000", true)
+									Write("mov r7, " + rn, true)
+									Write("str16 r7, r4", true)
+								case NUMBER32:
+									WritePre(".dword 0x00000000", true)
+									Write("mov r7, " + rn, true)
+									Write("str32 r7, r4", true)
+								}
+							} else {
+								WritePre(".ptr 0x00", true)
+								Write("mov r7, " + rn, true)
+								Write("str_ptr r7, r4", true)
+							}
+						}
+						i = _i
+
+
+						var val any
+						if ptr == true || TypeEntry.Pointer == true {	
+							Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Type2: rtype, Value: val, Pointer: true, PointerLength: _ptrlen + TypeEntry.PointerLength, Real: rn, Scope: Scope, Const: constant})
+						} else {
+							Variables = append(Variables, Variable_Static{Name: name, Type: rtype, Value: val, Pointer: false, Real: rn, Scope: Scope, Const: constant})
+						}
+					}	
 				}
+
+				fmt.Println("PEEK0", peek(0).Value)
 				expect(shared.TokSemi)
 			case shared.TokSemi:
 				expect(shared.TokSemi)

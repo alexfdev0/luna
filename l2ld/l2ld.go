@@ -243,6 +243,7 @@ func ParseLibs() {
 func main() {
 	if len(os.Args) < 2 {
 		error(0, "")
+		os.Exit(1)
 	}
 
 	var input_files []string
