@@ -6,6 +6,7 @@ import (
 	"lcc1/shared"
 	"strings"
 	"regexp"
+	"runtime/debug"
 )
 
 var errors = []string {
@@ -31,7 +32,7 @@ var errors = []string {
 	"call to undeclared function",
 	"too few arguments to function call,", // 20
 	"too many arguments to function call,",
-	"",
+	"", // Blank template
 	"return type of",
 	"change return type to",
 	"type specifier missing, defaults to 'int'; ISO C99 and later do not support implicit int",
@@ -58,11 +59,14 @@ var errors = []string {
 	"unknown type name",
 	"type name requires a specifier or qualifier",
 	"duplicate member",
+	"no member named",
+	"member reference base type", // 50
 }
 
 var Warnings int = 0
 var Errors int = 0
 var Upgrade bool
+var FailCompilation bool
 
 func Clamp(num int, mini int, maxi int) int {
 	if num < mini {
@@ -120,6 +124,7 @@ func Stargaze(Tokens *[]shared.Token, where int, errno int, kind int) {
 	text = strings.ReplaceAll(text, "* ", "*")
 	text = strings.ReplaceAll(text, " [ ", "[")
 	text = strings.ReplaceAll(text, " ] ", "] ")
+	text = strings.ReplaceAll(text, " . ", ".")
 
 
 	fmt.Printf("    %d | %s\n", line, text)
@@ -201,8 +206,16 @@ func Note(errno int, args string, token shared.Token, tokens *[]shared.Token) {
 	fmt.Println("\033[1;39m" + label + " \033[1;36mnote: \033[1;39m" + errors[errno] + addtl + args + "\033[0m")
 	Stargaze(tokens, find(token, tokens), errno, 3)
 }
+func InternalCompilerError(message string) {
+	fmt.Fprintln(os.Stderr, "\033[1;39mlcc: \033[1;31minternal compiler error: \033[1;39m" + message + "\033[0m")
+	fmt.Fprintln(os.Stderr, "Stack trace:")
+	debug.PrintStack()
+	fmt.Fprintln(os.Stderr, "Please send a bug report to alex@alexflax.xyz or make an issue on the GitHub repository and provide the source code file you used.")
+	os.Exit(1)
+}
 func UnimplementedMessage(message string) {
-	fmt.Println("sorry, unimplemented:", message)
+	fmt.Fprintln(os.Stderr, "sorry, unimplemented:", message)
+	os.Exit(1)
 }
 
 func Summary() {

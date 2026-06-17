@@ -43,7 +43,9 @@ type Variable_Static struct {
 	ArgumentTypeManifest []ArgumentTypeManifestEntry
 	StructTotalSize int
 	StructMemberList []StructMemberListEntry
+	PointingToStruct string 
 }
+
 
 type StructMemberListEntry struct {
 	Name string
@@ -222,6 +224,8 @@ func TypeToString(Type int, Pointer bool, PointerLength int) string {
 		out += "char"
 	case NULL:
 		out += "void"
+	case STRUCT:
+		out += "struct"
 	}
 
 	for i := 0; i < PointerLength; i++ {
@@ -248,6 +252,15 @@ func LookupType(name string) (TypeMapEntry, bool) {
 		}
 	}
 	return TypeMapEntry{ }, false
+}
+
+func ReturnStruct(name string) Variable_Static {
+	for _, Variable := range Variables {
+		if Variable.Name == name {
+			return Variable
+		}
+	}
+	return Variable_Static {}
 }
 
 // Some globals (i know its bad practice but it works so....)
@@ -438,6 +451,8 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 							Write("lod16 r1, r2", true)
 						case NUMBER32:
 							Write("lod32 r1, r2", true)
+						case STRUCT:
+							Write("mov r2, r1", true)
 						}
 					} else {
 						Write("lod_ptr r1, r2", true)
@@ -1230,24 +1245,60 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			}
 		}
 
-		if variable.Type == STRUCT {
-			fmt.Println("Struct")
-			expect(shared.TokPeriod)
-			identifier := expect(shared.TokIdent)
-			Write("mov e8, " + variable.Real, true)
+		if peek(0).Type == shared.TokPeriod || peek(0).Type == shared.TokArrow {
+			switch peek(0).Type {
+			case shared.TokPeriod:
+				expect(shared.TokPeriod)
+			case shared.TokArrow:
+				expect(shared.TokArrow)
+				Write("lod_ptr r1, r1", true) // Do automatic dereference
+			}
 
+			NM_NOWARN := false
+
+			if variable.Type != STRUCT && variable.Name != "__ZERO" && peek(-1).Type != shared.TokArrow {
+				NM_NOWARN = true
+				error.Error(50, "'" + TypeToString(variable.Type, variable.Pointer, variable.PointerLength) + "' is not a structure or union", peek(-1), &tokens)
+			}
+			if variable.Name == "__ZERO" {
+				NM_NOWARN = true
+			}
+			if peek(-1).Type == shared.TokArrow {
+				Struct := ReturnStruct(variable.PointingToStruct)
+				if Struct.Name == "" {
+					error.InternalCompilerError("struct not found on lookup using name '" + variable.PointingToStruct + "'")
+				}
+
+				variable = Struct
+			}
+
+			StructName := variable.Name
+			identifier := expect(shared.TokIdent)
+			found := false
 			for _, Member := range variable.StructMemberList {
 				if Member.Name == identifier {
-					Write("mov e9, " + fmt.Sprintf("%d", Member.Offset), true)
-					Write("add e8, e8, e9", true)
+					found = true
+					Write("mov e8, " + fmt.Sprintf("%d", Member.Offset), true)
+					Write("add r1, r1, e8", true)
 					RequiredType = Member.RequiredType
+
+					if Member.RequiredType.Pointer == false {
+						CTYPE = Member.RequiredType.Type
+					} else {
+						CTYPE = Member.RequiredType.Type2
+					}
+					CPTR = Member.RequiredType.Pointer
+					CLENGTH = Member.RequiredType.PointerLength
+
+					variable.PointerLength = CLENGTH
+					variable.Pointer = CPTR
+					variable.Type = CTYPE
 					break
 				}
 			}
-
-			fmt.Println("Added")
-
-			Write("add r1, r1, e8", true)
+			if found == false && NM_NOWARN == false {
+				error.Error(49, "'" + identifier + "' in '" + StructName + "'", peek(-1), &tokens)
+			}
 		}
 
 		switch peek(0).Type {
@@ -1285,7 +1336,11 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			ParseExpy(subslice, 0, Scope, "e8", ArgumentTypeManifestEntry{Type: 999})
 		}
 
-		EQU_VT = variable.Type
+		if variable.Type != STRUCT {
+			EQU_VT = variable.Type
+		} else {
+			EQU_VT = CTYPE
+		}
 		EQU_VAR = variable	
 		if array == true {
 			switch variable.Type {
@@ -1303,6 +1358,10 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		}
 	
 		Intent := _IDENT_INTENT(variable.Pointer, variable.Type, deref, variable.Register, variable)
+
+		if variable.Type == STRUCT && Intent == "write" {
+			error.UnimplementedMessage("re-assigning structs is not currently supported")
+		}
 
 		x_deref := deref
 		derefs := 0
@@ -1508,8 +1567,6 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 	if peek(0).Type != shared.TokEqual && peek(0).Type != shared.TokEquality && peek(0).Type != shared.TokInequality && peek(0).Type != shared.TokGEqual && peek(0).Type != shared.TokLEqual && peek(0).Type != shared.TokLAngle && peek(0).Type != shared.TokRAngle && peek(0).Type != shared.TokIncrement && peek(0).Type != shared.TokDecrement {
 		// expect(shared.TokSemi)
 		return i
-	} else {
-
 	}
 	
 	switch peek(0).Type {
@@ -2262,6 +2319,17 @@ func Parse(tokens []shared.Token, Scope int) {
 					error.Error(14, "for type 'void'", peek(-2), &tokens)
 				}
 				rtype = NULL
+			default:
+				found := false
+				for _, Type := range TypeMap {
+					if Type.Name == _type {
+						rtype = Type.ReferralType
+						found = true
+					}
+				}
+				if found == false {
+					error.Error(25, "", peek(-1), &tokens)
+				}
 			}	
 
 			_variable := LookupVariable(name, false, Scope, tokens[i - 1], &tokens) 
@@ -2288,7 +2356,12 @@ func Parse(tokens []shared.Token, Scope int) {
 				if name == "main" {
 					rns = true
 					name = "_start"
-				}	
+				}
+
+				if rtype == STRUCT && ptr != true {
+					error.UnimplementedMessage("direct returning of structs is not supported due to ABI limitations")
+				}
+
 				expect(shared.TokLParen)
 				fscope := CreateScope(Scope)	
 		
@@ -2642,8 +2715,6 @@ func Parse(tokens []shared.Token, Scope int) {
 					}
 					i = end + 1
 				default:
-					fmt.Println("HI")
-					// Search up type
 					var TypeEntry TypeMapEntry
 					found := false
 					for _, Type := range TypeMap {
@@ -2665,12 +2736,9 @@ func Parse(tokens []shared.Token, Scope int) {
 					}
 					rtype = TypeEntry.ReferralType
 
-
-
 					switch TypeEntry.ReferralType {
 					case STRUCT:
 						if ptr == false {
-							fmt.Println("hi")
 							rn := "var_" + fmt.Sprintf("%d", IDCounter)
 							IDCounter++
 
@@ -2682,6 +2750,32 @@ func Parse(tokens []shared.Token, Scope int) {
 							StructVar.Name = name
 
 							Variables = append(Variables, StructVar)
+						} else {
+							_i := 0;
+							rn := "var_" + fmt.Sprintf("%d", IDCounter)
+							IDCounter++
+
+							WritePre(rn + ":", false)
+							var ATMEntry ArgumentTypeManifestEntry
+							if ptr == false {
+								ATMEntry.Type = rtype
+								ATMEntry.Pointer = ptr
+								ATMEntry.PointerLength = _ptrlen
+							} else {
+								ATMEntry.Type2 = rtype
+								ATMEntry.Pointer = ptr
+								ATMEntry.PointerLength = _ptrlen
+							}
+							_i = ParseExpy(tokens, i, Scope, "r4", ATMEntry)
+
+							WritePre(".ptr 0x00", true)
+							Write("mov r7, " + rn, true)
+							Write("str_ptr r7, r4", true)
+
+							i = _i
+
+							var val any
+							Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Type2: rtype, Value: val, Pointer: true, PointerLength: _ptrlen, Real: rn, Scope: Scope, PointingToStruct: _type, Const: constant})
 						}
 					case NUMBER8, NUMBER16, NUMBER32, STRING, NULL:
 						_i := 0
@@ -2765,7 +2859,6 @@ func Parse(tokens []shared.Token, Scope int) {
 					}	
 				}
 
-				fmt.Println("PEEK0", peek(0).Value)
 				expect(shared.TokSemi)
 			case shared.TokSemi:
 				expect(shared.TokSemi)
@@ -2833,6 +2926,67 @@ func Parse(tokens []shared.Token, Scope int) {
 							WritePre(".ptr " + name, true)
 							Variables = append(Variables, Variable_Static{Name: name, Type: NUMBER16, Type2: NULL, Value: nil, Pointer: true, Real: rn, PointerLength: _ptrlen, Scope: Scope, Const: constant})	
 						}
+					}
+				default:
+					var TypeEntry TypeMapEntry
+					found := false
+					for _, Type := range TypeMap {
+						if Type.Name == _type {
+							found = true
+							TypeEntry = Type
+							break
+						}
+					}
+					if found == false {
+						error.Error(46, "'" + _type + "'", _type_tok, &tokens)
+						for j := i; j < len(tokens); j++ {
+							if tokens[j].Type == shared.TokSemi {
+								i = j + 1
+								break
+							}
+						}
+						continue
+					}
+					rtype = TypeEntry.ReferralType
+
+					switch TypeEntry.ReferralType {
+					case STRUCT:
+						if ptr == false {
+							rn := "var_" + fmt.Sprintf("%d", IDCounter)
+							IDCounter++
+
+							WritePre(rn + ":", false)
+							WritePre(".pad " + fmt.Sprintf("%d", TypeEntry.EmbeddedStruct.StructTotalSize), true)
+
+							StructVar := TypeEntry.EmbeddedStruct
+
+							StructVar.Name = name
+							StructVar.Real = rn
+							StructVar.Type = STRUCT
+							StructVar.Scope = Scope
+
+							Variables = append(Variables, StructVar)
+						} else {
+							rn := "var_" + fmt.Sprintf("%d", IDCounter)
+							IDCounter++
+
+							WritePre(rn + ":", false)
+							WritePre(".ptr 0", true)
+
+							fmt.Println(_type)
+
+							Variables = append(Variables, Variable_Static {
+								Name: name,
+								Real: rn,
+								Type: NUMBER16,
+								Pointer: true,
+								PointerLength: _ptrlen,
+								Type2: rtype,
+								Scope: Scope,
+								Const: constant,
+								PointingToStruct: _type,
+							})
+						}	
 					}
 				}
 			case shared.TokLBracket:

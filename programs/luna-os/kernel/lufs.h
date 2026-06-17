@@ -5,3 +5,9 @@ extern long int fgetsize(char* filename);
 extern long int* ffnt(char* filename);
 extern void flist();
 extern long int* fntf(char* name);
+
+typedef struct {
+    long int* Address;
+    char* Name;
+
+} File;

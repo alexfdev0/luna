@@ -94,7 +94,7 @@ func main() {
 		tokens := lexer.Lex(code, file)
 		parser.Parse(tokens, 1)
 
-		if error.Errors < 1 {
+		if error.Errors < 1 && error.FailCompilation == false {
 			name := strings.TrimSuffix(file, filepath.Ext(file))
 			assembly_files = append(assembly_files, name + ".s")
 			dir := ""
@@ -113,7 +113,7 @@ func main() {
 		// Reset and clean up for the next file
 		error.Summary()
 
-		if error.Errors > 0 {
+		if error.Errors > 0 || error.FailCompilation == true  {
 			errors = true
 		}
 		error.Errors = 0
