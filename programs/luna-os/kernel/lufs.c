@@ -4,6 +4,11 @@
 #include "util.h"
 #include "stdbool.h"
 
+typedef struct {
+    long int* Address;
+    char* Name;
+} File;
+
 long int* ffnt(char* filename) {
     short short int* buffer = (short short int*) malloc((long int) strlen(filename));
     long int* bufptr = (long int*) buffer;
@@ -106,7 +111,7 @@ long int* find_file(char* name) {
     return 0;
 }
 
-long int* fopen(char* filename, short short int complain_on_not_found) {
+File* fopen(char* filename, short short int complain_on_not_found) {
     long int* faddr = find_file(filename);
     if (faddr == 0x00000000) {
         if (complain_on_not_found) {
@@ -117,11 +122,17 @@ long int* fopen(char* filename, short short int complain_on_not_found) {
         }
     }
 
-    return faddr;
+    File f;
+
+    f.Address = faddr;
+    f.Name = (char*) ffnt(filename);
+
+    return &f;
 }
 
 long int fgetsize(char* filename) {
-    long int* fptr = fopen(filename, 1);
+    File* f = fopen(filename, 1);
+    long int* fptr = f->Address;
     fptr = fptr - 4;
     return *fptr;
 }
@@ -148,7 +159,8 @@ void flist() {
 }
 
 void fwrite(char* name, char* content) {
-    long int* cptr = fopen(name, 1);
+    File* f = fopen(name, 1);
+    long int* cptr = f->Address;
     if (cptr == 0) { 
         return;
     }

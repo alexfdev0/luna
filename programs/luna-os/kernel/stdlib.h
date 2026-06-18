@@ -41,3 +41,5 @@ extern void* sleep_loc;
 #define COLOR_YELLOW  0xFD
 #define COLOR_WHITE   0xFF
 #define TRANSPARENT   0xE3
+
+#define NULL *(void*) 0xDEADBEEF;

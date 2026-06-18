@@ -1,7 +1,7 @@
 SRC=./
 
-all: luna-l2 las lcc lcc1 l2ld
-.PHONY: clean install l2ld
+all: luna-l2 las lcc lcc1 l2ld 
+.PHONY: clean install l2ld lcc
 
 luna-l2: $(SRC)/l2/*
 	cd l2 && go build -buildmode=plugin -o ../components/audio/s1.so ./audio/hardware/s1.go
@@ -15,11 +15,16 @@ las: $(SRC)/las/* $(SRC)/lcc_info/*
 lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
 	cd lcc1 && go build -o ../bin/lcc1 ./lcc1.go
 
+lcc1-libs:
+	cd lcc1/libs && lcc -c memcpy.s
+	cd lcc1/libs && sudo mv memcpy.o /usr/local/lib/l2ld/
+	sudo printf "_builtin_lcc_memcpy16 /usr/local/lib/l2ld/memcpy.o\n_builtin_lcc_memcpy32 /usr/local/lib/l2ld/memcpy.o\n" > /usr/local/lib/l2ld/memcpy.lib
+
 lcc: $(SRC)/lcc/* $(SRC)/lcc_info/*
 	cd lcc && go build -o ../bin/lcc ./lcc.go
 
 l2ld:
-	cd l2ld && go build -o ../bin/l2ld ./l2ld.go	
+	cd l2ld && go build -o ../bin/l2ld ./l2ld.go
 
 macos-installer:
 	cd l2 && CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o ../Mac/amd64/usr/local/bin/"Luna L2"/Contents/MacOS/luna-l2 luna_l2.go

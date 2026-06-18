@@ -61,6 +61,7 @@ var errors = []string {
 	"duplicate member",
 	"no member named",
 	"member reference base type", // 50
+	"member reference type", 
 }
 
 var Warnings int = 0

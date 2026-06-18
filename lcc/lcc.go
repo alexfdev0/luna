@@ -79,6 +79,7 @@ func main() {
 	var output_file string = ""
 	var cc1args []string
 	var lasargs []string
+	var noautolink bool = false
 	var l2ld_opt string = ""
 
 	for i := 1; i < len(os.Args); i++ {
@@ -102,8 +103,8 @@ func main() {
 		case "-Werror":
 			cc1args = append(cc1args, "-Werror")
 			lasargs = append(lasargs, "-Werror")
-		case "-fstdlib":
-			l2ld_opt += " -a"
+		case "-fno-autolink":
+			noautolink = true
 		case "-fpie":
 			l2ld_opt += " -fpie"
 			lasargs = append(lasargs, "-fpie")
@@ -202,8 +203,12 @@ func main() {
 	}
 	
 	// Third pass: link all assembly files to final executable
+	alinkstring := " -a"
+	if noautolink == true {
+		alinkstring = ""
+	}
 
-	success := execute("l2ld " + l2ld_opt + " " + strings.Join(object_files, " ") + " -o " + output_file, false)
+	success := execute("l2ld " + alinkstring + " " + l2ld_opt + " " + strings.Join(object_files, " ") + " -o " + output_file, false)
 	if success != true {
 		cleanupFiles(cleanup)
 		stderr("\033[1;39mlcc: \033[1;31merror: \033[1;39mlinker command failed (use -si to see invocation)\033[0m")

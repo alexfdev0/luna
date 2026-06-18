@@ -37,7 +37,8 @@ void shell() {
         if (strcmp("notepad", (char*) buf) == 1) {
             long int size = fgetsize((char*) fntf(notepad_file));
             long int* buf = malloc(size); 
-            long int* file = fopen((char*) fntf(notepad_file), 1);
+            File* f = fopen((char*) fntf(notepad_file), 1);
+            long int* file = f->Address;
             if (file == 0x00000000) {
                 continue;
             }

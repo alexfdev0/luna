@@ -51,7 +51,7 @@ int query_drive_inserted(short short int drive) {
     asm ("mov r1, e0"); // Move drive number to r1
     asm ("int 0x3"); // Query drive inserted
     asm ("mov e12, r1");
-    return _e12;
+    return (int) _e12;
 }
 
 void reboot() {

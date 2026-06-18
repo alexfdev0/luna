@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"runtime"
 	"strings"
+	"path/filepath"
 )
 
 type binding struct {
@@ -215,29 +216,48 @@ func Filter(data []byte, filename string) {
 
 var libs = make(map[string]string)
 func ParseLibs() {
-	file := ""
+	dir := ""
 	if runtime.GOOS == "windows" {
-		file = "C:\\Program Files (x86)\\Luna L2\\lib\\l2ld\\libs.conf"
+		dir = "C:\\Program Files (x86)\\Luna L2\\lib\\l2ld\\"
 	} else {
-		file = "/usr/local/lib/l2ld/libs.conf"
+		dir = "/usr/local/lib/l2ld/"
 	}
-	data, err := os.ReadFile(file)
-	if err != nil {
-		fmt.Println("l2ld: could not read libs.conf file")
-	}
-	data_string := string(data)
-	data_words := strings.Fields(data_string)
 
-	for i := 0; i < len(data_words); i++ {
-		word := data_words[i]
-		if i + 1 >= len(data_words) {
-			fmt.Println("l2ld: error in libs.conf near '" + word + "'")
-			break
-		}
-		nextword := data_words[i + 1]
-		libs[word] = nextword
-		i++
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		fmt.Println("l2ld: warning: could not read lib directory '" + dir + "'")
+		return
 	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if filepath.Ext(entry.Name()) != ".lib" {
+			continue
+		}
+
+		file := filepath.Join(dir, entry.Name())
+
+		data, err := os.ReadFile(file)
+		if err != nil {
+			fmt.Println("l2ld: could not read lib file '" + file + "'")
+			continue
+		}
+		data_string := string(data)
+		data_words := strings.Fields(data_string)
+
+		for i := 0; i < len(data_words); i++ {
+			word := data_words[i]
+			if i + 1 >= len(data_words) {
+				fmt.Println("l2ld: error in '" + file + "' near '" + word + "'")
+				break
+			}
+			nextword := data_words[i + 1]
+			libs[word] = nextword
+			i++
+		}
+	}	
 }
 
 func main() {
