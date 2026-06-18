@@ -8,3 +8,5 @@ bin
 *.out
 lcc1/test
 .vscode
+components
+components/*
