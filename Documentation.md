@@ -96,13 +96,13 @@ The standard Luna L2 memory map is as follows:<br>
 ## 32-bit mode
 0x00000000 - 0x6EFFFFFF: GP RAM<br>
 0x6FFF0000 - 0x6FFFFFFF: IDT<br>
-0x70000000 - 0x7000F9FF: VRAM<br>
-0x7000FA00 - 0x7000FA09: Audio controller registers<br>
-0x7000FA0A - 0x7000FA11: Mouse registers<br>
-0x7000FA12: Keyboard register<br>
-0x7000FA13 - 0x7000FA1A: PIT registers<br>
-0x7001A644 - 0x7001A659: Network controller registers<br>
-0x7001B65E - 0x7001B663: RTC registers<br><br>
+0x70000000 - 0x7FFFFFFF: VRAM<br>
+0x80000000 - 0x80000009: Audio controller registers<br>
+0x8000000A - 0x80000011: Mouse registers<br>
+0x80000012: Keyboard register<br>
+0x80000013 - 0x8000001A: PIT registers<br>
+0x80000020 - 0x80000025: RTC registers<br>
+0x80000026: Power controller register <br><br>
 
 ## Device registers
 ### VRAM
@@ -121,23 +121,6 @@ Byte 0: character code of last key pressed.<br>
 ### PIT registers
 Bytes 0-3: 32-bit programmed countdown value (PIT updates every millisecond)
 Bytes 4-7: 32-bit actual countdown value (when this reaches 0, the PIT interrupt will be triggered and it will be reset to the programmed countdown value)<br>
-### Network controller registers
-All modes:<br>
-Byte 0: execute register; executes a function based on parameters.<br>
-Byte 1: mode; 0x00: TCP client; 0x01: TCP server.<br>
-Bytes 6-7: 16 bit port number (for both modes).<br>
-Client mode:<br>
-Bytes 2-5: IP address; stored as number.<br>
-Bytes 14-17: pointer to data to send.<br>
-Bytes 18-21: size of data to send.<br>
-Bytes 10-13: output pointer (outputs are always 2048 bytes).<br>
-Server mode:<br>
-Byte 2: Accept flag<br>
-Byte 4: Connection waiting flag<br>
-Byte 5: Command register; 0: close connection; 1: read from network buffer (2048 bytes); 2: write to network buffer<br>
-Bytes 10-13: output pointer<br>
-Bytes 14-17: pointer to data to send.<br>
-Bytes 18-21: size of data to send.<br>
 ### RTC registers
 Byte 0: Current second<br>
 Byte 1: Current minute<br>
@@ -145,6 +128,8 @@ Byte 2: Current hour<br>
 Byte 3: Current day<br>
 Byte 4: Current month<br>
 Byte 5: Current year minus 2000<br>
+### Power controller register
+Byte 0: current battery level; 100% if no battery<br><br>
 
 # Assembly
 The Luna toolchain has a custom assembler (`las`) to convert programs from assembly language to object format that can then be linked and then run on L2. (Flags can be found in the [frontend](#frontend) section.)<br>
@@ -156,7 +141,6 @@ You can use a label name followed by a colon to make a label, which gets turned 
 There are some directives in LAS that do not correspond to any instruction on L2. They are as follows:<br>
 `call <label>`: calculates the return address, pushes it onto the stack, and jumps to the label specified<br>
 `ret`: jumps to the value in register `e11`<br>
-`lode/stre/lodfe/strfe`: Same as their normal equivalents (`lod/str/lodf/strf`) but they factor in the effective address (in `e14`); useful if you are making PIEs.<br>
 `pusha`: Pushes all GP registers from R0 upwards.<br>
 `popa`: Pops all GP registers from E12 downwards.<br>
 `lod_ptr`: Emits LOD16/LOD32 based on current assembler mode.<br>
