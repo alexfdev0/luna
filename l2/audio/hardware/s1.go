@@ -49,7 +49,7 @@ func AudioController() {
 	format := beep.Format{SampleRate: 48000, NumChannels: 2, Precision: 1}
 	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second / 2))
 	for {
-		if MemoryAudio[0] == 1 {
+		if MemoryAudio[0] != 0 {
 			MemoryAudio[0] = 0
 			Pointer = uint32(MemoryAudio[1]) << 24 | uint32(MemoryAudio[2]) << 16 | uint32(MemoryAudio[3]) << 8 | uint32(MemoryAudio[4])
 			Size = uint32(MemoryAudio[5]) << 24 | uint32(MemoryAudio[6]) << 16 | uint32(MemoryAudio[7]) << 8 | uint32(MemoryAudio[8])

@@ -61,7 +61,8 @@ var errors = []string {
 	"duplicate member",
 	"no member named",
 	"member reference base type", // 50
-	"member reference type", 
+	"member reference type",
+	"unknown type name",
 }
 
 var Warnings int = 0
@@ -125,6 +126,8 @@ func Stargaze(Tokens *[]shared.Token, where int, errno int, kind int) {
 	text = strings.ReplaceAll(text, "* ", "*")
 	text = strings.ReplaceAll(text, " [ ", "[")
 	text = strings.ReplaceAll(text, " ] ", "] ")
+	text = strings.ReplaceAll(text, " & ", "&")
+	text = strings.ReplaceAll(text, "& ", "&")
 	text = strings.ReplaceAll(text, " . ", ".")
 
 

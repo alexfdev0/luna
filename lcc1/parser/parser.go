@@ -51,6 +51,7 @@ type StructMemberListEntry struct {
 	Name string
 	Offset int
 	RequiredType ArgumentTypeManifestEntry
+	PointingToStruct string
 }
 
 type ArgumentTypeManifestEntry struct {
@@ -628,6 +629,9 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		level = 1
 	}	
 	_STRUCT_ACCESS := func(variable Variable_Static, CTYPE int, CPTR bool, CLENGTH int, MoveAfter bool, LoadArrow bool) (Variable_Static, int, bool, int) {
+		FirstTime := true
+		PointingToStruct := ""
+		SA_TOP:
 		if peek(0).Type == shared.TokPeriod || peek(0).Type == shared.TokArrow {
 			switch peek(0).Type {
 			case shared.TokPeriod:
@@ -656,7 +660,10 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 			}
 
 			if peek(-1).Type == shared.TokArrow {
-				Struct := ReturnStruct(variable.PointingToStruct)
+				if FirstTime == true {
+					PointingToStruct = variable.PointingToStruct
+				}
+				Struct := ReturnStruct(PointingToStruct)
 				if Struct.Name == "" && SNF_NOWARN == false {
 					error.InternalCompilerError("struct not found on lookup using name '" + variable.PointingToStruct + "'")
 				}
@@ -673,6 +680,10 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 					Write("mov e8, " + fmt.Sprintf("%d", Member.Offset), true)
 					Write("add r1, r1, e8", true)
 					RequiredType = Member.RequiredType
+
+					if Member.PointingToStruct != "" {
+						PointingToStruct = Member.PointingToStruct
+					}
 
 					if Member.RequiredType.Pointer == false {
 						CTYPE = Member.RequiredType.Type
@@ -694,6 +705,11 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 
 			if MoveAfter == true {
 				Write("mov " + register + ", r1", true)
+			}
+			
+			if peek(0).Type == shared.TokArrow {
+				FirstTime = false
+				goto SA_TOP
 			}
 
 			return variable, CTYPE, CPTR, CLENGTH
@@ -973,6 +989,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		_CONTINUE_TOPLEVEL = otln_co
 
 		_CMPOP_CLEANUP()
+		goto DONE
 	case shared.TokDo:
 		expect(shared.TokDo)
 		expect(shared.TokLCurly)
@@ -1062,6 +1079,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		_BREAK_TOPLEVEL = otln
 		_CONTINUE_TOPLEVEL = otln_co
 		_CMPOP_CLEANUP()
+		goto DONE
 	case shared.TokFor:
 		expect(shared.TokFor)
 		expect(shared.TokLParen)
@@ -1192,6 +1210,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		
 		_CMPOP_CLEANUP()
 		expect(shared.TokRCurly)
+		goto DONE
 	case shared.TokContinue:
 		expect(shared.TokContinue)
 		if _CONTINUE_TOPLEVEL == "" {
@@ -1410,6 +1429,10 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 	
 		Intent := _IDENT_INTENT(variable.Pointer, variable.Type, deref, variable.Register, variable)
 
+		if Intent == "write" && deref < 0 {
+			error.Error(45, "", peek(-1), &tokens)
+		}
+
 		x_deref := deref
 		derefs := 0
 		for x_deref > 0 {
@@ -1615,7 +1638,7 @@ func ParseExpy(tokens []shared.Token, start int, Scope int, register string, Req
 		_COERCE_LENGTH = 0
 	}
 
-	if NUM_TRY_DEREF == true && deref < 1 && peek(0).Type == shared.TokEqual {
+	if NUM_TRY_DEREF == true && deref < 1 && peek(0).Type == shared.TokEqual {	
 		error.Error(45, "", peek(0), &tokens)
 	}
 
@@ -2061,7 +2084,13 @@ func Parse(tokens []shared.Token, Scope int) {
 					constant = true
 				}
 			} else {
-				_type := expect(shared.TokType)
+				_type := "int"
+				switch peek(0).Type {
+				case shared.TokType, shared.TokIdent:
+					_type = expect(peek(0).Type)
+				default:
+					_type = expect(shared.TokType)
+				}
 				var rtype int
 				switch _type {
 				case "int":
@@ -2082,6 +2111,24 @@ func Parse(tokens []shared.Token, Scope int) {
 					rtype = STRING
 				case "void":
 					rtype = NULL
+				default:
+					var TypeEntry TypeMapEntry
+					found := false
+					for _, Type := range TypeMap {
+						if Type.Name == _type {
+							found = true
+							TypeEntry = Type
+							break
+						}
+					}
+					if found == false {
+						error.Error(52, "'" + _type + "'", peek(-1), &tokens)	
+					}
+					rtype = TypeEntry.ReferralType
+					if TypeEntry.Pointer == true {
+						ptr = true
+						ptrlen += TypeEntry.PointerLength
+					}
 				}
 
 			ptrtop:
@@ -2213,7 +2260,6 @@ func Parse(tokens []shared.Token, Scope int) {
 						CheckMemberOfStruct := func(name string) bool {
 							for _, Member := range MemberList {
 								if Member.Name == name {
-									fmt.Println(Member.Name)
 									return true
 								}
 							}
@@ -2221,10 +2267,15 @@ func Parse(tokens []shared.Token, Scope int) {
 						}
 
 						for {
+							tname := peek(0).Value
 							_, IsType := LookupType(peek(0).Value)
 							if peek(0).Type == shared.TokQualifier || peek(0).Type == shared.TokType || IsType == true {
 								Type, Pointer, PtrLen := _PARSE_TYPE()
 								_size := 0
+
+								if Type == STRUCT && Pointer == false {
+									error.UnimplementedMessage("Directly including structs in structs is not currently supported")
+								}
 								
 								if Pointer == false {
 									switch Type {
@@ -2253,6 +2304,7 @@ func Parse(tokens []shared.Token, Scope int) {
 								MemberList = append(MemberList, StructMemberListEntry {
 									Name: member_name,
 									Offset: size_accumulator,
+									PointingToStruct: tname,
 									RequiredType: ArgumentTypeManifestEntry {
 										Type: Type,
 										Pointer: Pointer,
@@ -2346,12 +2398,7 @@ func Parse(tokens []shared.Token, Scope int) {
 			if breakoff == true {
 				break
 			}
-
-			// if peek(0).Type == shared.TokIdent  {
-				// error.Error(25, "", peek(0), &tokens)
-			// }
-
-			// _typetok := tokens[i]
+	
 			_type := ""
 			_type_tok := peek(0)
 			switch peek(0).Type {
@@ -2708,26 +2755,31 @@ func Parse(tokens []shared.Token, Scope int) {
 							goto EQU_RTYPE_DONE
 						}
 
-						switch rtype {
-						case NUMBER8, STRING:
-							r_res := uint8(res)
-							if res > math.MaxUint8 || res < 0 {
-								error.Warning(36, "'" + ReturnIntType(res) + "' to 'unsigned short short int' changes value from '" + fmt.Sprintf("%d", res) + "' to '" + fmt.Sprintf("%d", r_res) + "'", peek(0), &tokens)
+						
+						if ptr == false {
+							switch rtype {
+							case NUMBER8, STRING:
+								r_res := uint8(res)
+								if res > math.MaxUint8 || res < 0 {
+									error.Warning(36, "'" + ReturnIntType(res) + "' to 'unsigned short short int' changes value from '" + fmt.Sprintf("%d", res) + "' to '" + fmt.Sprintf("%d", r_res) + "'", peek(0), &tokens)
+								}
+								WritePre(".byte " + fmt.Sprintf("0x%02x", r_res), true)
+							case NUMBER16:
+								r_res := uint16(res)
+								if res > math.MaxUint16 || res < 0 {
+									error.Warning(36, "'" + ReturnIntType(res) + "' to 'unsigned short int' changes value from '" + fmt.Sprintf("%d", res) + "' to '" + fmt.Sprintf("%d", r_res) + "'", peek(0), &tokens)
+								}
+								WritePre(".word " + fmt.Sprintf("0x%04x", r_res), true)
+							case NUMBER32:
+								r_res := uint32(res)
+								if res > math.MaxUint32 || res < 0 {
+									error.Warning(36, "'" + ReturnIntType(res) + "' to 'unsigned long int' changes value from '" + fmt.Sprintf("%d", res) + "' to '" + fmt.Sprintf("%d", r_res) + "'", peek(0), &tokens)
+								}
+								WritePre(".dword " + fmt.Sprintf("0x%08x", r_res), true)
 							}
-							WritePre(".byte " + fmt.Sprintf("0x%02x", r_res), true)
-						case NUMBER16:
-							r_res := uint16(res)
-							if res > math.MaxUint16 || res < 0 {
-								error.Warning(36, "'" + ReturnIntType(res) + "' to 'unsigned short int' changes value from '" + fmt.Sprintf("%d", res) + "' to '" + fmt.Sprintf("%d", r_res) + "'", peek(0), &tokens)
-							}
-							WritePre(".word " + fmt.Sprintf("0x%04x", r_res), true)
-						case NUMBER32:
-							r_res := uint32(res)
-							if res > math.MaxUint32 || res < 0 {
-								error.Warning(36, "'" + ReturnIntType(res) + "' to 'unsigned long int' changes value from '" + fmt.Sprintf("%d", res) + "' to '" + fmt.Sprintf("%d", r_res) + "'", peek(0), &tokens)
-							}
-							WritePre(".dword " + fmt.Sprintf("0x%08x", r_res), true)
-						}	
+						} else {
+							WritePre(".ptr " + fmt.Sprintf("0x%x", res), true)
+						}
 						EQU_RTYPE_DONE:
 					} else {
 						WritePre(rn + ":", false)

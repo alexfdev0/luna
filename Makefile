@@ -16,9 +16,10 @@ lcc1: $(SRC)/lcc1/* $(SRC)/lcc_info/*
 	cd lcc1 && go build -o ../bin/lcc1 ./lcc1.go
 
 lcc1-libs:
-	cd lcc1/libs && lcc -c memcpy.s
-	cd lcc1/libs && sudo mv memcpy.o /usr/local/lib/l2ld/
-	sudo printf "_builtin_lcc_memcpy16 /usr/local/lib/l2ld/memcpy.o\n_builtin_lcc_memcpy32 /usr/local/lib/l2ld/memcpy.o\n" > /usr/local/lib/l2ld/memcpy.lib
+	cd lcc1/libs && lcc -c memcpy16.s
+	cd lcc1/libs && lcc -c memcpy32.s
+	cd lcc1/libs && sudo mv *.o /usr/local/lib/l2ld/
+	sudo printf "_builtin_lcc_memcpy16 /usr/local/lib/l2ld/memcpy16.o\n_builtin_lcc_memcpy32 /usr/local/lib/l2ld/memcpy32.o\n" > /usr/local/lib/l2ld/memcpy.lib
 
 lcc: $(SRC)/lcc/* $(SRC)/lcc_info/*
 	cd lcc && go build -o ../bin/lcc ./lcc.go
