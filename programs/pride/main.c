@@ -33,7 +33,7 @@ void _start() {
     asm ("mov r1, 0xFA41");
 
     asm ("mov r2, pit_nxt");
-    asm ("strf r1, r2");
+    asm ("str16 r1, r2");
 
     while (1) {
         render_flags();

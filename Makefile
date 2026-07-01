@@ -55,6 +55,7 @@ macos-installer:
 
 mac_qmake:
 	mkdir -p /usr/local/lib/l2/
+	cd l2 && go build -buildmode=plugin -o ../components/audio/s1.so ./audio/hardware/s1.go
 	cd l2 && go build -buildmode=plugin -o ../components/video/g1x.so ./video/hardware/g1x.go
 	cd l2 && go build -buildmode=plugin -o ../components/video/g1.so ./video/hardware/g1.go
 	sudo cp -r components/* /usr/local/lib/l2/

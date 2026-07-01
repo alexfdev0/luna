@@ -1341,14 +1341,14 @@ func main() {
 		TextBuffer = []byte {}
 		ExtendedDataBuffer = []byte {}
 		section = "text"
-	}	
-
-	if nolink == true {
-		os.Exit(0)
 	}
 
 	if link_nocont == true {
 		os.Exit(1)
+	}
+
+	if nolink == true {
+		os.Exit(0)
 	}
 
 	execute("lcc " + strings.Join(object_files, " ") + " -o " + output_filename)	
