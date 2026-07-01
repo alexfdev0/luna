@@ -111,6 +111,20 @@ func stall(cycles int64) {
 var ins int64 = 0
 
 func execute() {
+	II_HALT := func(ProgramCounter uint32, next uint32) bool {
+		now := ProgramCounter
+		bios.IntWrapper(0x7, next)
+		if shared.Debug == true {
+			setRegister(0x001d, next)
+		} else {
+			if getRegister(0x001d) == now {
+				return true
+			} else {
+				fmt.Println(now, getRegister(0x001d))
+			}
+		}
+		return false
+	}
 	for {
 		ProgramCounter := getRegister(0x001d)
 		op := shared.Mapper(ProgramCounter)	
@@ -404,10 +418,19 @@ func execute() {
 			toregister := shared.Mapper(ProgramCounter + 1)
 			regone := shared.Mapper(ProgramCounter + 2)
 			regtwo := shared.Mapper(ProgramCounter + 3)
-			setRegister(uint32(toregister), getRegister(uint32(regone)) / getRegister(uint32(regtwo)))
-			setRegister(0x001d, ProgramCounter + 4)
+			if (getRegister(uint32(regtwo)) == 0) {
+				setRegister(0x0001, uint32(op))
+				setRegister(0x0002, getRegister(0x001d))
+				stall(10)
+				if II_HALT(ProgramCounter, ProgramCounter + 4) == true {
+					return
+				}
+			} else {
+				setRegister(uint32(toregister), getRegister(uint32(regone)) / getRegister(uint32(regtwo)))
+				setRegister(0x001d, ProgramCounter + 4)
+				stall(140)
+			}
 			Log("div " + getRegisterName(toregister) + ", " + getRegisterName(regone) + ", " + getRegisterName(regtwo))
-			stall(140)
 		case 0x11:
 			// IGT
 			// igt <register> <register> <register>
@@ -584,14 +607,8 @@ func execute() {
 			setRegister(0x0001, uint32(op))
 			setRegister(0x0002, getRegister(0x001d))
 			Log("\033[31mIllegal instruction 0x" + fmt.Sprintf("%08x", uint32(op)) + "\033[33m")
-			now := ProgramCounter
-			bios.IntWrapper(0x7, ProgramCounter + 1)	
-			if shared.Debug == true {
-				setRegister(0x001d, ProgramCounter + 1)
-			} else {
-				if getRegister(0x001d) == now {
-					return
-				}
+			if II_HALT(ProgramCounter, ProgramCounter + 1) == true {
+				return
 			}
 		}
 
