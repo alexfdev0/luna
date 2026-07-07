@@ -2182,7 +2182,7 @@ func Parse(tokens []shared.Token, Scope int) {
 					expect(shared.TokLParen)
 					str, end := StringParse(tokens, i)
 					i = end + 1
-					WritePre(str, false)
+					Write(str, false)
 					expect(shared.TokRParen)
 					expect(shared.TokSemi)
 					continue
